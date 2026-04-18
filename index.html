@@ -4342,26 +4342,22 @@ function resetData() {
 // ─── IndexedDB ───────────────────────────────────────────────
 var _db = null;
 var DB_NAME = 'treino_db';
-var DB_STORE = 'keyval';
-var DB_KEY = 'state';
+var DB_STORE = 'state';
+var DB_KEY = 'main';
 
 function openDB(cb) {
   if (_db) { cb(_db); return; }
   try {
-    var req = indexedDB.open(DB_NAME, 2);
+    var req = indexedDB.open(DB_NAME, 3);
     req.onupgradeneeded = function(e) {
       var db = e.target.result;
-      // Create store if it doesn't exist
       if (!db.objectStoreNames.contains(DB_STORE)) {
         db.createObjectStore(DB_STORE);
       }
-      // Remove old store name if exists
-      if (db.objectStoreNames.contains('state')) {
-        db.deleteObjectStore('state');
-      }
     };
     req.onsuccess = function(e) { _db = e.target.result; cb(_db); };
-    req.onerror = function() { cb(null); };
+    req.onerror = function(e) { console.warn('IndexedDB error:', e); cb(null); };
+    req.onblocked = function() { console.warn('IndexedDB blocked'); cb(null); };
   } catch(e) { cb(null); }
 }
 
