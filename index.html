@@ -4366,10 +4366,16 @@ function saveState() {
   var json = JSON.stringify(state);
   try { localStorage.setItem(STORAGE_KEY, json); } catch(e) {}
   openDB(function(db) {
-    if (!db) return;
+    if (!db) { console.warn('IDB: db is null'); return; }
     try {
-      db.transaction(DB_STORE, 'readwrite').objectStore(DB_STORE).put(json, DB_KEY);
-    } catch(e) {}
+      console.log('IDB: saving, store:', DB_STORE, 'key:', DB_KEY, 'size:', json.length);
+      var tx = db.transaction(DB_STORE, 'readwrite');
+      var req = tx.objectStore(DB_STORE).put(json, DB_KEY);
+      req.onsuccess = function() { console.log('IDB: saved ok'); };
+      req.onerror = function(e) { console.warn('IDB req error:', e.target.error); };
+      tx.oncomplete = function() { console.log('IDB: tx complete'); };
+      tx.onerror = function(e) { console.warn('IDB tx error:', e.target.error); };
+    } catch(e) { console.warn('IDB save exception:', e); }
   });
 }
 
@@ -4491,6 +4497,9 @@ loadPersistedState(function() {
   if (state.planoRascunho || state.plano) {
     renderPlanoMacro(state.planoRascunho || state.plano);
   }
+  // Pre-open IndexedDB so it's ready when saveState is called
+  openDB(function() {});
+
   // Request persistent storage to prevent Android Chrome from clearing localStorage
   if (navigator.storage && navigator.storage.persist) {
     navigator.storage.persist().then(function(granted) {
