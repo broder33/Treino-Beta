@@ -1,0 +1,4460 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TREINO</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0a0a0a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Treino">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow+Condensed:wght@600;700&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0a;
+    --surface: #111111;
+    --surface2: #1a1a1a;
+    --border: #2a2a2a;
+    --accent: #e8ff3c;
+    --accent2: #ff6b35;
+    --accent3: #3caaff;
+    --text: #f0f0f0;
+    --muted: #555;
+    --done: #39ff85;
+    --partial: #ffcc00;
+    --skipped: #ff6bff;
+    --undone: #333;
+    --danger: #ff4444;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    min-height: 100vh;
+  }
+
+  /* ── HEADER ── */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 24px 14px;
+    border-bottom: 1px solid var(--border);
+    position: sticky; top: 0; z-index: 100;
+    background: var(--bg);
+  }
+  .logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 32px;
+    letter-spacing: 4px;
+    color: var(--accent);
+  }
+  .header-actions { display: flex; gap: 8px; align-items: center; }
+
+  /* ── TABS ── */
+  .tabs {
+    display: flex;
+    gap: 0;
+    padding: 12px 24px 0;
+    border-bottom: 1px solid var(--border);
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tab {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 18px;
+    letter-spacing: 2px;
+    padding: 8px 20px;
+    border: none;
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    border-bottom: 3px solid transparent;
+    transition: all .2s;
+    white-space: nowrap;
+  }
+  .tab:hover { color: var(--text); }
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+  .tab-badge {
+    display: inline-block;
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    background: var(--surface2);
+    border-radius: 99px;
+    padding: 1px 6px;
+    margin-left: 6px;
+    vertical-align: middle;
+  }
+
+  /* ── VIEWS ── */
+  .view { display: none; padding: 0 0 80px; }
+  .view.active { display: block; }
+
+  /* ── SERIE HEADER ── */
+  .serie-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 20px 24px 12px;
+  }
+  .serie-label {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 13px;
+    letter-spacing: 3px;
+    color: var(--muted);
+  }
+  .serie-name-edit {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 26px;
+    letter-spacing: 3px;
+    color: var(--text);
+    background: transparent;
+    border: none;
+    outline: none;
+    border-bottom: 1px solid transparent;
+    transition: border-color .2s;
+    flex: 1;
+    min-width: 0;
+  }
+  .serie-name-edit:focus { border-bottom-color: var(--accent); }
+
+  .serie-meta {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    padding: 0 24px 16px;
+    flex-wrap: wrap;
+  }
+  .last-done {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+  }
+  .last-done span { color: var(--accent3); }
+
+  .progress-bar-wrap {
+    flex: 1; min-width: 120px;
+    height: 4px;
+    background: var(--border);
+    border-radius: 99px;
+    overflow: hidden;
+  }
+  .progress-bar-fill {
+    height: 100%;
+    background: var(--accent);
+    transition: width .4s ease;
+    border-radius: 99px;
+  }
+
+  /* variant selector */
+  .variant-row {
+    display: flex;
+    gap: 8px;
+    padding: 0 24px 16px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .variant-label { font-size: 12px; color: var(--muted); letter-spacing: 1px; }
+  .variant-btn {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    padding: 4px 12px;
+    border-radius: 99px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    transition: all .15s;
+  }
+  .variant-btn.active { border-color: var(--accent); color: var(--accent); background: rgba(232,255,60,.07); }
+  .variant-btn:hover:not(.active) { border-color: var(--text); color: var(--text); }
+  .add-variant-btn {
+    font-size: 11px;
+    padding: 4px 10px;
+    border-radius: 99px;
+    border: 1px dashed var(--border);
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    transition: all .15s;
+  }
+  .add-variant-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* ── EXERCISE LIST — shared grid so all columns align ── */
+  .exercise-list {
+    padding: 0 24px;
+    display: grid;
+    grid-template-columns: 32px 1fr auto auto auto;
+    row-gap: 6px;
+  }
+
+  /* card becomes invisible as a layout container */
+  .ex-card { display: contents; }
+
+  /* every cell shares the same visual treatment */
+  .ex-dot-wrap,
+  .ex-col-name,
+  .ex-col-sets,
+  .ex-col-weight,
+  .ex-chevron-wrap {
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    min-height: 52px;
+    transition: border-color .2s, background .2s;
+  }
+
+  /* status colours applied per-cell via card class + sibling combinator */
+  .ex-card.status-done   + * , .ex-card.status-done   > * { border-color: rgba(57,255,133,.4); background: rgba(57,255,133,.03); }
+  .ex-card.status-partial > * { border-color: rgba(255,204,0,.4);  background: rgba(255,204,0,.03);  }
+
+  /* Because display:contents, we target children directly */
+  .ex-card.status-done   .ex-dot-wrap,
+  .ex-card.status-done   .ex-col-name,
+  .ex-card.status-done   .ex-col-sets,
+  .ex-card.status-done   .ex-col-weight,
+  .ex-card.status-done   .ex-chevron-wrap {
+    border-color: rgba(57,255,133,.4); background: rgba(57,255,133,.03);
+  }
+  .ex-card.status-partial .ex-dot-wrap,
+  .ex-card.status-partial .ex-col-name,
+  .ex-card.status-partial .ex-col-sets,
+  .ex-card.status-partial .ex-col-weight,
+  .ex-card.status-partial .ex-chevron-wrap {
+    border-color: rgba(255,204,0,.4); background: rgba(255,204,0,.03);
+  }
+  .ex-card.status-skipped .ex-dot-wrap,
+  .ex-card.status-skipped .ex-col-name,
+  .ex-card.status-skipped .ex-col-sets,
+  .ex-card.status-skipped .ex-col-weight,
+  .ex-card.status-skipped .ex-chevron-wrap {
+    border-color: rgba(255,107,255,.4); background: rgba(255,107,255,.03);
+  }
+  .priority-badge {
+    font-family: 'DM Mono', monospace;
+    font-size: 8px;
+    letter-spacing: 2px;
+    color: var(--skipped);
+    background: rgba(255,107,255,.1);
+    border: 1px solid rgba(255,107,255,.3);
+    border-radius: 99px;
+    padding: 1px 7px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  /* col 1 — dot: left border + left rounded corners */
+  .ex-dot-wrap {
+    border-left: 1px solid var(--border);
+    border-radius: 10px 0 0 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+  }
+  .status-dot {
+    width: 9px; height: 9px;
+    border-radius: 50%;
+    transition: background .2s, box-shadow .2s;
+    cursor: pointer;
+    border: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .status-dot.done    { background: var(--done);    border-color: var(--done);    box-shadow: 0 0 6px rgba(57,255,133,.5); }
+  .status-dot.partial { background: var(--partial); border-color: var(--partial); box-shadow: 0 0 6px rgba(255,204,0,.4); }
+  .status-dot.skipped { background: var(--skipped); border-color: var(--skipped); box-shadow: 0 0 6px rgba(255,107,255,.5); }
+  .status-dot.undone  { background: var(--undone); }
+
+  /* col 2 — name */
+  .ex-col-name {
+    padding: 0 12px;
+    min-width: 0;
+    border-left: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    overflow: hidden;
+  }
+  .ex-name-input {
+    width: 100%;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 17px;
+    letter-spacing: 1.5px;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--text);
+    border-bottom: 1px solid transparent;
+    transition: border-color .2s;
+    padding: 2px 0;
+    line-height: 1.2;
+    cursor: text;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+  }
+  .ex-name-input:focus { border-bottom-color: rgba(255,255,255,.2); white-space: normal; }
+
+  .ex-rename-btn {
+    flex-shrink: 0;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-size: 11px;
+    border-radius: 6px;
+    padding: 2px 7px;
+    cursor: pointer;
+    transition: all .15s;
+    margin-left: 6px;
+    white-space: nowrap;
+  }
+  .ex-rename-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .ex-rename-btn.loading { border-color: var(--accent3); color: var(--accent3); animation: pulse .8s infinite; }
+  @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:.4; } }
+
+  .rename-confirm {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 8px;
+    background: var(--surface2);
+    border: 1px solid var(--accent3);
+    border-radius: 6px;
+    margin-left: 6px;
+    flex-shrink: 0;
+    max-width: 260px;
+    animation: fadeSlide .15s ease;
+  }
+  .rename-suggested {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 13px;
+    color: var(--accent3);
+    letter-spacing: 1px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .rename-accept, .rename-reject {
+    flex-shrink: 0;
+    border: none;
+    border-radius: 4px;
+    font-size: 11px;
+    padding: 2px 6px;
+    cursor: pointer;
+    transition: opacity .15s;
+  }
+  .rename-accept { background: var(--done); color: #000; }
+  .rename-reject { background: var(--surface); color: var(--muted); border: 1px solid var(--border); }
+  .rename-accept:hover, .rename-reject:hover { opacity: .8; }
+
+  /* col 3 — sets */
+  .ex-col-sets {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 6px 12px;
+    gap: 1px;
+    border-left: 1px solid var(--border);
+    cursor: pointer;
+  }
+
+  /* col 4 — weight */
+  .ex-col-weight {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 6px 12px;
+    gap: 1px;
+    border-left: 1px solid var(--border);
+    cursor: pointer;
+  }
+
+  .ex-col-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 8px;
+    letter-spacing: 2px;
+    color: var(--muted);
+    text-transform: uppercase;
+    line-height: 1;
+    white-space: nowrap;
+  }
+  .ex-col-input {
+    font-family: 'Barlow Condensed', sans-serif; font-weight: 700;
+    font-size: 18px;
+    letter-spacing: 1px;
+    line-height: 1.2;
+    background: transparent;
+    border: none;
+    outline: none;
+    padding: 0;
+    border-bottom: 1px solid transparent;
+    transition: border-color .2s;
+    cursor: text;
+    resize: none;
+    overflow: hidden;
+    field-sizing: content;
+    white-space: nowrap;
+  }
+  .ex-col-input:focus { border-bottom-color: rgba(255,255,255,.2); }
+  .ex-col-input::placeholder { color: var(--muted); opacity: .4; }
+  .ex-col-sets  .ex-col-input { color: var(--accent); }
+  .ex-col-weight .ex-col-input { color: var(--accent2); }
+
+  /* col 5 — chevron: right border + right rounded corners */
+  .ex-chevron-wrap {
+    border-right: 1px solid var(--border);
+    border-left: 1px solid var(--border);
+    border-radius: 0 10px 10px 0;
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+    cursor: pointer;
+  }
+  .ex-chevron {
+    color: var(--muted);
+    font-size: 11px;
+    transition: transform .2s;
+    flex-shrink: 0;
+  }
+  .ex-card.open .ex-chevron { transform: rotate(180deg); }
+
+  /* body row spans all 5 columns */
+  .ex-body {
+    display: none;
+    grid-column: 1 / -1;
+    padding: 0 14px 14px;
+    border: 1px solid var(--border);
+    border-top: none;
+    border-radius: 0 0 10px 10px;
+    background: var(--surface);
+    margin-top: -6px;
+    animation: fadeSlide .15s ease;
+  }
+  .ex-card.open .ex-body { display: block; }
+
+  @keyframes fadeSlide {
+    from { opacity: 0; transform: translateY(-4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .ex-fields {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-top: 12px;
+  }
+  .field-group { display: flex; flex-direction: column; gap: 4px; }
+  .field-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 1px;
+  }
+  .field-input {
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 6px 10px;
+    color: var(--text);
+    outline: none;
+    transition: border-color .2s;
+    width: 100%;
+  }
+  .field-input:focus { border-color: var(--accent); }
+  textarea.field-input { resize: vertical; min-height: 60px; }
+
+  .ex-status-row {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+    flex-wrap: wrap;
+  }
+  .status-btn {
+    font-size: 11px;
+    letter-spacing: 1px;
+    padding: 5px 14px;
+    border-radius: 99px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    transition: all .15s;
+    flex: 1;
+    min-width: 80px;
+    text-align: center;
+  }
+  .status-btn.done { border-color: var(--done); color: var(--done); background: rgba(57,255,133,.06); }
+  .status-btn.partial { border-color: var(--partial); color: var(--partial); background: rgba(255,204,0,.06); }
+  .status-btn.skipped { border-color: var(--skipped); color: var(--skipped); background: rgba(255,107,255,.06); }
+  .status-btn.undone { border-color: var(--border); color: var(--muted); }
+
+  .ex-actions { display: flex; gap: 6px; margin-top: 10px; justify-content: flex-end; }
+  .ex-action-btn {
+    font-size: 11px;
+    padding: 4px 10px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    transition: all .15s;
+  }
+  .ex-action-btn:hover { color: var(--danger); border-color: var(--danger); }
+  .ex-action-btn.move:hover { color: var(--accent3); border-color: var(--accent3); }
+
+  /* ── SERIE ACTIONS ── */
+  .serie-actions {
+    display: flex; gap: 8px;
+    padding: 0 24px 12px;
+    flex-wrap: wrap;
+  }
+  .btn {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 1px;
+    padding: 6px 16px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    transition: all .15s;
+  }
+  .btn:hover { color: var(--text); border-color: var(--text); }
+  .btn.primary { border-color: var(--accent); color: var(--accent); }
+  .btn.primary:hover { background: rgba(232,255,60,.1); }
+  .btn.danger:hover { color: var(--danger); border-color: var(--danger); }
+  .btn.mark-all { border-color: var(--done); color: var(--done); }
+  .btn.mark-all:hover { background: rgba(57,255,133,.07); }
+  .btn.reset-all { border-color: var(--muted); }
+
+  /* ── HISTORY VIEW ── */
+  .history-list { padding: 20px 24px; display: flex; flex-direction: column; gap: 12px; }
+  .history-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .history-serie {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 20px;
+    letter-spacing: 2px;
+    color: var(--accent);
+  }
+  .history-date {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+  }
+  .history-badge {
+    font-size: 11px;
+    padding: 3px 10px;
+    border-radius: 99px;
+    background: rgba(57,255,133,.08);
+    color: var(--done);
+  }
+
+  /* ── AI VIEW ── */
+  .ai-view { padding: 20px 24px 80px; }
+  .ai-context {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px;
+    margin-bottom: 16px;
+  }
+  .ai-context-label { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--muted); letter-spacing: 2px; margin-bottom: 8px; }
+  .ai-context select, .ai-context textarea {
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px 10px;
+    color: var(--text);
+    outline: none;
+    width: 100%;
+    transition: border-color .2s;
+  }
+  .ai-context select:focus, .ai-context textarea:focus { border-color: var(--accent); }
+  .ai-context textarea { resize: vertical; min-height: 80px; margin-top: 8px; }
+  .ai-btn {
+    width: 100%;
+    padding: 12px;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 20px;
+    letter-spacing: 3px;
+    border: none;
+    border-radius: 10px;
+    background: var(--accent);
+    color: #000;
+    cursor: pointer;
+    transition: all .2s;
+    margin-bottom: 16px;
+  }
+  .ai-btn:hover { background: #f5ff80; transform: translateY(-1px); }
+  .ai-btn:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+  .ai-response {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+    font-size: 13px;
+    line-height: 1.7;
+    white-space: pre-wrap;
+    min-height: 60px;
+    color: var(--text);
+  }
+  .ai-response .ai-placeholder { color: var(--muted); font-style: italic; }
+
+  /* ── MODAL ── */
+  .modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,.7);
+    backdrop-filter: blur(4px);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .2s;
+  }
+  .modal-overlay.open { opacity: 1; pointer-events: all; }
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 24px;
+    max-width: 480px;
+    width: 100%;
+    transform: translateY(20px);
+    transition: transform .2s;
+  }
+  .modal-overlay.open .modal { transform: translateY(0); }
+  .modal h3 { font-family: 'Bebas Neue', sans-serif; font-size: 22px; letter-spacing: 2px; margin-bottom: 16px; }
+  .modal-fields { display: flex; flex-direction: column; gap: 10px; }
+  .modal-field-label { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--muted); margin-bottom: 4px; letter-spacing: 1px; }
+  .modal-input {
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px 12px;
+    color: var(--text);
+    outline: none;
+    width: 100%;
+    transition: border-color .2s;
+  }
+  .modal-input:focus { border-color: var(--accent); }
+  .modal-actions { display: flex; gap: 8px; margin-top: 20px; justify-content: flex-end; }
+  .modal-btn {
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    padding: 8px 20px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text);
+    cursor: pointer;
+    transition: all .15s;
+  }
+  .modal-btn.confirm { border-color: var(--accent); color: var(--accent); }
+  .modal-btn.confirm:hover { background: rgba(232,255,60,.1); }
+  .modal-btn:hover { border-color: var(--text); }
+
+  /* ── TOAST ── */
+  .toast {
+    position: fixed;
+    bottom: 24px; left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 99px;
+    padding: 8px 20px;
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    color: var(--text);
+    z-index: 2000;
+    opacity: 0;
+    transition: all .3s;
+    pointer-events: none;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* ── DIVIDER ── */
+  .section-divider {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 24px 4px;
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: var(--muted);
+  }
+  .section-divider::after { content:''; flex:1; height:1px; background: var(--border); }
+
+  .plan-week {
+    margin-bottom: 24px;
+  }
+  .plan-week-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 20px;
+    letter-spacing: 3px;
+    color: var(--accent);
+    margin-bottom: 10px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--border);
+  }
+  .plan-day {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .plan-day-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: var(--muted);
+    min-width: 80px;
+    padding-top: 2px;
+  }
+  .plan-day-content { flex: 1; }
+  .plan-day-serie {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 17px;
+    letter-spacing: 1px;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+  .plan-day-notes {
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+  .plan-day.rest .plan-day-serie { color: var(--muted); }
+  .plan-apply-btn {
+    width: 100%;
+    padding: 10px;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 18px;
+    letter-spacing: 2px;
+    border: 1px solid var(--accent3);
+    border-radius: 10px;
+    background: rgba(60,170,255,.07);
+    color: var(--accent3);
+    cursor: pointer;
+    transition: all .2s;
+    margin-top: 16px;
+  }
+  .plan-apply-btn:hover { background: rgba(60,170,255,.15); }
+  .plan-raw {
+    font-size: 13px;
+    line-height: 1.7;
+    color: var(--text);
+    white-space: pre-wrap;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+    margin-top: 12px;
+  }
+
+  /* ── MODE TOGGLE ── */
+  .mode-toggle {
+    display: flex;
+    gap: 0;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+  .mode-btn {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 2px;
+    padding: 5px 14px;
+    border: none;
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    transition: all .15s;
+  }
+  .mode-btn.active { background: var(--accent); color: #000; font-weight: 600; }
+  .mode-btn.active.plan { background: var(--accent3); color: #000; }
+
+  .plan-mode-banner {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 24px;
+    background: rgba(60,170,255,.07);
+    border-bottom: 1px solid rgba(60,170,255,.2);
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--accent3);
+  }
+  .plan-mode-banner strong { color: var(--accent); font-weight: 600; }
+
+  .plan-ex-card {
+    background: rgba(60,170,255,.03);
+    border-color: rgba(60,170,255,.25) !important;
+  }
+  .plano-layout {
+    display: grid;
+    grid-template-columns: 1fr 340px;
+    height: calc(100vh - 120px);
+    gap: 0;
+  }
+  .plano-main {
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid var(--border);
+    min-height: 0;
+  }
+  .plano-chat {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .plano-msg {
+    display: flex;
+    gap: 10px;
+    max-width: 90%;
+  }
+  .plano-msg-user { align-self: flex-end; flex-direction: row-reverse; }
+  .plano-msg-ai   { align-self: flex-start; }
+  .plano-msg-system { align-self: flex-start; }
+  .plano-msg span {
+    font-size: 13px;
+    line-height: 1.6;
+    padding: 10px 14px;
+    border-radius: 12px;
+    white-space: pre-wrap;
+  }
+  .plano-msg-user span {
+    background: var(--accent);
+    color: #000;
+    border-radius: 12px 12px 2px 12px;
+    font-weight: 600;
+  }
+  .plano-msg-ai span {
+    background: var(--surface2);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 12px 12px 12px 2px;
+  }
+  .plano-msg-system span {
+    background: rgba(60,170,255,.07);
+    color: var(--accent3);
+    border: 1px solid rgba(60,170,255,.2);
+    font-size: 12px;
+    border-radius: 8px;
+  }
+  .plano-msg-typing span { opacity: .5; animation: pulse .8s infinite; }
+  .plano-input-row {
+    display: flex;
+    gap: 8px;
+    align-items: flex-end;
+    padding: 12px 16px;
+    border-top: 1px solid var(--border);
+    background: var(--bg);
+  }
+  .plano-input {
+    flex: 1;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 14px;
+    color: var(--text);
+    outline: none;
+    resize: none;
+    max-height: 120px;
+    overflow-y: auto;
+    transition: border-color .2s;
+    line-height: 1.5;
+  }
+  .plano-input:focus { border-color: var(--accent); }
+  .plano-input::placeholder { color: var(--muted); }
+  .plano-send-btn {
+    width: 38px; height: 38px;
+    border-radius: 10px;
+    border: none;
+    background: var(--accent);
+    color: #000;
+    font-size: 18px;
+    font-weight: 700;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: all .15s;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .plano-send-btn:hover { background: #f5ff80; }
+  .plano-send-btn:disabled { opacity: .4; cursor: not-allowed; }
+
+  /* sidebar */
+  .plano-sidebar {
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    padding: 16px;
+  }
+  .plano-sidebar-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 16px;
+    letter-spacing: 3px;
+    color: var(--muted);
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  @media (max-width: 700px) {
+    .plano-layout { grid-template-columns: 1fr; grid-template-rows: 1fr auto; }
+    .plano-sidebar { max-height: 300px; border-top: 1px solid var(--border); }
+  }
+
+  /* ── BIBLIOTECA ── */
+  .biblioteca-tabs {
+    display: flex;
+    gap: 0;
+    padding: 10px 24px 0;
+    border-bottom: 1px solid var(--border);
+    overflow-x: auto;
+    scrollbar-width: none;
+    background: var(--surface);
+  }
+  .biblioteca-tabs::-webkit-scrollbar { display: none; }
+  .bib-tab {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 15px;
+    letter-spacing: 2px;
+    padding: 7px 18px;
+    border: none;
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all .15s;
+    white-space: nowrap;
+  }
+  .bib-tab:hover { color: var(--text); }
+  .bib-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+  /* ── PERFIL ── */
+  .perfil-wrap { padding: 20px 0 80px; }
+  .perfil-section {
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--border);
+  }
+  .perfil-section-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 14px;
+    letter-spacing: 3px;
+    color: var(--muted);
+    margin-bottom: 14px;
+  }
+  .perfil-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  .perfil-field { display: flex; flex-direction: column; gap: 5px; }
+  .perfil-field.full { margin-top: 10px; }
+  .perfil-field label {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: var(--muted);
+    text-transform: uppercase;
+  }
+  .perfil-field input,
+  .perfil-field select,
+  .perfil-field textarea {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 12px;
+    color: var(--text);
+    outline: none;
+    transition: border-color .2s;
+    resize: vertical;
+  }
+  .perfil-field input:focus,
+  .perfil-field select:focus,
+  .perfil-field textarea:focus { border-color: var(--accent); }
+  .perfil-field textarea { min-height: 70px; }
+  @media (max-width: 480px) { .perfil-grid { grid-template-columns: 1fr; } }
+
+  .agenda-semana { margin-bottom: 8px; }
+  .agenda-semana-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 4px;
+    cursor: pointer;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 15px;
+    letter-spacing: 3px;
+    color: var(--accent);
+    border-bottom: 1px solid var(--border);
+    user-select: none;
+  }
+  .agenda-semana-head:hover { color: var(--text); }
+  .agenda-semana-chevron { font-size: 12px; color: var(--muted); }
+  .agenda-semana-body { padding-top: 6px; display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
+
+  /* ── AGENDA LINEAR ── */
+  .agenda-linear { padding: 16px 24px 80px; display: flex; flex-direction: column; gap: 10px; }
+
+  .agenda-dia {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    transition: border-color .2s;
+  }
+  .agenda-dia.hoje { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+  .agenda-dia.perdido { border-color: var(--danger); background: rgba(255,68,68,.03); }
+  .agenda-dia.concluido { border-color: rgba(57,255,133,.3); background: rgba(57,255,133,.03); }
+
+  .agenda-dia-head {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    cursor: pointer;
+  }
+  .agenda-dia-label {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 13px;
+    letter-spacing: 2px;
+    color: var(--muted);
+    min-width: 70px;
+  }
+  .agenda-dia.hoje .agenda-dia-label { color: var(--accent); }
+
+  .agenda-dia-serie {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 20px;
+    letter-spacing: 1px;
+    flex: 1;
+  }
+  .agenda-dia-tipo {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 2px;
+    padding: 3px 10px;
+    border-radius: 99px;
+    flex-shrink: 0;
+  }
+  .tipo-treino { background: rgba(232,255,60,.1); color: var(--accent); }
+  .tipo-aerobico { background: rgba(60,170,255,.1); color: var(--accent3); }
+  .tipo-recuperacao { background: rgba(85,85,85,.3); color: var(--muted); }
+  .tipo-perdido { background: rgba(255,68,68,.1); color: var(--danger); }
+  .tipo-concluido { background: rgba(57,255,133,.1); color: var(--done); }
+
+  .agenda-dia-body {
+    display: none;
+    border-top: 1px solid var(--border);
+    padding: 12px 16px;
+    animation: fadeSlide .15s ease;
+  }
+  .agenda-dia.open .agenda-dia-body { display: block; }
+
+  .agenda-instrucoes {
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.6;
+    margin-bottom: 12px;
+  }
+
+  .agenda-ex-list { display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px; }
+  .agenda-dia.open .agenda-ex-list { display: none; }
+  .agenda-ex-item {
+    display: flex;
+    gap: 8px;
+    align-items: baseline;
+    font-size: 13px;
+    padding: 4px 0;
+    border-bottom: 1px solid rgba(255,255,255,.04);
+  }
+  .agenda-ex-num { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--muted); min-width: 18px; }
+  .agenda-ex-name { flex: 1; }
+  .agenda-ex-sets { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--accent); }
+  .agenda-ex-weight { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--accent2); min-width: 90px; text-align: right; }
+
+  .agenda-dia-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+  .agenda-action-btn {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 1px;
+    padding: 5px 14px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    transition: all .15s;
+  }
+  .agenda-action-btn.primary { border-color: var(--accent); color: var(--accent); }
+  .agenda-action-btn.primary:hover { background: rgba(232,255,60,.1); }
+  .agenda-action-btn.danger { border-color: var(--danger); color: var(--danger); }
+  .agenda-action-btn.danger:hover { background: rgba(255,68,68,.1); }
+  .agenda-action-btn.done { border-color: var(--done); color: var(--done); }
+  .agenda-action-btn.done:hover { background: rgba(57,255,133,.1); }
+  .agenda-action-btn.warning { border-color: #ff9500; color: #ff9500; }
+  .agenda-action-btn.warning:hover { background: rgba(255,149,0,.1); }
+  .agenda-action-btn.accent3 { border-color: var(--accent3); color: var(--accent3); }
+  .agenda-action-btn.accent3:hover { background: rgba(60,170,255,.1); }
+  .agenda-wrap { padding: 16px 24px 80px; }
+  .agenda-today {
+    background: var(--surface);
+    border: 1px solid var(--accent);
+    border-radius: 12px;
+    padding: 16px 20px;
+    margin-bottom: 16px;
+  }
+  .agenda-today-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 3px;
+    color: var(--accent);
+    margin-bottom: 4px;
+  }
+  .agenda-today-serie {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 28px;
+    letter-spacing: 2px;
+    color: var(--text);
+  }
+  .agenda-today-notes { font-size: 12px; color: var(--muted); margin-top: 4px; line-height: 1.5; }
+  .agenda-go-btn {
+    margin-top: 12px;
+    padding: 8px 20px;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 16px;
+    letter-spacing: 2px;
+    border: none;
+    border-radius: 8px;
+    background: var(--accent);
+    color: #000;
+    cursor: pointer;
+    transition: all .15s;
+  }
+  .agenda-go-btn:hover { background: #f5ff80; }
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
+
+  @media (max-width: 480px) {
+    .ex-fields { grid-template-columns: 1fr; }
+    header { padding: 14px 16px; }
+    .tabs { padding: 10px 16px 0; }
+    .serie-header, .serie-meta, .variant-row, .serie-actions, .exercise-list { padding-left: 16px; padding-right: 16px; }
+    .history-list, .ai-view { padding-left: 16px; padding-right: 16px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">TREINO</div>
+  <div class="header-actions">
+    <button class="btn" onclick="resetData()" title="Limpar todos os dados e voltar ao padrão">↺ RESET</button>
+    <button class="btn" onclick="exportData()">EXPORTAR</button>
+    <button class="btn" onclick="importData()">IMPORTAR</button>
+  </div>
+</header>
+
+<div class="tabs" id="tabs"></div>
+
+<div id="views-container"></div>
+
+<!-- BIBLIOTECA -->
+<div class="view" id="view-biblioteca">
+  <div class="biblioteca-tabs" id="biblioteca-tabs"></div>
+  <div id="biblioteca-content"></div>
+</div>
+
+<!-- AGENDA -->
+<div class="view" id="view-agenda">
+  <div class="agenda-linear" id="agenda-linear-list">
+    <div style="color:var(--muted);font-family:'DM Mono',monospace;font-size:12px;padding:20px 0">Nenhum plano ativo. Gere um plano na aba PLANO.</div>
+  </div>
+</div>
+
+<!-- PERFIL -->
+<div class="view" id="view-perfil">
+  <div class="perfil-wrap">
+    <div class="perfil-section">
+      <div class="perfil-section-title">DADOS FÍSICOS</div>
+      <div class="perfil-grid">
+        <div class="perfil-field"><label>Altura (cm)</label><input type="number" id="pf-altura" placeholder="176" oninput="savePerfil()"></div>
+        <div class="perfil-field"><label>Peso atual (kg)</label><input type="number" id="pf-peso" placeholder="68" oninput="savePerfil()"></div>
+        <div class="perfil-field"><label>Idade</label><input type="number" id="pf-idade" placeholder="40" oninput="savePerfil()"></div>
+        <div class="perfil-field"><label>Peso objetivo (kg)</label><input type="number" id="pf-pesoobj" placeholder="75" oninput="savePerfil()"></div>
+      </div>
+    </div>
+
+    <div class="perfil-section">
+      <div class="perfil-section-title">OBJETIVOS</div>
+      <div class="perfil-field full"><label>Objetivos principais</label>
+        <textarea id="pf-objetivos" placeholder="Ex: hipertrofia, perda de gordura abdominal, sem passar de 75kg" oninput="savePerfil()"></textarea>
+      </div>
+      <div class="perfil-field full"><label>Grupos musculares prioritários</label>
+        <textarea id="pf-prioridades" placeholder="Ex: ombros e costas são os preferidos. Pernas precisam de mais atenção mas tenho resistência." oninput="savePerfil()"></textarea>
+      </div>
+    </div>
+
+    <div class="perfil-section">
+      <div class="perfil-section-title">ROTINA DE TREINO</div>
+      <div class="perfil-grid">
+        <div class="perfil-field"><label>Dias de treino/semana</label><input type="number" id="pf-dias" placeholder="5" oninput="savePerfil()"></div>
+        <div class="perfil-field"><label>Treina fins de semana?</label>
+          <select id="pf-fds" onchange="savePerfil()">
+            <option value="sim">Sim</option>
+            <option value="nao">Não</option>
+            <option value="ocasionalmente">Ocasionalmente</option>
+          </select>
+        </div>
+      </div>
+      <div class="perfil-field full"><label>Estilo de treino</label>
+        <textarea id="pf-estilo" placeholder="Ex: treino explosivo com cargas altas para o porte. Precisa de moderação para evitar lesões." oninput="savePerfil()"></textarea>
+      </div>
+    </div>
+
+    <div class="perfil-section">
+      <div class="perfil-section-title">AERÓBICO</div>
+      <div class="perfil-field full"><label>Rotina aeróbica e contexto</label>
+        <textarea id="pf-aerobico" placeholder="Ex: academia fica a 2.2km de casa (4.4km ida+volta a pé). Academia tem equipamentos disponíveis. Pode intensificar se necessário." oninput="savePerfil()"></textarea>
+      </div>
+    </div>
+
+    <div class="perfil-section">
+      <div class="perfil-section-title">LESÕES E RESTRIÇÕES</div>
+      <div class="perfil-field full"><label>Histórico de lesões e restrições</label>
+        <textarea id="pf-lesoes" placeholder="Ex: tendão bíceps distal bilateral — apenas pegada neutra. Tendão perna direita — cautela no leg press pesado. Overhead press é seguro e prioritário." oninput="savePerfil()" rows="4"></textarea>
+      </div>
+    </div>
+
+    <div class="perfil-section">
+      <div class="perfil-section-title">OUTRAS INFORMAÇÕES</div>
+      <div class="perfil-field full"><label>Observações adicionais para a IA</label>
+        <textarea id="pf-obs" placeholder="Qualquer outra informação relevante para personalizar o plano..." oninput="savePerfil()"></textarea>
+      </div>
+    </div>
+
+    <div style="padding:0 24px 40px">
+      <button class="ai-btn" onclick="salvarPerfil()" style="margin-top:8px">✓ SALVAR PERFIL</button>
+      <div id="perfil-status" style="font-family:'DM Mono',monospace;font-size:11px;color:var(--done);text-align:center;margin-top:8px;height:16px"></div>
+    </div>
+
+    <div style="padding:0 24px 32px;border-top:1px solid var(--border);margin:0 24px">
+      <div style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:2px;color:var(--muted);padding:20px 0 10px">CHAVE DE API</div>
+      <div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);margin-bottom:12px">Necessária para usar as funções de IA fora do Claude.ai (ex: Edge). Obtenha em <span style="color:var(--accent3)">console.anthropic.com</span></div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <input id="api-key-input" type="password" placeholder="sk-ant-..." 
+          style="flex:1;font-family:'DM Mono',monospace;font-size:12px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:8px 12px;color:var(--text);outline:none">
+        <button id="api-key-toggle" onclick="toggleApiKeyVisibility()" 
+          style="background:none;border:1px solid var(--border);border-radius:6px;padding:8px;cursor:pointer;font-size:14px">👁</button>
+        <button onclick="saveApiKey(document.getElementById('api-key-input').value)"
+          style="font-family:'DM Mono',monospace;font-size:11px;letter-spacing:1px;background:none;border:1px solid var(--accent3);color:var(--accent3);border-radius:6px;padding:8px 16px;cursor:pointer">SALVAR</button>
+      </div>
+      <div style="margin-top:16px;padding:10px 12px;background:var(--surface2);border-radius:6px;border:1px solid var(--border)">
+        <div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--muted);margin-bottom:6px">CONSUMO DE TOKENS (sessão atual)</div>
+        <div id="token-usage-display" style="font-family:'DM Mono',monospace;font-size:11px">—</div>
+        <button onclick="resetTokenUsage()" style="margin-top:8px;font-family:'DM Mono',monospace;font-size:9px;background:none;border:1px solid var(--border);color:var(--muted);border-radius:4px;padding:2px 10px;cursor:pointer">↺ zerar contador</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- History -->
+<div class="view" id="view-history">
+  <div class="history-list" id="history-list"></div>
+</div>
+
+<!-- AI -->
+<!-- PLANO/IA unificado -->
+<div class="view" id="view-ia">
+  <div class="plano-layout">
+
+    <!-- LEFT: agenda + chat -->
+    <div class="plano-main">
+      <div id="agenda-hoje"></div>
+
+      <!-- Chat messages -->
+      <div class="plano-chat" id="plano-chat">
+        <div class="plano-msg plano-msg-system">
+          <span>Olá! Sou seu personal trainer IA. Posso gerar um plano periodizado personalizado, responder dúvidas, ajustar exercícios ou modificar a agenda. Como posso ajudar?</span>
+        </div>
+      </div>
+
+      <!-- Quick actions -->
+      <div style="display:flex;gap:6px;padding:8px 16px 0;flex-wrap:wrap">
+        <button onclick="gerarPlanoCompleto()" style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1px;padding:5px 14px;border-radius:8px;border:1px solid var(--accent);color:var(--accent);background:rgba(232,255,60,.07);cursor:pointer">✦ GERAR PLANO MACRO</button>
+        <button onclick="enviarPlanoAtual()" style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1px;padding:5px 14px;border-radius:8px;border:1px solid var(--accent3);color:var(--accent3);background:transparent;cursor:pointer" title="Envia o plano macro atual para a IA">⬡ ENVIAR PLANO ATUAL</button>
+        <button onclick="limparChatPlano()" style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1px;padding:5px 14px;border-radius:8px;border:1px solid var(--border);color:var(--muted);background:transparent;cursor:pointer">↺ NOVA CONVERSA</button>
+      </div>
+
+      <!-- Input row -->
+      <div class="plano-input-row">
+        <button onclick="limparChatPlano()" style="flex-shrink:0;background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:8px;padding:0 10px;cursor:pointer;font-size:16px" title="Nova conversa">↺</button>
+        <textarea class="plano-input" id="plano-input" rows="1"
+          placeholder="Ex: Gere um plano de 4 semanas. / Troque o treino de quinta. / Por que 2x pernas?"
+          oninput="autoResizePlanoInput(this)"
+          onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();enviarMensagemPlano();}"></textarea>
+        <button class="plano-send-btn" id="plano-send-btn" onclick="enviarMensagemPlano()">↑</button>
+      </div>
+    </div>
+
+    <!-- RIGHT: current plan -->
+    <div class="plano-sidebar">
+      <div class="plano-sidebar-title">PLANO ATUAL</div>
+      <div id="plano-resultado">
+        <div style="color:var(--muted);font-family:'DM Mono',monospace;font-size:11px;padding:12px 0">Nenhum plano gerado ainda.</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Modal -->
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <h3 id="modal-title">NOVA SÉRIE</h3>
+    <div class="modal-fields" id="modal-body"></div>
+    <div class="modal-actions">
+      <button class="modal-btn" onclick="closeModal()">CANCELAR</button>
+      <button class="modal-btn confirm" id="modal-confirm">CONFIRMAR</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ─────────────────────────── DATA ───────────────────────────
+const DEFAULT_DATA = (function() {
+  var s1 = {id:'s1',name:'OMBROS',label:'A',lastDone:null,variants:['Principal','Variação B'],activeVariant:0,exercises:[
+    {id:'e1',name:'Overhead Press Sentado',sets:'2x5 + 1x6',weight:'24kg cada lado',notes:'',status:'undone'},
+    {id:'e2',name:'Levantamento Lateral em Pé c/ Halteres',sets:'3x7',weight:'12-14kg cada lado',notes:'',status:'undone'},
+    {id:'e3',name:'Levantamento Frontal em Pé c/ Halteres',sets:'3x7',weight:'Repetir peso do lateral',notes:'',status:'undone'},
+    {id:'e4',name:'Crucifixo Inverso Unilateral na Polia',sets:'3x7',weight:'5 pesos (tipo 1) h13 / 7.5-10kg (tipo 2)',notes:'',status:'undone'},
+    {id:'e5',name:'Levantamento Lateral na Polia',sets:'3x7',weight:'2.5 pesos',notes:'',status:'undone'},
+    {id:'e6',name:'Levantamento Frontal Unilateral na Polia',sets:'3x7',weight:'Repetir peso do lateral',notes:'',status:'undone'},
+    {id:'e7',name:'Levantamento Frontal Bilateral (Corda) na Polia',sets:'3x10',weight:'17.5kg (tipo 1)',notes:'',status:'undone'},
+    {id:'e8',name:'Overhead Press em Pé',sets:'3x5',weight:'18-20kg cada lado',notes:'',status:'undone'},
+    {id:'e9',name:'Reverse Fly na Máquina',sets:'3x8',weight:'50kg',notes:'',status:'undone'},
+    {id:'e10',name:'Overhead Press Neutro na Máquina',sets:'3x5',weight:'Checar peso',notes:'',status:'undone'},
+    {id:'e11',name:'Abdominal no Banco Declinado',sets:'2x(5+6 alt) + 1x25',weight:'Anilha 10kg no peito',notes:'',status:'undone'}
+  ]};
+  var s2 = {id:'s2',name:'COSTAS / BÍCEPS',label:'B',lastDone:null,variants:['Principal'],activeVariant:0,exercises:[
+    {id:'e12',name:'Pull-up Aberto',sets:'3x6',weight:'66kg máquina',notes:'',status:'undone'},
+    {id:'e13',name:'Pull-up Fechado Pronado',sets:'3x6',weight:'66kg máquina',notes:'Atenção ao ombro',status:'undone'},
+    {id:'e14',name:'Hammer Curl',sets:'3x10',weight:'20kg cada lado',notes:'',status:'undone'},
+    {id:'e15',name:'Chin-up Fechado Neutro',sets:'3x7',weight:'61kg máquina',notes:'',status:'undone'},
+    {id:'e16',name:'Remo Alternado na Máquina de Anilha',sets:'3x7',weight:'33kg',notes:'',status:'undone'},
+    {id:'e17',name:'Remo Aberto na Máquina de Anilha',sets:'3x10',weight:'Peso máximo',notes:'',status:'undone'},
+    {id:'e18',name:'Remo Alternado na Máquina sem Anilha',sets:'3x7',weight:'54-59-63kg',notes:'Suporte na última posição',status:'undone'},
+    {id:'e19',name:'Remada Unilateral com Haltere',sets:'3x7',weight:'32kg',notes:'',status:'undone'},
+    {id:'e20',name:'Rosca Direta em Pé na Máquina de Anilha',sets:'3x9',weight:'13.75kg tipo 2 (corda)',notes:'',status:'undone'}
+  ]};
+  var s3 = {id:'s3',name:'PEITO / TRÍCEPS',label:'C',lastDone:null,variants:['Principal'],activeVariant:0,exercises:[
+    {id:'e21',name:'Supino Reto c/ Halteres',sets:'3x6',weight:'26-28-30kg cada lado',notes:'',status:'undone'},
+    {id:'e22',name:'Skull Crusher',sets:'3x5',weight:'10-12.5kg cada lado',notes:'',status:'undone'},
+    {id:'e23',name:'Fly com Halteres',sets:'3x5',weight:'16-18-20kg',notes:'',status:'undone'},
+    {id:'e24',name:'Tríceps na Barra (Calistenia)',sets:'3x8',weight:'---',notes:'',status:'undone'},
+    {id:'e25',name:'Fly na Máquina',sets:'3x8',weight:'66-73-79kg',notes:'Joinville: banco 8, dist 1',status:'undone'},
+    {id:'e26',name:'Tríceps Alternado na Polia',sets:'3x10',weight:'36-41kg (tipo 1) h14 / 17.5-20kg (tipo 2) / 21.6kg (tipo 3) h13',notes:'',status:'undone'},
+    {id:'e27',name:'Crossover na Máquina',sets:'3x8',weight:'18-23kg (tipo 1) / 12.5-14.7kg (tipo 3) / 13.75kg (Join.)',notes:'',status:'undone'},
+    {id:'e28',name:'French Press com Haltere',sets:'3x7',weight:'22-24kg',notes:'',status:'undone'},
+    {id:'e29',name:'Supino na Máquina Sentado',sets:'3x7',weight:'45-50kg',notes:'Banco h2 incl2 / Joinville 42.5kg dist1 banco4',status:'undone'},
+    {id:'e30',name:'Tríceps na Máquina em Pé (barra reta)',sets:'3x7',weight:'45kg (tipo 1) / 27.5kg (tipo 2)',notes:'',status:'undone'},
+    {id:'e31',name:'Supino Inclinado',sets:'3x5',weight:'10kg cada lado (barra)',notes:'Banco h min, barra pos 2',status:'undone'},
+    {id:'e32',name:'Tríceps na Máquina Sentado',sets:'3x7',weight:'72-79kg',notes:'',status:'undone'},
+    {id:'e33',name:'Supino Reto com Barra',sets:'3x5',weight:'15kg cada lado',notes:'',status:'undone'},
+    {id:'e34',name:'Abdominal no Banco Declinado',sets:'2x(5+6 alt) + 1x25',weight:'Anilha 10kg no peito',notes:'',status:'undone'}
+  ]};
+  var s4 = {id:'s4',name:'PERNAS',label:'D',lastDone:null,variants:['Principal','Variação B'],activeVariant:0,exercises:[
+    {id:'e35',name:'Abre Perna (Abdutor)',sets:'3x10',weight:'87.5-95-102.5kg (Joinville)',notes:'Banco 3o pino',status:'undone'},
+    {id:'e36',name:'Fecha Perna (Adutor)',sets:'3x10',weight:'110-117.5-125kg (Joinville)',notes:'',status:'undone'},
+    {id:'e37',name:'Leg Extension',sets:'3x7',weight:'72.5-80-87.5kg',notes:'Perna p3, banco p5 / Joinville dist L alt 11',status:'undone'},
+    {id:'e38',name:'Leg Curl',sets:'3x7',weight:'50-57.5-65kg',notes:'Dist 4 alt 2 banco 5 / Joinville dist M alt 0',status:'undone'},
+    {id:'e39',name:'Leg Press Inclinado',sets:'3x5',weight:'100-140kg cada lado',notes:'',status:'undone'},
+    {id:'e40',name:'Glúteo na Máquina (Kickback)',sets:'3x7',weight:'36-41kg',notes:'',status:'undone'},
+    {id:'e41',name:'Agachamento Livre',sets:'3x4',weight:'10-20kg cada lado',notes:'',status:'undone'},
+    {id:'e42',name:'Agachamento no Smith',sets:'3x5',weight:'20kg cada lado',notes:'',status:'undone'},
+    {id:'e43',name:'Calf Raise na Máquina',sets:'3x9',weight:'90-99kg',notes:'Banco h5 / 20kg sentado / 57.5-72.5kg Joinville',status:'undone'},
+    {id:'e44',name:'Avanço com Halteres',sets:'3x4',weight:'12kg cada lado',notes:'',status:'undone'},
+    {id:'e45',name:'Avanço no Smith',sets:'3x4',weight:'12kg cada lado',notes:'',status:'undone'},
+    {id:'e46',name:'Leg Press na Máquina',sets:'3x7',weight:'108-117kg',notes:'Banco h5',status:'undone'}
+  ]};
+  return {_version:3, series:[s1,s2,s3,s4], history:[]};
+})();
+
+// ─────────────────────────── STATE ───────────────────────────
+const DATA_VERSION = 3;
+
+function loadState() {
+  const fresh = JSON.parse(JSON.stringify(DEFAULT_DATA));
+  fresh._version = DATA_VERSION;
+  return fresh;
+}
+
+var STORAGE_KEY = 'treino_app_v1';
+
+function sanitizePlanoTipos(plano) {
+  if (!plano || !plano.semanas) return;
+  plano.semanas.forEach(function(sem) {
+    (sem.dias || sem.agenda || []).forEach(function(d) {
+      // Clean AI-generated status text from orientacao
+      if (d.orientacao) {
+        d.orientacao = d.orientacao
+          .replace(/Dia perdido\./gi, '')
+          .replace(/\[conclu[ií]do\]/gi, '')
+          .replace(/\[perdido\]/gi, '')
+          .replace(/\[ausente\]/gi, '')
+          .trim();
+      }
+      if (d.serie && d.serie !== 'descanso') {
+        d.tipo = 'treino';
+      } else {
+        d.tipo = (d.orientacao && /aer[oó]b/i.test(d.orientacao)) ? 'aerobico' : 'recuperacao';
+      }
+    });
+  });
+}
+
+function saveState() {
+  if (state.plano) sanitizePlanoTipos(state.plano);
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  } catch(e) {
+    console.warn('saveState failed:', e);
+  }
+}
+
+function loadPersistedState(cb) {
+  try {
+    var saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      var parsed = JSON.parse(saved);
+      // Merge saved state over defaults, preserving structure
+      state = Object.assign(loadState(), parsed);
+    }
+  } catch(e) {
+    console.warn('loadPersistedState failed:', e);
+  }
+  cb();
+}
+
+let state = loadState();
+let currentTab = 'workout-s1';
+let modalCallback = null;
+
+function uid() { return 'x' + Math.random().toString(36).slice(2,9); }
+
+function autoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = el.scrollHeight + 'px';
+}
+
+function autoResizeAll() {
+  document.querySelectorAll('textarea.ex-col-input').forEach(autoResize);
+}
+
+
+
+// ─────────────────────────── RENDER ───────────────────────────
+function render() {
+  renderTabs();
+  renderWorkoutViews();
+  renderHistory();
+}
+
+function renderTabs() {
+  const tabs = document.getElementById('tabs');
+  tabs.innerHTML = '';
+
+  if (state.plano) {
+    // With active plan: HOJE + AGENDA first
+    const thoje = document.createElement('button');
+    thoje.className = 'tab' + (currentTab === 'agenda' ? ' active' : '');
+    thoje.innerHTML = '◈ AGENDA';
+    thoje.onclick = () => switchTab('agenda');
+    tabs.appendChild(thoje);
+  }
+
+  // BIBLIOTECA — always visible
+  const tlib = document.createElement('button');
+  tlib.className = 'tab' + (currentTab === 'biblioteca' || currentTab.startsWith('workout-') ? ' active' : '');
+  tlib.textContent = '▤ BIBLIOTECA';
+  tlib.onclick = () => switchTab('biblioteca');
+  tabs.appendChild(tlib);
+
+  const th = document.createElement('button');
+  th.className = 'tab' + (currentTab === 'history' ? ' active' : '');
+  th.textContent = 'HISTÓRICO';
+  th.onclick = () => switchTab('history');
+  tabs.appendChild(th);
+
+  const tp = document.createElement('button');
+  tp.className = 'tab' + (currentTab === 'perfil' ? ' active' : '');
+  tp.textContent = '◉ PERFIL';
+  tp.onclick = () => switchTab('perfil');
+  tabs.appendChild(tp);
+
+  const tai = document.createElement('button');
+  tai.className = 'tab' + (currentTab === 'ia' ? ' active' : '');
+  tai.textContent = '⬡ PLANO';
+  tai.onclick = () => switchTab('ia');
+  tabs.appendChild(tai);
+}
+
+function switchTab(id) {
+  currentTab = id;
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  if (id === 'history') document.getElementById('view-history').classList.add('active');
+  else if (id === 'agenda') { document.getElementById('view-agenda').classList.add('active'); renderAgendaLinear(); }
+  else if (id === 'perfil') { document.getElementById('view-perfil').classList.add('active'); setTimeout(loadPerfil, 50); }
+  else if (id === 'ia') {
+    document.getElementById('view-ia').classList.add('active');
+    if (state.planoRascunho) {
+      renderPlanoMacro(state.planoRascunho);
+    } else if (state.plano) {
+      renderPlanoMacro(state.plano);
+    }
+  }
+  else if (id === 'biblioteca') { document.getElementById('view-biblioteca').classList.add('active'); renderBiblioteca(currentTab.startsWith('workout-') ? currentTab : 'workout-'+state.series[0].id); }
+  else if (id.startsWith('workout-')) {
+    // Switch to biblioteca and activate the right serie sub-tab
+    currentTab = id;
+    document.getElementById('view-biblioteca').classList.add('active');
+    renderBiblioteca(id);
+  }
+  renderTabs();
+}
+
+function renderWorkoutViews() {
+  // No-op — workout views are now rendered inside view-biblioteca by renderBiblioteca()
+}
+
+function buildSerieHTML(s) {
+  const planMode = s.planMode === true;
+  const planSerie = planMode && state.plano ? getPlanSerie(s.id) : null;
+  const exercises = planMode && planSerie ? planSerie.exercises : s.exercises;
+
+  const done = exercises.filter(e => e.status === 'done').length;
+  const total = exercises.length;
+  const pct = total ? Math.round(done/total*100) : 0;
+  const lastDate = s.lastDone ? new Date(s.lastDone).toLocaleDateString('pt-BR', {day:'2-digit',month:'2-digit',year:'2-digit'}) : 'nunca';
+
+  let variantsHTML = s.variants.map((v, i) =>
+    `<button class="variant-btn ${s.activeVariant===i?'active':''}" onclick="setVariant('${s.id}',${i})">${v}</button>`
+  ).join('');
+
+  const exHTML = exercises.map((ex, idx) => buildExHTML(s.id, ex, idx, planMode)).join('');
+
+  const planBanner = planMode && planSerie ? `
+    <div class="plan-mode-banner">
+      ⬡ MODO PLANO
+      <strong>${escHtml(planSerie.semana || '')}</strong>
+      <span style="color:var(--muted)">—</span>
+      <span>${escHtml(planSerie.foco || '')}</span>
+      <button class="btn" style="margin-left:auto;font-size:9px;padding:3px 10px" onclick="addPlanExercise('${s.id}')">+ EXERCÍCIO</button>
+    </div>` : '';
+
+  return `
+    <div class="serie-header">
+      <span class="serie-label">SÉRIE</span>
+      <input class="serie-name-edit" value="${escHtml(s.name)}" oninput="updateSerieName('${s.id}',this.value)" />
+      <div class="mode-toggle">
+        <button class="mode-btn ${!planMode?'active':''}" onclick="setSerieMode('${s.id}',false)">MANUAL</button>
+        <button class="mode-btn plan ${planMode?'active':''}" onclick="setSerieMode('${s.id}',true)" ${!state.plano?'disabled title="Gere um plano primeiro"':''}>PLANO</button>
+      </div>
+    </div>
+    ${planBanner}
+    <div class="serie-meta">
+      <div class="last-done">ÚLTIMO TREINO: <span>${lastDate}</span></div>
+      <div class="progress-bar-wrap"><div class="progress-bar-fill" style="width:${pct}%"></div></div>
+      <span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted)">${done}/${total}</span>
+    </div>
+    ${!planMode ? `
+    <div class="variant-row">
+      <span class="variant-label">VARIANTE:</span>
+      ${variantsHTML}
+      <button class="add-variant-btn" onclick="addVariant('${s.id}')">+ nova</button>
+    </div>` : ''}
+    <div class="serie-actions">
+      <button class="btn mark-all" onclick="markAll('${s.id}','done')">✓ MARCAR TODOS</button>
+      <button class="btn reset-all" onclick="markAll('${s.id}','undone')">↺ RESETAR</button>
+      <button class="btn primary" onclick="finishSerie('${s.id}')">⬤ REGISTRAR NO HISTÓRICO</button>
+      ${!planMode ? `<button class="btn" onclick="addExercise('${s.id}')">+ EXERCÍCIO</button>` : ''}
+    </div>
+    <div class="exercise-list" id="exlist-${s.id}">
+      ${exHTML}
+    </div>
+  `;
+}
+
+function buildExHTML(serieId, ex, idx, planMode) {
+  const statusClass = ex.status === 'done' ? 'done' : ex.status === 'partial' ? 'partial' : ex.status === 'skipped' ? 'skipped' : 'undone';
+  const wasSkippedLast = ex.skippedLast ? true : false;
+  const cardClass = (ex.status !== 'undone' ? 'status-'+ex.status : '') + (planMode ? ' plan-ex-card' : '');
+  return `
+  <div class="ex-card ${cardClass}" id="excard-${ex.id}">
+    <div class="ex-dot-wrap" onclick="cycleStatus('${serieId}','${ex.id}')">
+      <div class="status-dot ${statusClass}"></div>
+    </div>
+    <div class="ex-col-name" onclick="toggleExCard('${ex.id}')">
+      <input class="ex-name-input" value="${escHtml(ex.name)}" onclick="event.stopPropagation()" oninput="updateExField('${serieId}','${ex.id}','name',this.value)" />
+      ${wasSkippedLast ? '<span class="priority-badge">PRIORIDADE</span>' : ''}
+      <button class="ex-rename-btn" id="rename-btn-${ex.id}" onclick="event.stopPropagation();renameWithAI('${serieId}','${ex.id}')" title="Sugerir nome oficial">✦</button>
+    </div>
+    <div class="ex-col-sets" onclick="toggleExCard('${ex.id}')">
+      <span class="ex-col-label">SÉRIES</span>
+      <input class="ex-col-input" type="text" onclick="event.stopPropagation()" oninput="updateExField('${serieId}','${ex.id}','sets',this.value)" value="${escHtml(ex.sets)}" placeholder="3x10" />
+    </div>
+    <div class="ex-col-weight" onclick="toggleExCard('${ex.id}')">
+      <span class="ex-col-label">CARGA</span>
+      <input class="ex-col-input" type="text" onclick="event.stopPropagation()" oninput="updateExField('${serieId}','${ex.id}','weight',this.value)" value="${escHtml(ex.weight)}" placeholder="—" />
+    </div>
+    <div class="ex-chevron-wrap" onclick="toggleExCard('${ex.id}')">
+      <span class="ex-chevron">▾</span>
+    </div>
+    <div class="ex-body">
+      <div class="ex-fields">
+        <div class="field-group" style="grid-column:1/-1">
+          <div class="field-label">NOTAS / CONFIGURAÇÃO DA MÁQUINA</div>
+          <textarea class="field-input" oninput="updateExField('${serieId}','${ex.id}','notes',this.value)">${escHtml(ex.notes)}</textarea>
+        </div>
+      </div>
+      <div class="ex-status-row">
+        <button class="status-btn ${ex.status==='undone'?'undone':''}" onclick="setExStatus('${serieId}','${ex.id}','undone')">NÃO FEITO</button>
+        <button class="status-btn ${ex.status==='partial'?'partial':''}" onclick="setExStatus('${serieId}','${ex.id}','partial')">PARCIAL</button>
+        <button class="status-btn ${ex.status==='done'?'done':''}" onclick="setExStatus('${serieId}','${ex.id}','done')">CONCLUÍDO</button>
+        <button class="status-btn ${ex.status==='skipped'?'skipped':''}" onclick="setExStatus('${serieId}','${ex.id}','skipped')">PULADO</button>
+      </div>
+      <div class="ex-actions">
+        <button class="ex-action-btn move" onclick="moveEx('${serieId}','${ex.id}',-1)">↑</button>
+        <button class="ex-action-btn move" onclick="moveEx('${serieId}','${ex.id}',1)">↓</button>
+        <button class="ex-action-btn" onclick="${planMode ? `removePlanExercise('${serieId}','${ex.id}')` : `removeEx('${serieId}','${ex.id}')`}">REMOVER</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+// ─────────────────────────── ACTIONS ───────────────────────────
+function toggleExNotes(exId, exName, serieLabel) {
+  var el = document.getElementById('notes-' + exId);
+  if (!el) return;
+
+  if (el.style.display === 'block') {
+    el.style.display = 'none';
+    return;
+  }
+
+  el.style.display = 'block';
+
+  // Check cache first
+  if (!state.exExplanations) state.exExplanations = {};
+  var cached = state.exExplanations[exName];
+  if (cached) {
+    el.innerHTML = cached + '<div style="margin-top:6px"><button onclick="recarregarExNotes(\'' + exId.replace(/'/g,"\\'" ) + '\',\'' + exName.replace(/'/g,"\\'") + '\')" style="font-family:\'DM Mono\',monospace;font-size:9px;background:none;border:1px solid var(--border);color:var(--muted);border-radius:4px;padding:2px 8px;cursor:pointer">↺ recarregar</button></div>';
+    return;
+  }
+
+  fetchExNotes(exId, exName);
+}
+
+function recarregarExNotes(exId, exName) {
+  if (state.exExplanations) delete state.exExplanations[exName];
+  saveState();
+  var el = document.getElementById('notes-' + exId);
+  if (el) el.style.display = 'block';
+  fetchExNotes(exId, exName);
+}
+
+function fetchExNotes(exId, exName) {
+  var el = document.getElementById('notes-' + exId);
+  if (!el) return;
+  el.innerHTML = '<span style="color:var(--accent3)">⏳ Consultando IA...</span>';
+
+  var prompt = 'O que é o exercício "' + exName + '" e como eu faço?\n\n' +
+    'Me explique de forma simples e visual, como se eu nunca tivesse feito esse exercício:\n' +
+    '- Qual equipamento usar e como me posicionar\n' +
+    '- Como executar o movimento passo a passo\n' +
+    '- Quais músculos estou trabalhando\n' +
+    '- O que NÃO fazer\n\n' +
+    'Considere minhas lesões ao dar as instruções. Seja direto e prático.';
+
+  fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-api-key': getApiKey(), 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 600,
+      system: 'Você é um personal trainer especializado. ' + buildPerfilTexto(),
+      messages: [{ role: 'user', content: prompt }]
+    })
+  }).then(function(r) { return r.json(); }).then(function(data) {
+    var text = Array.isArray(data.content) ? data.content.map(function(c) { return c.text||''; }).join('') : '';
+    if (!text || data.error) {
+      el.innerHTML = 'Erro ao consultar a IA. <button onclick="recarregarExNotes(\'' + exId.replace(/'/g,"\\'") + '\',\'' + exName.replace(/'/g,"\\'") + '\')" style="font-family:\'DM Mono\',monospace;font-size:9px;background:none;border:1px solid var(--border);color:var(--muted);border-radius:4px;padding:2px 8px;cursor:pointer">↺ tentar novamente</button>';
+      return;
+    }
+    var html = text.replace(/\n/g, '<br>') + '<div style="margin-top:6px"><button onclick="recarregarExNotes(\'' + exId.replace(/'/g,"\\'") + '\',\'' + exName.replace(/'/g,"\\'") + '\')" style="font-family:\'DM Mono\',monospace;font-size:9px;background:none;border:1px solid var(--border);color:var(--muted);border-radius:4px;padding:2px 8px;cursor:pointer">↺ recarregar</button></div>';
+    el.innerHTML = html;
+    if (!state.exExplanations) state.exExplanations = {};
+    state.exExplanations[exName] = html;
+    saveState();
+  }).catch(function() {
+    el.innerHTML = 'Erro de rede. <button onclick="recarregarExNotes(\'' + exId.replace(/'/g,"\\'") + '\',\'' + exName.replace(/'/g,"\\'") + '\')" style="font-family:\'DM Mono\',monospace;font-size:9px;background:none;border:1px solid var(--border);color:var(--muted);border-radius:4px;padding:2px 8px;cursor:pointer">↺ tentar novamente</button>';
+  });
+}
+
+function addExToLibrary(name, sets, weight, serieLabel) {
+  var s = state.series.find(function(s) { return s.label === serieLabel; });
+  if (!s) {
+    toast('Série ' + serieLabel + ' não encontrada na Biblioteca');
+    return;
+  }
+  var exists = s.exercises.find(function(e) { return e.name.toLowerCase() === name.toLowerCase(); });
+  if (exists) {
+    toast(name + ' já está na Biblioteca');
+    return;
+  }
+  s.exercises.push({ id: uid(), name: name, sets: sets, weight: weight, notes: '', status: 'undone', skippedLast: false });
+  saveState();
+  toast('✓ "' + name + '" adicionado à Biblioteca (' + serieLabel + ')');
+}
+
+function toggleExCard(exId) {
+  const card = document.getElementById('excard-'+exId);
+  card.classList.toggle('open');
+}
+
+function getEx(serieId, exId) {
+  const s = state.series.find(s => s.id === serieId);
+  if (s.planMode && state.plano && state.plano.seriesData && state.plano.seriesData[serieId]) {
+    return state.plano.seriesData[serieId].exercises.find(e => e.id === exId);
+  }
+  return s.exercises.find(e => e.id === exId);
+}
+
+function cycleStatus(serieId, exId) {
+  const ex = getEx(serieId, exId);
+  if (!ex) return;
+  const cycle = { undone: 'partial', partial: 'done', done: 'skipped', skipped: 'undone' };
+  ex.status = cycle[ex.status] || 'undone';
+  saveState();
+  rerenderSerie(serieId);
+}
+
+function setExStatus(serieId, exId, status) {
+  const ex = getEx(serieId, exId);
+  if (!ex) return;
+  ex.status = status;
+  saveState();
+  rerenderSerie(serieId);
+}
+
+function updateExField(serieId, exId, field, value) {
+  const ex = getEx(serieId, exId);
+  if (!ex) return;
+  ex[field] = value;
+  saveState();
+}
+
+function updateSerieName(serieId, value) {
+  const s = state.series.find(s => s.id === serieId);
+  s.name = value;
+  saveState();
+  renderTabs();
+}
+
+function getPlanSerie(serieId) {
+  if (!state.plano || !state.plano.seriesData) return null;
+  return state.plano.seriesData[serieId] || null;
+}
+
+function setSerieMode(serieId, planMode) {
+  if (planMode && !state.plano) { toast('Gere um plano primeiro na aba PLANO'); return; }
+  const s = state.series.find(s => s.id === serieId);
+  s.planMode = planMode;
+  saveState();
+  rerenderSerie(serieId);
+}
+
+function addPlanExercise(serieId) {
+  if (!state.plano || !state.plano.seriesData) return;
+  openModal('NOVO EXERCÍCIO (PLANO)', [
+    { label:'NOME', key:'name', type:'text', placeholder:'Ex: Agachamento Frontal' },
+    { label:'SÉRIES × REPS', key:'sets', type:'text', placeholder:'Ex: 3x8' },
+    { label:'CARGA', key:'weight', type:'text', placeholder:'Ex: 20kg' },
+  ], data => {
+    if (!state.plano.seriesData[serieId]) return;
+    state.plano.seriesData[serieId].exercises.push({
+      id: uid(), name: data.name||'Novo Exercício',
+      sets: data.sets||'3x10', weight: data.weight||'—',
+      notes:'', status:'undone'
+    });
+    saveState();
+    rerenderSerie(serieId);
+    toast('Exercício adicionado ao plano');
+  });
+}
+
+function removePlanExercise(serieId, exId) {
+  if (!state.plano || !state.plano.seriesData) return;
+  const pd = state.plano.seriesData[serieId];
+  if (!pd) return;
+  pd.exercises = pd.exercises.filter(e => e.id !== exId);
+  saveState();
+  rerenderSerie(serieId);
+}
+
+function updatePlanExField(serieId, exId, field, value) {
+  if (!state.plano || !state.plano.seriesData) return;
+  const pd = state.plano.seriesData[serieId];
+  if (!pd) return;
+  const ex = pd.exercises.find(e => e.id === exId);
+  if (ex) { ex[field] = value; saveState(); }
+}
+
+function markAll(serieId, status) {
+  const s = state.series.find(s => s.id === serieId);
+  if (s.planMode && state.plano && state.plano.seriesData && state.plano.seriesData[serieId]) {
+    state.plano.seriesData[serieId].exercises.forEach(e => e.status = status);
+  } else {
+    s.exercises.forEach(e => e.status = status);
+  }
+  saveState();
+  rerenderSerie(serieId);
+}
+
+function finishSerie(serieId) {
+  const s = state.series.find(s => s.id === serieId);
+  const done = s.exercises.filter(e => e.status === 'done').length;
+  const total = s.exercises.length;
+
+  // Format now as datetime-local default value (YYYY-MM-DDTHH:MM)
+  const now = new Date();
+  const pad = n => String(n).padStart(2,'0');
+  const defaultDate = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`;
+
+  openModal('REGISTRAR NO HISTÓRICO', [
+    { label:'DATA E HORA', key:'date', type:'datetime-local', placeholder:'', default: defaultDate },
+  ], data => {
+    const date = data.date ? new Date(data.date).toISOString() : new Date().toISOString();
+    s.lastDone = date;
+    state.history.unshift({
+      id: uid(),
+      serieId,
+      serieName: s.name,
+      serieLabel: s.label,
+      date,
+      done,
+      total,
+      variant: s.variants[s.activeVariant] || 'Principal'
+    });
+    // Mark skipped exercises as priority for next session, then reset all statuses
+  s.exercises.forEach(ex => {
+    ex.skippedLast = ex.status === 'skipped';
+    ex.status = 'undone';
+  });
+    state.history.sort((a,b) => new Date(b.date) - new Date(a.date));
+    saveState();
+    toast(`Série ${s.label} registrada! ${done}/${total} exercícios ✓`);
+    render();
+  });
+}
+
+function addExercise(serieId) {
+  openModal('NOVO EXERCÍCIO', [
+    { label:'NOME', key:'name', type:'text', placeholder:'Ex: Rosca direta' },
+    { label:'SÉRIES × REPS', key:'sets', type:'text', placeholder:'Ex: 3x10' },
+    { label:'CARGA', key:'weight', type:'text', placeholder:'Ex: 20kg cada lado' },
+    { label:'NOTAS', key:'notes', type:'text', placeholder:'Configurações da máquina…' },
+  ], data => {
+    const s = state.series.find(s => s.id === serieId);
+    s.exercises.push({ id: uid(), name: data.name||'Novo Exercício', sets: data.sets||'3x10', weight: data.weight||'—', notes: data.notes||'', status: 'undone' });
+    saveState();
+    rerenderSerie(serieId);
+    toast('Exercício adicionado');
+  });
+}
+
+function removeEx(serieId, exId) {
+  const s = state.series.find(s => s.id === serieId);
+  const ex = s.exercises.find(e => e.id === exId);
+  if (!ex) return;
+  openModal('REMOVER EXERCÍCIO', [
+    { label: 'Remover "' + ex.name + '"?', key: '_', type: 'hidden', placeholder: '' }
+  ], function() {
+    s.exercises = s.exercises.filter(e => e.id !== exId);
+    saveState();
+    rerenderSerie(serieId);
+    toast('Exercício removido');
+  });
+}
+
+function moveEx(serieId, exId, dir) {
+  const s = state.series.find(s => s.id === serieId);
+  const idx = s.exercises.findIndex(e => e.id === exId);
+  const newIdx = idx + dir;
+  if (newIdx < 0 || newIdx >= s.exercises.length) return;
+  [s.exercises[idx], s.exercises[newIdx]] = [s.exercises[newIdx], s.exercises[idx]];
+  saveState();
+  rerenderSerie(serieId);
+}
+
+function setVariant(serieId, idx) {
+  const s = state.series.find(s => s.id === serieId);
+  s.activeVariant = idx;
+  saveState();
+  rerenderSerie(serieId);
+}
+
+function addVariant(serieId) {
+  openModal('NOVA VARIANTE', [
+    { label:'NOME DA VARIANTE', key:'name', type:'text', placeholder:'Ex: Variação Pesada' }
+  ], data => {
+    const s = state.series.find(s => s.id === serieId);
+    s.variants.push(data.name || 'Nova Variante');
+    saveState();
+    rerenderSerie(serieId);
+    toast('Variante adicionada');
+  });
+}
+
+function removeSerie(serieId) {
+  var s = state.series.find(function(s) { return s.id === serieId; });
+  if (!s) return;
+  openModal('REMOVER SÉRIE', [
+    { label: 'Tem certeza que deseja remover "' + s.name + '"? Esta ação não pode ser desfeita.', key: '_', type: 'hidden', placeholder: '' }
+  ], function() {
+    state.series = state.series.filter(function(x) { return x.id !== serieId; });
+    saveState();
+    toast('Série removida ✓');
+    if (state.series.length > 0) {
+      switchTab('workout-' + state.series[0].id);
+    } else {
+      switchTab('biblioteca');
+    }
+    renderTabs();
+  });
+}
+
+function openAddSerie() {
+  openModal('NOVA SÉRIE', [
+    { label:'LETRA/LABEL', key:'label', type:'text', placeholder:'Ex: E' },
+    { label:'NOME', key:'name', type:'text', placeholder:'Ex: Mobilidade' },
+  ], data => {
+    var newId = uid();
+    state.series.push({
+      id: newId, name: (data.name||'Nova Série').toUpperCase(), label: (data.label||'?').toUpperCase(),
+      lastDone: null, variants: ['Principal'], activeVariant: 0, exercises: []
+    });
+    saveState();
+    switchTab('workout-' + newId);
+    renderTabs();
+    toast('Série criada');
+  });
+}
+
+// ─────────────────────────── HISTORY ───────────────────────────
+function renderHistory() {
+  const list = document.getElementById('history-list');
+  if (!state.history.length) {
+    list.innerHTML = '<div style="color:var(--muted);font-family:\'DM Mono\',monospace;font-size:12px;padding:20px 0">Nenhum treino registrado ainda.</div>';
+    return;
+  }
+  const clearBtn = `<div style="display:flex;justify-content:flex-end;margin-bottom:12px">
+    <button class="btn danger" onclick="clearHistory()">↺ LIMPAR HISTÓRICO</button>
+  </div>`;
+  list.innerHTML = clearBtn + state.history.map(h => {
+    const d = new Date(h.date);
+    const dataFormatada = d.toLocaleDateString('pt-BR', {day:'2-digit',month:'2-digit',year:'2-digit'});
+    const diaSemana = d.toLocaleDateString('pt-BR', {weekday:'long'});
+    const diaSemanaCapit = diaSemana.charAt(0).toUpperCase() + diaSemana.slice(1);
+    const reg = h.registeredAt ? new Date(h.registeredAt).toLocaleDateString('pt-BR', {day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : null;
+
+    // Build exercise detail list if available
+    var exHTML = '';
+    if (h.exercises && h.exercises.length > 0) {
+      var rows = h.exercises.map(function(ex) {
+        var statusColor = ex.status === 'done' ? 'var(--done)' : ex.status === 'skipped' ? 'var(--danger)' : 'var(--muted)';
+        var statusDot = ex.status === 'done' ? '●' : ex.status === 'skipped' ? '✕' : '○';
+        return '<div style="display:flex;align-items:baseline;gap:8px;padding:3px 0;border-bottom:1px solid rgba(255,255,255,.04)">' +
+          '<span style="color:' + statusColor + ';font-size:10px;width:12px;flex-shrink:0">' + statusDot + '</span>' +
+          '<span style="flex:1;font-size:12px;color:var(--text)">' + escHtml(ex.name || '') + '</span>' +
+          '<span style="font-family:\'DM Mono\',monospace;font-size:11px;color:var(--accent)">' + escHtml(ex.sets || '') + '</span>' +
+          '<span style="font-family:\'DM Mono\',monospace;font-size:11px;color:var(--accent2);min-width:80px;text-align:right">' + escHtml(ex.weight || '') + '</span>' +
+          '</div>';
+      }).join('');
+      exHTML = '<div id="hist-ex-' + h.id + '" style="display:none;margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">' + rows + '</div>';
+    }
+
+    var hasEx = h.exercises && h.exercises.length > 0;
+    return `<div class="history-card" style="flex-direction:column;align-items:stretch">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div style="cursor:${hasEx ? 'pointer' : 'default'}" onclick="${hasEx ? 'toggleHistoryEx(\'' + h.id + '\')' : ''}">
+          <div style="display:flex;align-items:baseline;gap:10px">
+            <div class="history-serie">${escHtml(h.serieLabel)} — ${escHtml(h.serieName)}</div>
+            <div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--accent2)">${dataFormatada}</div>
+            <div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted)">${diaSemanaCapit}</div>
+          </div>
+          <div class="history-date">${escHtml(h.variant)}${reg ? ' · registrado ' + reg : ''}${hasEx ? ' · <span style="color:var(--accent3)">ver exercícios ▾</span>' : ''}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <span class="history-badge">${h.done}/${h.total} exercícios</span>
+          <button class="ex-action-btn" onclick="removeHistoryEntry('${h.id}')" style="flex-shrink:0">✕</button>
+        </div>
+      </div>
+      ${exHTML}
+    </div>`;
+  }).join('');
+}
+
+function toggleHistoryEx(id) {
+  var el = document.getElementById('hist-ex-' + id);
+  if (el) el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+
+function removeHistoryEntry(id) {
+  state.history = state.history.filter(h => h.id !== id);
+  saveState();
+  renderHistory();
+  toast('Entrada removida');
+}
+
+function clearHistory() {
+  openModal('LIMPAR HISTÓRICO', [
+    { label: 'Tem certeza? Todo o histórico será removido permanentemente.', key: '_', type: 'hidden', placeholder: '' }
+  ], function() {
+    state.history = [];
+    saveState();
+    renderHistory();
+    toast('Histórico limpo');
+  });
+}
+
+
+
+function renderBiblioteca(activeId) {
+  var bibTabs = document.getElementById('biblioteca-tabs');
+  var bibContent = document.getElementById('biblioteca-content');
+  if (!bibTabs || !bibContent) return;
+
+  // Default to first serie if no active workout tab
+  if (!activeId || !activeId.startsWith('workout-')) {
+    activeId = 'workout-' + state.series[0].id;
+    currentTab = activeId;
+  }
+
+  // Render sub-tabs + actions
+  bibTabs.innerHTML = '';
+  state.series.forEach(function(s) {
+    var done = s.exercises.filter(function(e) { return e.status === 'done'; }).length;
+    var total = s.exercises.length;
+    var pct = total ? Math.round(done/total*100) : 0;
+    var btn = document.createElement('button');
+    btn.className = 'bib-tab' + (activeId === 'workout-'+s.id ? ' active' : '');
+    btn.innerHTML = s.label + ' — ' + s.name + ' <span class="tab-badge">' + pct + '%</span>';
+    btn.onclick = (function(sid) { return function() { switchTab('workout-'+sid); }; })(s.id);
+    bibTabs.appendChild(btn);
+  });
+
+  // Spacer
+  var spacer = document.createElement('div');
+  spacer.style.flex = '1';
+  bibTabs.appendChild(spacer);
+
+  // Remove série button
+  var activeSerieId = activeId.replace('workout-', '');
+  var btnRemove = document.createElement('button');
+  btnRemove.className = 'bib-tab';
+  btnRemove.style.color = 'var(--danger)';
+  btnRemove.textContent = '✕ REMOVER';
+  btnRemove.onclick = (function(sid) { return function() { removeSerie(sid); }; })(activeSerieId);
+  bibTabs.appendChild(btnRemove);
+
+  // Add série button
+  var btnAdd = document.createElement('button');
+  btnAdd.className = 'bib-tab';
+  btnAdd.style.color = 'var(--accent)';
+  btnAdd.textContent = '+ SÉRIE';
+  btnAdd.onclick = openAddSerie;
+  bibTabs.appendChild(btnAdd);
+
+  // Render active serie
+  var s = state.series.find(function(s) { return s.id === activeSerieId; });
+  if (s) bibContent.innerHTML = buildSerieHTML(s);
+  setTimeout(autoResizeAll, 50);
+}
+
+
+var DEFAULT_PERFIL = {
+  altura: '176', peso: '68', idade: '40', pesoobj: '75',
+  objetivos: 'Hipertrofia e ganho de massa muscular (sem passar de 75kg). Perda de gordura abdominal.',
+  prioridades: 'Ombros e costas são prioritários. Pernas precisam de mais atenção — tenho tendência a evitá-las, mas reconheço a necessidade.',
+  dias: '5', fds: 'ocasionalmente',
+  estilo: 'Treino explosivo com cargas altas para o porte. Precisa de moderação para evitar novas lesões.',
+  aerobico: 'Academia fica a 2.2km de casa (4.4km ida+volta a pé, mesmo ritmo). Esse cardio já está embutido em todo dia de treino. Academia tem equipamentos de cardio disponíveis (não usa atualmente mas pode). Nos dias de descanso/aeróbico, preferir variações concretas: caminhada acelerada, elíptico leve.',
+  lesoes: 'Tendão bíceps distal bilateral — APENAS pegada neutra para bíceps, sem exceção. Tendão perna direita — cautela no leg press com carga elevada. Ombro direito: lesão por acidente mecânico (não pelo overhead), overhead press é SEGURO e prioritário. Histórico de treino explosivo — moderar progressão de carga.',
+  obs: ''
+};
+
+function getApiKey() {
+  return localStorage.getItem('anthropic_api_key') || '';
+}
+
+function saveApiKey(key) {
+  localStorage.setItem('anthropic_api_key', key.trim());
+  toast('Chave de API salva ✓');
+}
+
+function trackTokenUsage(usage) {
+  if (!usage) return;
+  if (!getApiKey()) return; // Only track when using own API key
+  var stored = JSON.parse(localStorage.getItem('token_usage') || '{"input":0,"output":0,"since":null}');
+  if (!stored.since) stored.since = new Date().toISOString();
+  stored.input += (usage.input_tokens || 0);
+  stored.output += (usage.output_tokens || 0);
+  localStorage.setItem('token_usage', JSON.stringify(stored));
+  renderTokenUsage();
+}
+
+function resetTokenUsage() {
+  localStorage.setItem('token_usage', '{"input":0,"output":0,"since":null}');
+  renderTokenUsage();
+  toast('Contador zerado ✓');
+}
+
+function renderTokenUsage() {
+  var el = document.getElementById('token-usage-display');
+  if (!el) return;
+  var stored = JSON.parse(localStorage.getItem('token_usage') || '{"input":0,"output":0,"since":null}');
+  var sinceStr = stored.since
+    ? new Date(stored.since).toLocaleDateString('pt-BR', {day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'})
+    : '—';
+  // Sonnet 4.6: $3/MTok input, $15/MTok output
+  var cost = (stored.input * 3 + stored.output * 15) / 1_000_000;
+  var hasKey = !!getApiKey();
+  el.innerHTML =
+    '<div style="margin-bottom:4px"><span style="color:var(--muted)">Desde: </span><span style="color:var(--text)">' + sinceStr + '</span>' +
+    (!hasKey ? ' <span style="color:var(--danger);font-size:9px">(sem chave — não contabilizando)</span>' : '') + '</div>' +
+    '<span style="color:var(--muted)">Input: </span><span style="color:var(--accent)">' + stored.input.toLocaleString() + '</span>' +
+    '<span style="color:var(--muted)"> · Output: </span><span style="color:var(--accent2)">' + stored.output.toLocaleString() + '</span>' +
+    '<span style="color:var(--muted)"> · ~$</span><span style="color:var(--done)">' + cost.toFixed(4) + '</span>';
+}
+
+function toggleApiKeyVisibility() {
+  var input = document.getElementById('api-key-input');
+  var btn = document.getElementById('api-key-toggle');
+  if (input.type === 'password') {
+    input.type = 'text';
+    btn.textContent = '🙈';
+  } else {
+    input.type = 'password';
+    btn.textContent = '👁';
+  }
+}
+
+function loadPerfil() {
+  var saved = getApiKey();
+  var input = document.getElementById('api-key-input');
+  if (input && saved) input.value = saved;
+  renderTokenUsage();
+  var p = state.perfil || DEFAULT_PERFIL;
+  ['altura','peso','idade','pesoobj','objetivos','prioridades','dias','estilo','aerobico','lesoes','obs'].forEach(function(k) {
+    var el = document.getElementById('pf-' + k);
+    if (el) el.value = p[k] || '';
+  });
+  var fds = document.getElementById('pf-fds');
+  if (fds) fds.value = p.fds || 'ocasionalmente';
+}
+
+function savePerfil() {
+  state.perfil = {
+    altura: document.getElementById('pf-altura').value,
+    peso: document.getElementById('pf-peso').value,
+    idade: document.getElementById('pf-idade').value,
+    pesoobj: document.getElementById('pf-pesoobj').value,
+    objetivos: document.getElementById('pf-objetivos').value,
+    prioridades: document.getElementById('pf-prioridades').value,
+    dias: document.getElementById('pf-dias').value,
+    fds: document.getElementById('pf-fds').value,
+    estilo: document.getElementById('pf-estilo').value,
+    aerobico: document.getElementById('pf-aerobico').value,
+    lesoes: document.getElementById('pf-lesoes').value,
+    obs: document.getElementById('pf-obs').value
+  };
+  saveState();
+}
+
+function salvarPerfil() {
+  savePerfil();
+  var status = document.getElementById('perfil-status');
+  if (status) { status.textContent = '✓ Perfil salvo'; setTimeout(function() { status.textContent = ''; }, 2000); }
+}
+
+function buildPerfilTexto() {
+  var p = state.perfil || DEFAULT_PERFIL;
+  return 'PERFIL DO ATLETA:\n' +
+    '- ' + p.altura + 'cm, ' + p.peso + 'kg, ' + p.idade + ' anos. Objetivo de peso: ' + p.pesoobj + 'kg\n' +
+    '- Objetivos: ' + p.objetivos + '\n' +
+    '- Prioridades musculares: ' + p.prioridades + '\n' +
+    '- Treina ' + p.dias + 'x/semana. Fins de semana: ' + p.fds + '\n' +
+    '- Estilo: ' + p.estilo + '\n' +
+    '- Aeróbico: ' + p.aerobico + '\n' +
+    '- Lesões/restrições: ' + p.lesoes +
+    (p.obs ? '\n- Obs: ' + p.obs : '');
+}
+
+
+var planoChatHistory = state.planoChatHistory || [];
+
+function getPLANO_SYSTEM() {
+  var temPlano = state.plano && state.plano.semanas && state.plano.semanas.length > 0;
+
+  return `Você é um personal trainer especializado em periodização, integrado a um app de treino.
+
+${buildPerfilTexto()}
+
+SÉRIES DISPONÍVEIS: A — Ombros, B — Costas/Bíceps, C — Peito/Tríceps, D — Pernas
+
+CAPACIDADES:
+
+1. ${temPlano ? 'MODIFICAR DIAS DO PLANO ATUAL (use isso quando já existe um plano ativo — NUNCA gere um plano completo novo)' : 'GERAR PLANO MACRO COMPLETO (use apenas quando não há plano ativo)'}
+${temPlano ?
+`Retorne os dias modificados no formato abaixo. Se o usuário pedir um replano completo de várias semanas, inclua TODOS os dias de TODAS as semanas afetadas — não omita nenhum dia. Para semanas novas ou com foco alterado, inclua uma ação de tipo "semana" com foco e intensidade:
+{"modificacoes":{"serieLabel":"planoMacro","acoes":[{"tipo":"semana","semana":2,"foco":"Acumulação","intensidade":"70-80%"},{"tipo":"alterar","semana":2,"dia":"Segunda","serie":"A","orientacao":"instrução específica"},{"tipo":"alterar","semana":2,"dia":"Terça","serie":"D","orientacao":"instrução"}]}}` :
+`Retorne APENAS este JSON (sem markdown, sem texto extra):
+{"planoMacro":{"objetivo":"descrição do ciclo","semanas":[{"semana":1,"foco":"Adaptação","intensidade":"60-70%","progressao":"semana de referência","dias":[{"dia":"Segunda","serie":"A","tipo":"treino","intensidade":"moderada","orientacao":"instrução específica"},{"dia":"Terça","serie":"D","tipo":"treino","intensidade":"moderada","orientacao":"instrução"},{"dia":"Quarta","serie":"descanso","tipo":"aerobico","orientacao":"instrução concreta"},{"dia":"Quinta","serie":"B","tipo":"treino","intensidade":"moderada","orientacao":"instrução"},{"dia":"Sexta","serie":"C","tipo":"treino","intensidade":"moderada","orientacao":"instrução"},{"dia":"Sábado","serie":"D","tipo":"treino","intensidade":"leve","orientacao":"instrução"},{"dia":"Domingo","serie":"descanso","tipo":"recuperacao","orientacao":"instrução"}]},{"semana":2,"foco":"...","intensidade":"...","progressao":"...","dias":[...]},{"semana":3,"foco":"...","intensidade":"...","progressao":"...","dias":[...]},{"semana":4,"foco":"Deload","intensidade":"50-60%","progressao":"recuperação","dias":[...]}],"observacoes":"orientações gerais"}}`}
+
+2. EXPANDIR DIA (exercícios completos com sets e cargas)
+{"diaExpandido":{"semana":1,"dia":"Segunda","serie":"A","foco":"foco do dia","exercicios":[{"id":"e1","nome":"Overhead Press Sentado","sets":"3x5","weight":"24kg cada lado","notes":""}]}}
+
+3. MODIFICAR EXERCÍCIOS DE UMA SÉRIE
+{"modificacoes":{"serieLabel":"A","acoes":[{"tipo":"substituir","de":"nome","por":"novo","sets":"3x8","weight":"20kg","notes":""},{"tipo":"alterar","nome":"nome","sets":"4x6","weight":"25kg"},{"tipo":"remover","nome":"nome"},{"tipo":"adicionar","nome":"novo","sets":"3x10","weight":"15kg","posicao":2}]}}
+
+4. DIA PERDIDO
+{"replanejamento":{"diaPerdido":"Quarta","motivoPerdido":"viagem","ajustes":[{"dia":"Quinta","serie":"C","orientacao":"ajuste"}],"observacao":"explicação"}}
+
+5. CONVERSA NORMAL — responda em português, direto e técnico.`;
+}
+
+function buildContextoTreino() {
+  const skippedAll = [];
+  state.series.forEach(s => {
+    s.exercises.filter(e => e.skippedLast).forEach(e => skippedAll.push(s.label + ': ' + e.name));
+  });
+
+  const histSummary = state.history.slice(0, 10).map(h => {
+    const d = new Date(h.date).toLocaleDateString('pt-BR', {weekday:'short', day:'2-digit', month:'2-digit'});
+    return d + ': Série ' + h.serieLabel + ' (' + h.done + '/' + h.total + ')';
+  }).join('\n') || 'Sem histórico registrado ainda.';
+
+  // Include current plan macro if active
+  var planoAtual = '';
+  if (state.plano && state.plano.semanas) {
+    var diasStatus = state.plano.diasStatus || {};
+    var linhas = [];
+    state.plano.semanas.forEach(function(sem) {
+      var dias = sem.dias || sem.agenda || [];
+      dias.forEach(function(d) {
+        var key = 'sem' + sem.semana + '_' + d.dia;
+        var status = diasStatus[key] || 'pendente';
+        linhas.push('Sem' + sem.semana + ' ' + d.dia + ': ' + (d.serie || 'descanso') + (d.orientacao ? ' — ' + d.orientacao : '') + ' [' + status + ']');
+      });
+    });
+    planoAtual = '\n\nPLANO MACRO ATUAL (' + state.plano.semanas.length + ' semanas):\n' + linhas.join('\n') +
+      '\n\nIMPORTANTE: Este plano tem ' + state.plano.semanas.length + ' semanas. Ao gerar modificações, inclua TODAS as semanas do plano, inclusive semanas adicionais se o ciclo exigir.';
+  }
+
+  return 'HISTÓRICO RECENTE:\n' + histSummary +
+    (skippedAll.length ? '\n\nEXERCÍCIOS PULADOS NA ÚLTIMA SESSÃO:\n' + skippedAll.join('\n') : '') +
+    planoAtual;
+}
+
+function enviarPlanoAtual() {
+  if (!state.plano || !state.plano.semanas) {
+    toast('Nenhum plano ativo');
+    return;
+  }
+  var diasStatus = state.plano.diasStatus || {};
+  var linhas = state.plano.semanas.map(function(sem) {
+    var dias = (sem.dias || sem.agenda || []).map(function(d) {
+      var key = 'sem' + sem.semana + '_' + d.dia;
+      var status = diasStatus[key] || 'pendente';
+      return '  ' + d.dia + ': ' + (d.serie || 'descanso') + (d.orientacao ? ' — ' + d.orientacao : '') + ' [' + status + ']';
+    }).join('\n');
+    return 'Semana ' + sem.semana + ' (' + (sem.foco || '') + '):\n' + dias;
+  }).join('\n');
+
+  var input = document.getElementById('plano-input');
+  if (input) {
+    input.value = 'Plano macro atual:\n\n' + linhas;
+    input.focus();
+  }
+}
+
+function gerarPlanoCompleto() {
+  var ctx = buildContextoTreino();
+  var input = document.getElementById('plano-input');
+  if (input) {
+    input.value = 'Gere um plano macro periodizado de 4 semanas.' + (ctx ? '\n\n' + ctx : '');
+    enviarMensagemPlano();
+  }
+}
+
+function deletePlanoChatMsg(idx) {
+  if (!state.planoChatMessages) return;
+  var chat = document.getElementById('plano-chat');
+  var scrollPos = chat ? chat.scrollTop : 0;
+  state.planoChatMessages.splice(idx, 1);
+  saveState();
+  renderPlanoChatMessages(scrollPos);
+}
+
+function renderPlanoChatMessages(scrollPos) {
+  var chat = document.getElementById('plano-chat');
+  if (!chat) return;
+  chat.innerHTML = '';
+  (state.planoChatMessages || []).forEach(function(m, idx) {
+    var div = document.createElement('div');
+    div.className = 'plano-msg plano-msg-' + m.role;
+    div.style.position = 'relative';
+    var span = document.createElement('span');
+    span.textContent = m.text;
+    var btn = document.createElement('button');
+    btn.textContent = '✕';
+    btn.title = 'Apagar mensagem';
+    btn.onclick = function() { deletePlanoChatMsg(idx); };
+    btn.style.cssText = 'position:absolute;top:4px;' + (m.role === 'user' ? 'left:-20px' : 'right:-20px') + ';background:none;border:none;color:var(--muted);cursor:pointer;font-size:10px;opacity:0;transition:opacity .15s;padding:2px 4px;line-height:1';
+    div.appendChild(span);
+    div.appendChild(btn);
+    div.onmouseenter = function() { btn.style.opacity = '1'; };
+    div.onmouseleave = function() { btn.style.opacity = '0'; };
+    chat.appendChild(div);
+  });
+  chat.scrollTop = (scrollPos !== undefined) ? scrollPos : chat.scrollHeight;
+}
+
+function addPlanoChatMsg(role, text) {
+  const chat = document.getElementById('plano-chat');
+  if (!chat) return;
+  if (!state.planoChatMessages) state.planoChatMessages = [];
+  state.planoChatMessages.push({ role: role, text: text });
+  if (state.planoChatMessages.length > 50) state.planoChatMessages = state.planoChatMessages.slice(-50);
+  saveState();
+  renderPlanoChatMessages();
+  return chat.lastElementChild;
+}
+
+function addPlanoChatTyping() {
+  const chat = document.getElementById('plano-chat');
+  const div = document.createElement('div');
+  div.className = 'plano-msg plano-msg-ai plano-msg-typing';
+  div.id = 'plano-typing';
+  div.innerHTML = '<span>●●●</span>';
+  chat.appendChild(div);
+  chat.scrollTop = chat.scrollHeight;
+}
+
+function removePlanoChatTyping() {
+  const el = document.getElementById('plano-typing');
+  if (el) el.remove();
+}
+
+function limparChatPlano() {
+  planoChatHistory = [];
+  state.planoChatHistory = [];
+  state.planoChatMessages = [];
+  saveState();
+  const chat = document.getElementById('plano-chat');
+  if (chat) {
+    chat.innerHTML = '<div class="plano-msg plano-msg-system"><span>Conversa reiniciada. Como posso ajudar?</span></div>';
+  }
+  toast('Conversa limpa ✓');
+}
+
+
+function autoResizePlanoInput(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+}
+
+async function enviarMensagemPlano() {
+  const input = document.getElementById('plano-input');
+  const btn = document.getElementById('plano-send-btn');
+  const msg = input.value.trim();
+  if (!msg || btn.disabled) return;
+
+  input.value = '';
+  input.style.height = 'auto';
+  btn.disabled = true;
+
+  addPlanoChatMsg('user', msg);
+  addPlanoChatTyping();
+
+  // Build messages with context injected in first user message
+  var messages = [];
+  if (planoChatHistory.length === 0) {
+    messages.push({ role: 'user', content: buildContextoTreino() + '\n\n' + msg });
+  } else {
+    var recentHistory = planoChatHistory.slice(-40);
+    messages = recentHistory.concat([{ role: 'user', content: msg }]);
+  }
+
+  try {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': getApiKey(), 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 16000,
+        system: getPLANO_SYSTEM(),
+        messages: messages
+      })
+    });
+    const data = await response.json();
+    trackTokenUsage(data.usage);
+    const text = data.content?.map(c => c.text||'').join('').trim();
+
+    // Update history
+    planoChatHistory = messages.concat([{ role: 'assistant', content: text }]);
+    state.planoChatHistory = planoChatHistory;
+    saveState();
+
+    removePlanoChatTyping();
+
+    // Strip markdown code blocks if present, then try to parse JSON
+    var cleanText = text.replace(/^```json\s*/m, '').replace(/^```\s*/m, '').replace(/```$/m, '').trim();
+    var parsed = null;
+    var parseError = null;
+    try {
+      if (cleanText.startsWith('{')) {
+        parsed = JSON.parse(cleanText);
+      } else {
+        // Find the start of JSON object
+        var jsonStart = cleanText.indexOf('{');
+        if (jsonStart !== -1) {
+          // Try from first { to end
+          try {
+            parsed = JSON.parse(cleanText.slice(jsonStart));
+          } catch(e1) {
+            // Try to find matching closing brace by scanning
+            var depth = 0;
+            var inString = false;
+            var escape = false;
+            var end = -1;
+            for (var ci = jsonStart; ci < cleanText.length; ci++) {
+              var ch = cleanText[ci];
+              if (escape) { escape = false; continue; }
+              if (ch === '\\' && inString) { escape = true; continue; }
+              if (ch === '"') { inString = !inString; continue; }
+              if (inString) continue;
+              if (ch === '{') depth++;
+              if (ch === '}') { depth--; if (depth === 0) { end = ci; break; } }
+            }
+            if (end !== -1) parsed = JSON.parse(cleanText.slice(jsonStart, end + 1));
+          }
+        }
+      }
+    } catch(e) { parseError = e.message; }
+
+    if (parsed && parsed.planoMacro) {
+      // Etapa 1: plano macro
+      state.planoRascunho = parsed.planoMacro;
+      saveState();
+      addPlanoChatMsg('ai', '✓ Plano macro de ' + parsed.planoMacro.semanas.length + ' semanas gerado! Veja no painel à direita.\n\n' + (parsed.planoMacro.observacoes||'') + '\n\nClique em "Aplicar" para ativar. Depois diga "expanda Segunda semana 1" para ver o treino completo do dia.');
+      renderPlanoMacro(parsed.planoMacro);
+    } else if (parsed && (parsed.diaExpandido || parsed.exercicios || parsed.exercises || parsed.blocos || parsed.session || parsed.workout || parsed.treino)) {
+      var d = normalizarDiaExpandido(parsed, parsed.semana || (parsed.session && parsed.session.week) || 1, parsed.diaSemana || parsed.dia || (parsed.session && parsed.session.day) || '');
+      aplicarDiaExpandido(d);
+      addPlanoChatMsg('ai', '✓ Treino de ' + d.dia + ' (semana ' + d.semana + ') expandido com ' + d.exercicios.length + ' exercícios. Abrindo a Agenda...');
+      setTimeout(function() { switchTab('agenda'); }, 1000);
+    } else if (parsed && parsed.semanas) {
+      state.planoRascunho = parsed;
+      saveState();
+      addPlanoChatMsg('ai', '✓ Plano gerado! Veja no painel à direita. Clique em "Aplicar" para ativar.');
+      renderPlanoMacro(parsed);
+    } else if (parsed && parsed.modificacoes) {
+      renderModificacoesProposta(parsed.modificacoes);
+    } else if (parsed && parsed.replanejamento) {
+      renderReplanejamento(parsed.replanejamento);
+    } else {
+      if (parseError) {
+        addPlanoChatMsg('ai', text);
+        addPlanoChatMsg('system', 'Não consegui parsear o JSON: ' + parseError);
+      } else {
+        addPlanoChatMsg('ai', text);
+      }
+    }
+
+  } catch(e) {
+    removePlanoChatTyping();
+    addPlanoChatMsg('ai', 'Erro ao contatar a IA. Tente novamente.');
+  }
+
+  btn.disabled = false;
+}
+
+var _pendingMod = null;
+
+function renderModificacoesProposta(mod) {
+  _pendingMod = mod;
+
+  // Build a preview: apply modifications to a copy of the current plan
+  var planoCopy = JSON.parse(JSON.stringify(state.plano || state.planoRascunho || { semanas: [] }));
+
+  var diaMap = {
+    'Segunda-feira': 'Segunda', 'Terça-feira': 'Terça', 'Quarta-feira': 'Quarta',
+    'Quinta-feira': 'Quinta', 'Sexta-feira': 'Sexta', 'Sábado': 'Sábado', 'Domingo': 'Domingo',
+    'segunda': 'Segunda', 'terça': 'Terça', 'quarta': 'Quarta', 'quinta': 'Quinta',
+    'sexta': 'Sexta', 'sábado': 'Sábado', 'domingo': 'Domingo',
+    'Terca': 'Terça', 'Terca-feira': 'Terça', 'Sabado': 'Sábado',
+    'terca': 'Terça', 'sabado': 'Sábado'
+  };
+
+  if (mod.serieLabel === 'planoMacro' || mod.serieLabel === 'agenda') {
+    (mod.acoes || []).forEach(function(a) {
+      var semanaNum = a.semana || 1;
+      var semana = planoCopy.semanas.find(function(s) { return s.semana === semanaNum; });
+      if (!semana) {
+        semana = { semana: semanaNum, foco: '', intensidade: '', dias: [] };
+        planoCopy.semanas.push(semana);
+        planoCopy.semanas.sort(function(a, b) { return a.semana - b.semana; });
+      }
+      var dias = semana.dias || semana.agenda || [];
+      if (!semana.dias) semana.dias = dias;
+      var diaNome = a.dia ? (diaMap[a.dia] || a.dia) : null;
+      if (a.tipo === 'semana') {
+        if (a.foco) semana.foco = a.foco;
+        if (a.intensidade) semana.intensidade = a.intensidade;
+        if (a.progressao) semana.progressao = a.progressao;
+      } else if (diaNome) {
+        var d = dias.find(function(d) { return d.dia === diaNome; });
+        if (!d) { d = { dia: diaNome, serie: 'descanso', tipo: 'recuperacao', orientacao: '' }; dias.push(d); }
+        if (a.serie !== undefined) {
+          d.serie = a.serie;
+          // Infer tipo from serie if not explicitly provided
+          if (!a.tipo_dia) {
+            d.tipo = a.serie === 'descanso'
+              ? (a.orientacao && /aer[oó]b/i.test(a.orientacao) ? 'aerobico' : 'recuperacao')
+              : 'treino';
+          }
+        }
+        if (a.orientacao !== undefined) {
+          d.orientacao = a.orientacao;
+          // Re-check aerobico from orientacao
+          if (d.serie === 'descanso' && /aer[oó]b/i.test(a.orientacao)) d.tipo = 'aerobico';
+        }
+        if (a.tipo_dia) d.tipo = a.tipo_dia;
+      }
+    });
+
+    // Sort days in correct week order
+    var ordemDias = ['Segunda','Terça','Quarta','Quinta','Sexta','Sábado','Domingo'];
+    planoCopy.semanas.forEach(function(sem) {
+      var dd = sem.dias || sem.agenda || [];
+      dd.sort(function(a, b) {
+        return ordemDias.indexOf(a.dia) - ordemDias.indexOf(b.dia);
+      });
+    });
+  }
+
+  // Sanitize tipos before rendering
+  sanitizePlanoTipos(planoCopy);
+
+  // Render preview using classic layout, with APLICAR/IGNORAR buttons
+  var resultado = document.getElementById('plano-resultado');
+  if (!resultado) return;
+
+  var semanas = planoCopy.semanas || [];
+  var html = '<div style="font-family:\'DM Mono\',monospace;font-size:9px;letter-spacing:2px;color:var(--accent3);margin-bottom:10px;padding:6px 10px;background:rgba(0,212,255,.08);border-radius:6px;border:1px solid rgba(0,212,255,.2)">PRÉVIA DAS MODIFICAÇÕES</div>';
+
+  if (planoCopy.observacoes) {
+    html += '<div class="plan-raw" style="margin-bottom:12px;font-size:12px;border-color:rgba(232,255,60,.2)">' + escHtml(planoCopy.observacoes) + '</div>';
+  }
+
+  semanas.forEach(function(semana) {
+    html += '<div class="plan-week"><div class="plan-week-title">SEMANA ' + semana.semana;
+    if (semana.foco) html += ' <span style="font-size:12px;font-family:\'DM Sans\',sans-serif;font-weight:400;letter-spacing:0;color:var(--muted)">— ' + escHtml(semana.foco) + '</span>';
+    if (semana.intensidade) html += ' <span style="font-size:10px;font-family:\'DM Mono\',monospace;color:var(--accent2)"> ' + escHtml(semana.intensidade) + '</span>';
+    html += '</div>';
+    var dias = semana.dias || semana.agenda || [];
+    dias.forEach(function(d) {
+      var isRest = d.serie === 'descanso';
+      var serieObj = state.series.find(function(s) { return s.label === d.serie; });
+      var tipo = d.tipo || (isRest ? 'recuperacao' : 'treino');
+      var tipoClass = tipo === 'aerobico' ? 'tipo-aerobico' : tipo === 'recuperacao' ? 'tipo-recuperacao' : 'tipo-treino';
+      var tipoLabel = tipo === 'aerobico' ? 'AERÓBICO' : tipo === 'recuperacao' ? 'DESCANSO' : 'TREINO';
+      html += '<div class="plan-day' + (isRest ? ' rest' : '') + '">' +
+        '<div class="plan-day-label">' + escHtml(d.dia) + '</div>' +
+        '<div class="plan-day-content">' +
+        '<div class="plan-day-serie" style="display:flex;align-items:center;gap:8px">' +
+          (isRest ? '<span>' + (tipo === 'aerobico' ? 'Aeróbico' : 'Descanso') + '</span>' : '<span>' + d.serie + ' — ' + (serieObj ? serieObj.name : d.serie) + '</span>') +
+          '<span class="agenda-dia-tipo ' + tipoClass + '" style="font-size:9px;padding:2px 8px">' + tipoLabel + '</span>' +
+        '</div>' +
+        (d.orientacao ? '<div class="plan-day-notes">' + escHtml(d.orientacao) + '</div>' : '') +
+        '</div></div>';
+    });
+    html += '</div>';
+  });
+
+  html += '<div style="display:flex;gap:8px;margin-top:16px">' +
+    '<button onclick="aplicarModificacoesPendentes()" style="font-family:\'DM Mono\',monospace;font-size:11px;padding:6px 16px;border-radius:8px;border:none;background:var(--accent3);color:#000;cursor:pointer">✓ APLICAR</button>' +
+    '<button onclick="descartarModificacoesPendentes()" style="font-family:\'DM Mono\',monospace;font-size:11px;padding:6px 14px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer">✕ IGNORAR</button>' +
+    '</div>';
+
+  resultado.innerHTML = html;
+}
+
+function aplicarModificacoesPendentes() {
+  if (!_pendingMod) return;
+  var el = document.getElementById('mod-proposta-panel');
+  if (el) el.remove();
+  aplicarModificacoes(_pendingMod);
+  _pendingMod = null;
+}
+
+function descartarModificacoesPendentes() {
+  _pendingMod = null;
+  if (state.planoRascunho || state.plano) {
+    renderPlanoMacro(state.planoRascunho || state.plano);
+  }
+}
+
+function aplicarModificacoes(mod) {
+  // If modifying the macro plan agenda (not a specific serie)
+  if (!mod.serieLabel || mod.serieLabel === 'planoMacro' || mod.serieLabel === 'agenda') {
+    aplicarModificacoesMacro(mod);
+    return;
+  }
+
+  if (!state.plano || !state.plano.seriesData) {
+    toast('Aplique um plano primeiro'); return;
+  }
+  const serieObj = state.series.find(s => s.label === mod.serieLabel);
+  if (!serieObj) { toast('Série não encontrada'); return; }
+  const pd = state.plano.seriesData[serieObj.id];
+  if (!pd) { toast('Dados do plano não encontrados'); return; }
+
+  mod.acoes.forEach(a => {
+    if (a.tipo === 'substituir') {
+      const idx = pd.exercises.findIndex(e => e.name.toLowerCase().includes(a.de.toLowerCase()));
+      if (idx >= 0) {
+        pd.exercises[idx] = { ...pd.exercises[idx], name: a.por, sets: a.sets||pd.exercises[idx].sets, weight: a.weight||pd.exercises[idx].weight, notes: a.notes||pd.exercises[idx].notes };
+      }
+    } else if (a.tipo === 'alterar') {
+      const ex = pd.exercises.find(e => e.name.toLowerCase().includes(a.nome.toLowerCase()));
+      if (ex) { if (a.sets) ex.sets = a.sets; if (a.weight) ex.weight = a.weight; if (a.notes !== undefined) ex.notes = a.notes; }
+    } else if (a.tipo === 'remover') {
+      pd.exercises = pd.exercises.filter(e => !e.name.toLowerCase().includes(a.nome.toLowerCase()));
+    } else if (a.tipo === 'adicionar') {
+      const novo = { id: uid(), name: a.nome, sets: a.sets||'3x10', weight: a.weight||'—', notes: a.notes||'', status: 'undone' };
+      if (a.posicao !== undefined && a.posicao >= 0) pd.exercises.splice(a.posicao, 0, novo);
+      else pd.exercises.push(novo);
+    }
+  });
+
+  saveState();
+  serieObj.planMode = true;
+  saveState();
+  rerenderSerie(serieObj.id);
+  addPlanoChatMsg('system', 'Modificações aplicadas na série ' + mod.serieLabel + '.');
+  toast('Modificações aplicadas ✓');
+}
+
+function aplicarModificacoesMacro(mod) {
+  if (!state.plano || !state.plano.semanas) {
+    toast('Nenhum plano ativo'); return;
+  }
+
+  var diaMap = {
+    'Segunda-feira': 'Segunda', 'Terça-feira': 'Terça', 'Quarta-feira': 'Quarta',
+    'Quinta-feira': 'Quinta', 'Sexta-feira': 'Sexta', 'Sábado': 'Sábado', 'Domingo': 'Domingo',
+    'segunda': 'Segunda', 'terça': 'Terça', 'quarta': 'Quarta', 'quinta': 'Quinta',
+    'sexta': 'Sexta', 'sábado': 'Sábado', 'domingo': 'Domingo',
+    'Terca': 'Terça', 'Terca-feira': 'Terça', 'Sabado': 'Sábado',
+    'terca': 'Terça', 'sabado': 'Sábado'
+  };
+
+  (mod.acoes || []).forEach(function(a) {
+    var semanaNum = a.semana || 1;
+    var semana = state.plano.semanas.find(function(s) { return s.semana === semanaNum; });
+
+    // If semana doesn't exist, create it
+    if (!semana) {
+      semana = { semana: semanaNum, foco: '', intensidade: '', progressao: '', dias: [] };
+      state.plano.semanas.push(semana);
+      state.plano.semanas.sort(function(a, b) { return a.semana - b.semana; });
+    }
+
+    var dias = semana.dias || semana.agenda || [];
+    if (!semana.dias) semana.dias = dias;
+    var diaNome = a.dia ? (diaMap[a.dia] || a.dia) : null;
+
+    if (a.tipo === 'semana') {
+      if (a.foco) semana.foco = a.foco;
+      if (a.intensidade) semana.intensidade = a.intensidade;
+      if (a.progressao) semana.progressao = a.progressao;
+    } else if (a.tipo === 'alterar' && diaNome) {
+      var d = dias.find(function(d) { return d.dia === diaNome; });
+      if (!d) {
+        d = { dia: diaNome, serie: 'descanso', tipo: 'recuperacao', orientacao: '' };
+        dias.push(d);
+      }
+      if (a.serie !== undefined) {
+        d.serie = a.serie;
+        if (!a.tipo_dia) {
+          d.tipo = a.serie === 'descanso'
+            ? (a.orientacao && /aer[oó]b/i.test(a.orientacao) ? 'aerobico' : 'recuperacao')
+            : 'treino';
+        }
+      }
+      if (a.orientacao !== undefined) {
+        d.orientacao = a.orientacao;
+        if (d.serie === 'descanso' && /aer[oó]b/i.test(a.orientacao)) d.tipo = 'aerobico';
+      }
+      if (a.tipo_dia) d.tipo = a.tipo_dia;
+      if (a.intensidade) d.intensidade = a.intensidade;
+    } else if (a.tipo === 'substituir' && diaNome) {
+      var d2 = dias.find(function(d) { return d.dia === diaNome; });
+      if (!d2) {
+        d2 = { dia: diaNome, serie: 'descanso', tipo: 'recuperacao', orientacao: '' };
+        dias.push(d2);
+      }
+      if (a.serie !== undefined) {
+        d2.serie = a.serie;
+        if (!a.tipo_dia) {
+          d2.tipo = a.serie === 'descanso'
+            ? (a.orientacao && /aer[oó]b/i.test(a.orientacao) ? 'aerobico' : 'recuperacao')
+            : 'treino';
+        }
+      }
+      if (a.orientacao !== undefined) d2.orientacao = a.orientacao;
+    }
+  });
+
+  // Sort days in correct week order
+  var ordemDias = ['Segunda','Terça','Quarta','Quinta','Sexta','Sábado','Domingo'];
+  state.plano.semanas.forEach(function(sem) {
+    var dd = sem.dias || sem.agenda || [];
+    dd.sort(function(a, b) { return ordemDias.indexOf(a.dia) - ordemDias.indexOf(b.dia); });
+  });
+
+  saveState();
+  renderAgendaLinear();
+  state.planoRascunho = JSON.parse(JSON.stringify(state.plano));
+  saveState();
+  renderPlanoMacro(state.plano);
+  addPlanoChatMsg('system', 'Plano macro atualizado ✓');
+  toast('Plano atualizado ✓');
+}
+
+function renderPlanoMacro(plano) {
+  var resultado = document.getElementById('plano-resultado');
+  if (!resultado) return;
+  var semanas = plano.semanas || [];
+  var html = '';
+
+  if (plano.observacoes) {
+    html += '<div class="plan-raw" style="margin-bottom:12px;font-size:12px;border-color:rgba(232,255,60,.2)">' + escHtml(plano.observacoes) + '</div>';
+  }
+
+  semanas.forEach(function(semana) {
+    html += '<div class="plan-week"><div class="plan-week-title">SEMANA ' + semana.semana;
+    if (semana.foco) html += ' <span style="font-size:12px;font-family:\'DM Sans\',sans-serif;font-weight:400;letter-spacing:0;color:var(--muted)">— ' + escHtml(semana.foco) + '</span>';
+    if (semana.intensidade) html += ' <span style="font-size:10px;font-family:\'DM Mono\',monospace;color:var(--accent2)"> ' + escHtml(semana.intensidade) + '</span>';
+    html += '</div>';
+
+    var dias = semana.dias || semana.agenda || [];
+    dias.forEach(function(d) {
+      var isRest = d.serie === 'descanso';
+      var serieObj = state.series.find(function(s) { return s.label === d.serie; });
+      var tipo = d.tipo || (isRest ? 'recuperacao' : 'treino');
+      var tipoClass = tipo === 'aerobico' ? 'tipo-aerobico' : tipo === 'recuperacao' ? 'tipo-recuperacao' : 'tipo-treino';
+      var tipoLabel = tipo === 'aerobico' ? 'AERÓBICO' : tipo === 'recuperacao' ? 'DESCANSO' : 'TREINO';
+
+      html += '<div class="plan-day' + (isRest ? ' rest' : '') + '">' +
+        '<div class="plan-day-label">' + escHtml(d.dia) + '</div>' +
+        '<div class="plan-day-content">' +
+        '<div class="plan-day-serie" style="display:flex;align-items:center;gap:8px">' +
+          (isRest ? '' : '<span>' + d.serie + ' — ' + (serieObj ? serieObj.name : d.serie) + '</span>') +
+          (isRest ? '<span>' + (tipo === 'aerobico' ? 'Aeróbico' : 'Descanso') + '</span>' : '') +
+          '<span class="agenda-dia-tipo ' + tipoClass + '" style="font-size:9px;padding:2px 8px">' + tipoLabel + '</span>' +
+        '</div>' +
+        (d.orientacao ? '<div class="plan-day-notes">' + escHtml(d.orientacao) + '</div>' : '') +
+        '</div></div>';
+    });
+    html += '</div>';
+  });
+
+  html += '<button class="plan-apply-btn" onclick="aplicarPlano()">⬤ APLICAR ESTE PLANO</button>';
+  resultado.innerHTML = html;
+}
+
+function aplicarPlano() {
+  if (!state.planoRascunho) return;
+  var macro = state.planoRascunho;
+
+  var prevDiasExpandidos = (state.plano && state.plano.diasExpandidos) || {};
+  var prevDiasStatus = (state.plano && state.plano.diasStatus) || {};
+  var prevSeriesData = (state.plano && state.plano.seriesData) || {};
+  var prevDataInicio = (state.plano && state.plano.dataInicio) || null;
+  var prevChatInline = (state.plano && state.plano.chatInline) || {};
+  var prevSemanas = (state.plano && state.plano.semanas) || [];
+
+  // Build ordered list of days from old and new plan
+  function flatDays(semanas) {
+    var list = [];
+    semanas.forEach(function(sem) {
+      (sem.dias || sem.agenda || []).forEach(function(d) {
+        list.push({ key: 'sem' + sem.semana + '_' + d.dia, serie: d.serie, orientacao: d.orientacao || '' });
+      });
+    });
+    return list;
+  }
+
+  var oldDays = flatDays(prevSemanas);
+  var newDays = flatDays(macro.semanas);
+
+  // Find the first day that changed
+  var firstChangedIdx = newDays.length; // default: nothing changed
+  for (var i = 0; i < Math.min(oldDays.length, newDays.length); i++) {
+    if (oldDays[i].key !== newDays[i].key ||
+        oldDays[i].serie !== newDays[i].serie ||
+        oldDays[i].orientacao !== newDays[i].orientacao) {
+      firstChangedIdx = i;
+      break;
+    }
+  }
+
+  // Keep only data for days before the first changed day
+  var newDiasExpandidos = {};
+  var newDiasStatus = {};
+  var newChatInline = {};
+  for (var j = 0; j < firstChangedIdx; j++) {
+    var k = newDays[j].key;
+    if (prevDiasExpandidos[k]) newDiasExpandidos[k] = prevDiasExpandidos[k];
+    if (prevDiasStatus[k]) newDiasStatus[k] = prevDiasStatus[k];
+    if (prevChatInline[k]) newChatInline[k] = prevChatInline[k];
+  }
+
+  state.plano = {
+    semanas: macro.semanas,
+    observacoes: macro.observacoes,
+    seriesData: prevSeriesData,
+    diasExpandidos: newDiasExpandidos,
+    diasStatus: newDiasStatus,
+    chatInline: newChatInline,
+    dataInicio: prevDataInicio,
+    semanaOpen: { 'sem1': true }
+  };
+  state.planoInicio = state.planoInicio || new Date().toISOString();
+  state.planoSemana = 0;
+  state.planoDia = 0;
+
+  state.series.forEach(function(s) {
+    if (!state.plano.seriesData[s.id]) {
+      state.plano.seriesData[s.id] = {
+        serieId: s.id, foco: '', semana: 'SEMANA 1',
+        exercises: JSON.parse(JSON.stringify(s.exercises)).map(function(ex) {
+          return Object.assign({}, ex, { status: 'undone', skippedLast: false });
+        })
+      };
+    }
+  });
+
+  var preserved = firstChangedIdx > 0 ? 'Dados de ' + firstChangedIdx + ' dia(s) anteriores preservados.' : 'Novo plano aplicado.';
+  saveState();
+  addPlanoChatMsg('system', 'Plano atualizado! ' + preserved);
+  switchTab('agenda');
+  toast('Plano aplicado ✓');
+  renderAgendaLinear();
+}
+
+function aplicarPropostaInline(dayKey, serieLabel, btn) {
+  if (btn) { btn.textContent = '⏳ Gerando...'; btn.disabled = true; }
+  // Inject a user message asking for the JSON
+  var input = document.getElementById('chat-inline-input-' + dayKey);
+  if (input) {
+    input.value = 'Sim, confirmo. Gere o JSON diaExpandido com o treino completo.';
+    enviarChatInline(dayKey, serieLabel);
+  }
+}
+
+function abrirChatDia(dayKey, diaNome, semana, serie) {
+  // For workout days with inline chat, use toggleChatInline
+  if (serie && serie !== 'descanso') {
+    toggleChatInline(dayKey, serie);
+    return;
+  }
+  // For rest/aerobic days, open the PLANO chat with context
+  var parts = dayKey.match(/^sem(\d+)_(.+)$/);
+  var semanaObj = state.plano && state.plano.semanas ? state.plano.semanas[semana-1] : null;
+  var diaObj = semanaObj ? (semanaObj.dias || semanaObj.agenda || []).find(function(d) { return d.dia === diaNome; }) : null;
+  var tipo = diaObj ? (diaObj.tipo || 'descanso') : 'descanso';
+  var orientacao = diaObj ? (diaObj.orientacao || '') : '';
+
+  var msg = 'Sobre o dia de ' + (tipo === 'aerobico' ? 'aeróbico' : 'descanso') + ' (' + diaNome + ', semana ' + semana + ')';
+  if (orientacao) msg += ' — orientação atual: ' + orientacao;
+  msg += '. Como posso otimizar este dia?';
+
+  switchTab('ia');
+  setTimeout(function() {
+    var input = document.getElementById('plano-input');
+    if (input) input.value = msg;
+  }, 200);
+}
+
+function toggleChatInline(dayKey, serieLabel) {
+  var chat = document.getElementById('chat-inline-' + dayKey);
+  if (!chat) return;
+  var isOpen = chat.style.display !== 'none';
+  chat.style.display = isOpen ? 'none' : 'block';
+  if (!isOpen) {
+    var msgs = document.getElementById('chat-inline-msgs-' + dayKey);
+    if (msgs) {
+      // Restore saved messages
+      var history = getChatInlineHistory(dayKey);
+      if (history.length > 0 && msgs.children.length === 0) {
+        history.forEach(function(m) {
+          addChatInlineMsg(dayKey, m.role === 'user' ? 'user' : 'ai', m.content);
+        });
+      } else if (msgs.children.length === 0) {
+        var s = state.series.find(function(s) { return s.label === serieLabel; });
+        var expanded = state.plano.diasExpandidos && state.plano.diasExpandidos[dayKey];
+        var exCount = expanded ? expanded.exercicios.length : 0;
+        addChatInlineMsg(dayKey, 'ai', 'Treino atual: ' + exCount + ' exercícios de ' + serieLabel + (s ? ' — ' + s.name : '') + '. Pode me perguntar sobre qualquer exercício, pedir substituições, ajustar volume ou carga, ou pedir para eu explicar as escolhas.');
+      }
+    }
+    setTimeout(function() {
+      var input = document.getElementById('chat-inline-input-' + dayKey);
+      if (input) input.focus();
+    }, 100);
+  }
+}
+
+function addChatInlineMsg(dayKey, role, text) {
+  var msgs = document.getElementById('chat-inline-msgs-' + dayKey);
+  if (!msgs) return;
+  var idx = msgs.children.length;
+  var div = document.createElement('div');
+  div.style.cssText = 'font-size:12px;line-height:1.5;padding:6px 10px;border-radius:8px;max-width:90%;position:relative;' +
+    (role === 'user'
+      ? 'background:rgba(232,255,60,.1);color:var(--accent);align-self:flex-end;margin-left:auto'
+      : 'background:var(--surface2);color:var(--text)');
+  var span = document.createElement('span');
+  span.textContent = text;
+  var btn = document.createElement('button');
+  btn.textContent = '✕';
+  btn.title = 'Apagar mensagem';
+  btn.style.cssText = 'position:absolute;top:2px;' + (role === 'user' ? 'left:-18px' : 'right:-18px') + ';background:none;border:none;color:var(--muted);cursor:pointer;font-size:10px;opacity:0;transition:opacity .15s;padding:2px 4px;line-height:1';
+  btn.onclick = function() { deleteChatInlineMsg(dayKey, div); };
+  div.appendChild(span);
+  div.appendChild(btn);
+  div.onmouseenter = function() { btn.style.opacity = '1'; };
+  div.onmouseleave = function() { btn.style.opacity = '0'; };
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+function deleteChatInlineMsg(dayKey, div) {
+  var msgs = document.getElementById('chat-inline-msgs-' + dayKey);
+  if (!msgs) return;
+  var idx = Array.from(msgs.children).indexOf(div);
+  if (idx === -1) return;
+  div.remove();
+  // Sync history
+  var history = getChatInlineHistory(dayKey);
+  if (idx < history.length) {
+    history.splice(idx, 1);
+    saveChatInlineHistory(dayKey);
+  }
+}
+
+var chatInlineHistory = {};
+
+function limparChatInline(dayKey) {
+  chatInlineHistory[dayKey] = [];
+  if (state.plano && state.plano.chatInline) delete state.plano.chatInline[dayKey];
+  saveState();
+  var msgs = document.getElementById('chat-inline-msgs-' + dayKey);
+  if (msgs) msgs.innerHTML = '';
+}
+
+function getChatInlineHistory(dayKey) {
+  if (chatInlineHistory[dayKey]) return chatInlineHistory[dayKey];
+  // Load from state
+  var saved = state.plano && state.plano.chatInline && state.plano.chatInline[dayKey];
+  chatInlineHistory[dayKey] = saved ? JSON.parse(JSON.stringify(saved)) : [];
+  return chatInlineHistory[dayKey];
+}
+
+function saveChatInlineHistory(dayKey) {
+  if (!state.plano.chatInline) state.plano.chatInline = {};
+  state.plano.chatInline[dayKey] = chatInlineHistory[dayKey];
+  saveState();
+}
+
+async function enviarChatInlineDia(dayKey, diaNome, semana) {
+  var input = document.getElementById('chat-inline-input-' + dayKey);
+  if (!input || !input.value.trim()) return;
+  var msg = input.value.trim();
+  input.value = '';
+
+  addChatInlineMsg(dayKey, 'user', msg);
+
+  var semanaObj = state.plano && state.plano.semanas ? state.plano.semanas[semana-1] : null;
+  var diaObj = semanaObj ? (semanaObj.dias || semanaObj.agenda || []).find(function(d) { return d.dia === diaNome; }) : null;
+  var tipo = diaObj ? (diaObj.tipo || 'descanso') : 'descanso';
+  var orientacao = diaObj ? (diaObj.orientacao || '') : '';
+
+  var systemDia = getPLANO_SYSTEM() + '\n\nCONTEXTO: Dia de ' + (tipo === 'aerobico' ? 'aeróbico/cardio' : 'descanso') + ' — ' + diaNome + ', semana ' + semana + '.' +
+    (orientacao ? '\nOrientação atual: ' + orientacao : '') +
+    '\nResponda em português, seja direto e prático.';
+
+  if (!chatInlineHistory[dayKey]) getChatInlineHistory(dayKey);
+  chatInlineHistory[dayKey].push({ role: 'user', content: msg });
+
+  var typingDiv = document.createElement('div');
+  typingDiv.id = 'typing-inline-' + dayKey;
+  typingDiv.style.cssText = 'font-size:12px;color:var(--muted);padding:4px 10px';
+  typingDiv.textContent = '●●●';
+  var msgs = document.getElementById('chat-inline-msgs-' + dayKey);
+  if (msgs) { msgs.appendChild(typingDiv); msgs.scrollTop = msgs.scrollHeight; }
+
+  try {
+    var response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': getApiKey(), 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        system: systemDia,
+        messages: chatInlineHistory[dayKey]
+      })
+    });
+    var data = await response.json();
+    trackTokenUsage(data.usage);
+    var text = data.content ? data.content.map(function(c) { return c.text||''; }).join('') : '';
+    var typing = document.getElementById('typing-inline-' + dayKey);
+    if (typing) typing.remove();
+    chatInlineHistory[dayKey].push({ role: 'assistant', content: text });
+    saveChatInlineHistory(dayKey);
+    addChatInlineMsg(dayKey, 'ai', text);
+  } catch(e) {
+    var typing2 = document.getElementById('typing-inline-' + dayKey);
+    if (typing2) typing2.remove();
+    addChatInlineMsg(dayKey, 'ai', 'Erro ao contatar a IA.');
+  }
+}
+
+async function enviarChatInline(dayKey, serieLabel) {
+  var input = document.getElementById('chat-inline-input-' + dayKey);
+  if (!input || !input.value.trim()) return;
+  var msg = input.value.trim();
+  input.value = '';
+
+  addChatInlineMsg(dayKey, 'user', msg);
+
+  // Build context
+  var match = dayKey.match(/^sem(\d+)_(.+)$/);
+  var semana = match ? parseInt(match[1]) : 1;
+  var dia = match ? match[2] : '';
+  var semanaObj = state.plano && state.plano.semanas ? state.plano.semanas[semana-1] : null;
+  var expanded = state.plano.diasExpandidos && state.plano.diasExpandidos[dayKey];
+  var s = state.series.find(function(s) { return s.label === serieLabel; });
+
+  var exAtual = expanded ? expanded.exercicios.map(function(e) {
+    return e.nome + ' | ' + e.sets + ' | ' + e.weight + (e.notes ? ' | ' + e.notes : '');
+  }).join('\n') : 'Nenhum treino expandido ainda.';
+
+  var bibList = s ? s.exercises.map(function(e) {
+    return e.id + ' | ' + e.name + ' | ' + e.sets + ' | ' + e.weight;
+  }).join('\n') : '';
+
+  var systemInline = getPLANO_SYSTEM() + '\n\nCONTEXTO ATUAL — DIA ESPECÍFICO:\n' +
+    'Dia: ' + dia + ', Semana ' + semana + ', Série ' + serieLabel + '\n' +
+    'Foco da semana: ' + (semanaObj ? semanaObj.foco : '') + '\n' +
+    'Intensidade: ' + (semanaObj ? semanaObj.intensidade : '') + '\n\n' +
+    'TREINO ATUAL DO DIA:\n' + exAtual + '\n\n' +
+    'REFERÊNCIA DE NÍVEL (para calibrar cargas — não como lista de exercícios):\n' +
+    'Overhead Press 24kg/lado, Pull-up assistido 66kg máquina, Supino halteres 28kg/lado, Leg Press 120kg/lado.\n\n' +
+    'O usuário está aberto a qualquer exercício que você considere ideal. Use seu conhecimento livremente.\n' +
+    'Responda perguntas e explique escolhas em português.\n' +
+    'REGRA: Quando o usuário aprovar (disser "sim", "confirma", "aplica" ou similar), ' +
+    'retorne APENAS o JSON diaExpandido completo, sem texto adicional.';
+
+  if (!chatInlineHistory[dayKey]) getChatInlineHistory(dayKey);
+  chatInlineHistory[dayKey].push({ role: 'user', content: msg });
+
+  // Show typing
+  var typingDiv = document.createElement('div');
+  typingDiv.id = 'typing-inline-' + dayKey;
+  typingDiv.style.cssText = 'font-size:12px;color:var(--muted);padding:4px 10px';
+  typingDiv.textContent = '●●●';
+  var msgs = document.getElementById('chat-inline-msgs-' + dayKey);
+  if (msgs) { msgs.appendChild(typingDiv); msgs.scrollTop = msgs.scrollHeight; }
+
+  try {
+    var response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': getApiKey(), 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 3000,
+        system: systemInline,
+        messages: chatInlineHistory[dayKey]
+      })
+    });
+    var data = await response.json();
+    trackTokenUsage(data.usage);
+    var text = data.content ? data.content.map(function(c) { return c.text||''; }).join('') : '';
+
+    // Remove typing
+    var typing = document.getElementById('typing-inline-' + dayKey);
+    if (typing) typing.remove();
+
+    chatInlineHistory[dayKey].push({ role: 'assistant', content: text });
+    saveChatInlineHistory(dayKey);
+
+    // Check if response contains diaExpandido JSON
+    var clean = text.replace(/^```json\s*/m,'').replace(/^```\s*/m,'').replace(/```$/m,'').trim();
+    var parsed = null;
+    try {
+      if (clean.startsWith('{')) parsed = JSON.parse(clean);
+      else { var m2 = clean.match(/\{[\s\S]*\}/); if (m2) parsed = JSON.parse(m2[0]); }
+    } catch(e) {}
+
+    if (parsed && (parsed.diaExpandido || parsed.exercicios)) {
+      parsed = {diaExpandido: normalizarDiaExpandido(parsed, semana, dia)};
+      aplicarDiaExpandido(parsed.diaExpandido);
+      // Refresh the inline view
+      var container = document.getElementById('agendadia-' + dayKey);
+      if (container) {
+        var inline = container.querySelector('.agenda-treino-inline');
+        if (inline) { inline.remove(); irParaTreino(dayKey, serieLabel); }
+      }
+      addChatInlineMsg(dayKey, 'ai', '✓ Treino atualizado com ' + parsed.diaExpandido.exercicios.length + ' exercícios.');
+    } else {
+      addChatInlineMsg(dayKey, 'ai', text);
+      // If response looks like a proposal (contains exercise names and →), offer apply button
+      if (text.includes('→') || text.toLowerCase().includes('confirma') || text.toLowerCase().includes('gero o json') || text.toLowerCase().includes('quer que eu')) {
+        var msgs2 = document.getElementById('chat-inline-msgs-' + dayKey);
+        if (msgs2) {
+          var applyDiv = document.createElement('div');
+          applyDiv.style.cssText = 'padding:4px 0';
+          applyDiv.innerHTML = '<button onclick="aplicarPropostaInline(\'' + dayKey + '\',\'' + serieLabel + '\',this)" style="font-family:\'DM Mono\',monospace;font-size:10px;letter-spacing:1px;padding:5px 14px;border-radius:8px;border:none;background:var(--accent3);color:#000;cursor:pointer">✓ SIM, APLICAR</button>';
+          msgs2.appendChild(applyDiv);
+          msgs2.scrollTop = msgs2.scrollHeight;
+        }
+      }
+    }
+  } catch(e) {
+    var typing2 = document.getElementById('typing-inline-' + dayKey);
+    if (typing2) typing2.remove();
+    addChatInlineMsg(dayKey, 'ai', 'Erro ao contatar a IA. Tente novamente.');
+  }
+}
+
+function regenerarDia(dayKey, serieLabel, btn) {
+  // Extract semana and dia from dayKey
+  var match = dayKey.match(/^sem(\d+)_(.+)$/);
+  if (!match) return;
+  var semana = parseInt(match[1]);
+  var dia = match[2];
+
+  var semanaObj = state.plano && state.plano.semanas ? state.plano.semanas[semana-1] : null;
+  var diaObj = semanaObj ? (semanaObj.dias || semanaObj.agenda || []).find(function(d) { return d.dia === dia; }) : null;
+  var orientacao = diaObj ? (diaObj.orientacao || '') : '';
+  var intensidade = semanaObj ? (semanaObj.intensidade || '') : '';
+
+  var s = state.series.find(function(s) { return s.label === serieLabel; });
+  var exList = s ? s.exercises.map(function(e) {
+    return e.id + ' | ' + e.name + ' | ' + e.sets + ' | ' + e.weight;
+  }).join('\n') : '';
+
+  var msg = 'Quero revisar e regenerar o treino de ' + dia + ' (semana ' + semana + ', série ' + serieLabel + ').\n\n' +
+    'Foco da semana: ' + (semanaObj ? semanaObj.foco : '') + '\n' +
+    'Intensidade: ' + intensidade + '\n' +
+    'Orientação do dia: ' + orientacao + '\n\n' +
+    'Biblioteca da série ' + serieLabel + ':\n' + exList + '\n\n' +
+    'Por favor, explique como você montaria o treino ideal para este dia — quais exercícios escolheria, em que ordem e por quê. Depois que eu entender e aprovar, gere o JSON com o treino.';
+
+  // Switch to PLANO tab and pre-fill the chat
+  switchTab('ia');
+  setTimeout(function() {
+    var input = document.getElementById('plano-input');
+    if (input) {
+      input.value = msg;
+      input.focus();
+      autoResizePlanoInput(input);
+    }
+  }, 200);
+}
+
+function reexpandirDia(dayKey, semana, dia, serieLabel) {
+  if (state.plano.diasExpandidos) delete state.plano.diasExpandidos[dayKey];
+  saveState();
+
+  var container = document.getElementById('agendadia-' + dayKey);
+  var inline = container && container.querySelector('.agenda-treino-inline');
+  if (inline) {
+    var table = inline.querySelector('table');
+    if (table) table.innerHTML = '<tr><td colspan="2" style="padding:20px;text-align:center;font-family:\'DM Mono\',monospace;font-size:12px;color:var(--accent3)">⏳ Gerando novo treino...</td></tr>';
+  }
+
+  setTimeout(function() { expandirDia(semana, dia, serieLabel, dayKey); }, 100);
+}
+
+function expandirDia(semana, dia, serieLabel, knownDayKey) {
+  var semanaObj = state.plano && state.plano.semanas ? state.plano.semanas[semana-1] : null;
+  var diaObj = semanaObj ? (semanaObj.dias || semanaObj.agenda || []).find(function(d) { return d.dia === dia; }) : null;
+  var orientacao = diaObj ? (diaObj.orientacao || '') : '';
+  var intensidade = semanaObj ? (semanaObj.intensidade || '') : '';
+  var progressao = semanaObj ? (semanaObj.progressao || '') : '';
+
+  var serieObj = state.series.find(function(s) { return s.label === serieLabel; });
+
+  // Full library with sets and weights for step 2
+  var bibliotecaCompleta = serieObj ? serieObj.exercises.map(function(e) {
+    return '- ' + e.name + ' | ' + e.sets + ' | ' + e.weight;
+  }).join('\n') : '';
+
+  var histSummary = state.history.filter(function(h) { return h.serieLabel === serieLabel; }).slice(0,5).map(function(h) {
+    return new Date(h.date).toLocaleDateString('pt-BR', {day:'2-digit',month:'2-digit'}) + ': ' + h.done + '/' + h.total + ' exercícios';
+  }).join('\n') || 'Sem histórico desta série.';
+
+  var expansionSystem = 'Personal trainer especializado em periodização.\n\n' +
+    buildPerfilTexto() +
+    '\n\nRetorne APENAS o JSON solicitado, sem texto, sem markdown.';
+
+  var dayKey = knownDayKey || ('sem' + semana + '_' + dia);
+  var btn = document.querySelector('[onclick*="expandirDia(' + semana + ',\'' + dia + '\'"]');
+  if (btn) { btn.textContent = '⏳ Gerando...'; btn.disabled = true; }
+
+  // STEP 1: Generate ideal workout from scratch based on profile and phase
+  var prompt1 = 'Gere o treino ideal de ' + serieLabel + ' para ' + dia + ' (semana ' + semana + ').\n\n' +
+    'FASE:\n' +
+    '- Foco: ' + (semanaObj ? semanaObj.foco : '') + '\n' +
+    '- Intensidade: ' + intensidade + '\n' +
+    '- Progressão: ' + progressao + '\n' +
+    '- Orientação: ' + orientacao + '\n\n' +
+    'Histórico: ' + histSummary + '\n\n' +
+    'Crie o treino mais eficaz para esta fase considerando o perfil do atleta. ' +
+    'Escolha exercícios, ordem, volume e cargas ideais. ' +
+    'Retorne JSON com esta estrutura:\n' +
+    '{"treino":{"dia":"' + dia + '","serie":"' + serieLabel + '","semana":' + semana + ',"exercicios":[{"nome":"Nome","musculo":"grupo muscular","sets":"NxM","weight":"carga","notes":"instrução"}]}}';
+
+  fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-api-key': getApiKey(), 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 3000,
+      system: expansionSystem,
+      messages: [{ role: 'user', content: prompt1 }]
+    })
+  }).then(function(r) { return r.json(); }).then(function(data1) {
+    trackTokenUsage(data1.usage);
+    if (data1.error) {
+      toast('Erro da API (etapa 1): ' + (data1.error.message || ''));
+      renderAgendaLinear();
+      return;
+    }
+
+    var text1 = Array.isArray(data1.content) ? data1.content.map(function(c) { return c.text||''; }).join('') : '';
+    var clean1 = text1.replace(/^\s*```json\s*/m,'').replace(/^\s*```\s*/m,'').replace(/\s*```\s*$/m,'').trim();
+    var parsed1 = null;
+    try {
+      if (clean1.startsWith('{')) parsed1 = JSON.parse(clean1);
+      else { var m1 = clean1.match(/\{[\s\S]*\}/); if (m1) parsed1 = JSON.parse(m1[0]); }
+    } catch(e) {}
+
+    if (!parsed1) {
+      toast('Erro ao gerar treino (etapa 1)');
+      renderAgendaLinear();
+      return;
+    }
+
+    // Update loading state
+    if (btn) btn.textContent = '⏳ Ajustando...';
+
+    // STEP 2: Compare with library and substitute equivalent exercises
+    var treinoGerado = JSON.stringify(parsed1, null, 2);
+    var prompt2 = 'Tenho este treino gerado:\n' + treinoGerado + '\n\n' +
+      'E esta é minha biblioteca de exercícios com cargas e sets que já executo:\n' + bibliotecaCompleta + '\n\n' +
+      'Para cada exercício do treino gerado, verifique se existe um exercício na biblioteca que seja suficientemente similar (mesmo músculo-alvo, padrão de movimento equivalente). ' +
+      'Se sim, substitua pelo exercício da biblioteca — mas mantenha os sets, cargas e ordem do treino gerado. ' +
+      'Se não houver equivalente na biblioteca, mantenha o exercício original. ' +
+      'Retorne o treino final no mesmo formato JSON, com as substituições aplicadas.';
+
+    fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': getApiKey(), 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 3000,
+        system: expansionSystem,
+        messages: [{ role: 'user', content: prompt2 }]
+      })
+    }).then(function(r) { return r.json(); }).then(function(data2) {
+      trackTokenUsage(data2.usage);
+      if (data2.error) {
+        // Step 2 failed — use step 1 result
+        var diaExp1 = normalizarDiaExpandido(parsed1, semana, dia);
+        diaExp1._dayKey = dayKey;
+        aplicarDiaExpandido(diaExp1);
+        return;
+      }
+
+      var text2 = Array.isArray(data2.content) ? data2.content.map(function(c) { return c.text||''; }).join('') : '';
+      var clean2 = text2.replace(/^\s*```json\s*/m,'').replace(/^\s*```\s*/m,'').replace(/\s*```\s*$/m,'').trim();
+      var parsed2 = null;
+      try {
+        if (clean2.startsWith('{')) parsed2 = JSON.parse(clean2);
+        else { var m2 = clean2.match(/\{[\s\S]*\}/); if (m2) parsed2 = JSON.parse(m2[0]); }
+      } catch(e) {}
+
+      var finalParsed = parsed2 || parsed1;
+      var diaExp = normalizarDiaExpandido(finalParsed, semana, dia);
+      diaExp._dayKey = dayKey;
+      aplicarDiaExpandido(diaExp);
+
+    }).catch(function() {
+      // Step 2 network error — use step 1
+      var diaExp1 = normalizarDiaExpandido(parsed1, semana, dia);
+      diaExp1._dayKey = dayKey;
+      aplicarDiaExpandido(diaExp1);
+    });
+
+  }).catch(function(err) {
+    toast('Erro de rede: ' + (err.message || err));
+    renderAgendaLinear();
+  });
+}
+
+function normalizarDiaExpandido(parsed, semana, dia) {
+  if (parsed.diaExpandido) return parsed.diaExpandido;
+
+  var root = parsed.session || parsed.treino || parsed.workout || parsed.training || parsed;
+
+  var diaMap = { 'Terca': 'Terça', 'Sabado': 'Sábado', 'Segunda-feira': 'Segunda', 'Terca-feira': 'Terça', 'Quarta-feira': 'Quarta', 'Quinta-feira': 'Quinta', 'Sexta-feira': 'Sexta', 'Domingo': 'Domingo' };
+  var rawDia = root.diaSemana || root.dia || root.day || dia || '';
+  var normalizedDia = diaMap[rawDia] || rawDia;
+
+  var skipKeys = ['notes','notas','warmup','aquecimento','cooldown','volta_calma','cardio','session_notes','phase_note','load_note','tempo','finisher'];
+
+  function isExArr(arr) {
+    return Array.isArray(arr) && arr.length > 0 && arr[0] && (arr[0].name || arr[0].nome || arr[0].order || arr[0].ordem);
+  }
+
+  function findEx(obj, depth) {
+    if (!obj || typeof obj !== 'object' || depth > 6) return null;
+    if (isExArr(obj)) return obj;
+    // Direct known keys
+    var direct = ['exercises','exercicios','exercise_list','lista','items','movimentos','exercises_list'];
+    for (var i = 0; i < direct.length; i++) {
+      if (isExArr(obj[direct[i]])) return obj[direct[i]];
+    }
+    // Flatten from blocos/phases arrays
+    var groupKeys = ['blocos','blocks','phases','fases','phase','grupos','groups'];
+    for (var i = 0; i < groupKeys.length; i++) {
+      var arr = obj[groupKeys[i]];
+      if (Array.isArray(arr)) {
+        var flat = [];
+        arr.forEach(function(b) { var r = findEx(b, depth+1); if (r) r.forEach(function(e) { flat.push(e); }); });
+        if (flat.length > 0) return flat;
+      } else if (arr && typeof arr === 'object') {
+        // phase can be a single object
+        var r = findEx(arr, depth+1);
+        if (r) return r;
+      }
+    }
+    // Recurse into other object values
+    for (var key in obj) {
+      if (skipKeys.indexOf(key) >= 0) continue;
+      var val = obj[key];
+      if (val && typeof val === 'object' && !Array.isArray(val)) {
+        var r2 = findEx(val, depth+1);
+        if (r2) return r2;
+      }
+    }
+    return null;
+  }
+
+  var exercicios = findEx(root, 0) || findEx(parsed, 0) || [];
+  if (root.finisher && (root.finisher.name || root.finisher.nome)) exercicios = exercicios.concat([root.finisher]);
+
+  return {
+    semana: root.semana || root.week || semana || 1,
+    dia: normalizedDia,
+    serie: root.serie || (typeof root.series === 'string' ? root.series : '') || (typeof root.block === 'string' ? root.block : '') || '',
+    foco: root.foco || root.focus || root.focus_area || '',
+    exercicios: exercicios.map(function(ex) {
+      // Extract clean NxM from any sets format
+      var setsRaw = ex.sets || ex.series_count || ex.num_sets || '';
+      var repsRaw = ex.reps || ex.repeticoes || ex.repetitions || '';
+      var setsStr = '3x10';
+      if (typeof setsRaw === 'string' && setsRaw) {
+        // Find first NxM pattern anywhere in string
+        var m = setsRaw.match(/(\d+)\s*[xX×]\s*([\d\-–]+)/);
+        if (m) setsStr = m[1] + 'x' + m[2];
+        else if (repsRaw) {
+          var rNum = String(repsRaw).match(/^[\d\-–]+/);
+          setsStr = setsRaw.trim().split(/\D/)[0] + 'x' + (rNum ? rNum[0] : repsRaw);
+        }
+      } else if (typeof setsRaw === 'number' && repsRaw) {
+        var rNum2 = String(repsRaw).match(/^[\d\-–]+/);
+        setsStr = setsRaw + 'x' + (rNum2 ? rNum2[0] : repsRaw);
+      } else if (Array.isArray(setsRaw) && setsRaw.length > 0) {
+        setsStr = setsRaw.length + 'x' + setsRaw[0];
+      }
+
+      // Weight: take first meaningful value, truncate long descriptions
+      var w = ex.weight || ex.carga_kg || ex.carga || ex.load_kg || ex.load || ex.carga_sugerida || ex.peso || ex.load_note || ex.carga_referencia || '—';
+      if (ex.load_kg_per_side != null && ex.load_kg_per_side !== '') {
+        var lps = ex.load_kg_per_side;
+        w = (typeof lps === 'number' ? lps + 'kg' : String(lps)) + '/lado';
+      }
+      if (typeof w === 'number') w = w + 'kg';
+      w = String(w).trim();
+      if (!w || w === 'null' || w === 'undefined') w = '—';
+      if (w.length > 20) {
+        // Extract first number+unit pattern
+        var shortMatch = w.match(/[\d][\d\-–\/\.]*\s*(?:kg|pesos?|lb)[^\s,;]*/i);
+        var extraNote = w;
+        w = shortMatch ? shortMatch[0] : w.slice(0, 18) + '…';
+        var notes2 = ex.notes || ex.notas || ex.notas_execucao || ex.execucao || ex.tecnica || ex.description || ex.instructions || '';
+        ex._notes_merged = extraNote + (notes2 ? '\n' + notes2 : '');
+      }
+      var notes = ex._notes_merged || ex.notes || ex.notas || ex.notas_execucao || ex.execucao || ex.tecnica || ex.description || ex.instructions || '';
+      return {
+        id: ex.id || uid(),
+        nome: ex.nome || ex.name || ex.exercise || '',
+        sets: setsStr,
+        weight: w,
+        notes: notes
+      };
+    })
+  };
+}
+
+function aplicarDiaExpandido(diaExp) {
+  if (!state.plano) { toast('Aplique um plano primeiro'); return; }
+  var key = diaExp._dayKey || ('sem' + diaExp.semana + '_' + diaExp.dia);
+
+  // Ensure serie is set — fall back to plan data if missing
+  if (!diaExp.serie && key) {
+    var kparts = key.match(/^sem(\d+)_(.+)$/);
+    if (kparts && state.plano.semanas) {
+      var sObj = state.plano.semanas[parseInt(kparts[1]) - 1];
+      var dObj = sObj && (sObj.dias || sObj.agenda || []).find(function(d) { return d.dia === kparts[2]; });
+      if (dObj) diaExp.serie = dObj.serie;
+    }
+  }
+  if (!state.plano.diasExpandidos) state.plano.diasExpandidos = {};
+
+  // Preserve existing exercise statuses before overwriting
+  var prevStatusMap = {};
+  // Status is stored in seriesData, not diasExpandidos
+  var prevSerie = diaExp.serie || (function() {
+    var kp = key.match(/^sem(\d+)_(.+)$/);
+    if (kp && state.plano.semanas) {
+      var so = state.plano.semanas[parseInt(kp[1])-1];
+      var doo = so && (so.dias || so.agenda || []).find(function(d) { return d.dia === kp[2]; });
+      return doo ? doo.serie : '';
+    }
+    return '';
+  })();
+  var prevSerieObj = state.series.find(function(s) { return s.label === prevSerie; });
+  var prevSd = prevSerieObj && state.plano.seriesData && state.plano.seriesData[prevSerieObj.id];
+  if (prevSd && prevSd.exercises) {
+    prevSd.exercises.forEach(function(ex) {
+      if (ex.status && ex.status !== 'undone') {
+        prevStatusMap[ex.name || ''] = ex.status;
+      }
+    });
+  }
+
+  // Apply preserved statuses to new exercises
+  if (diaExp.exercicios) {
+    diaExp.exercicios = diaExp.exercicios.map(function(ex) {
+      var nome = ex.nome || ex.name || '';
+      if (prevStatusMap[nome]) ex.status = prevStatusMap[nome];
+      return ex;
+    });
+  }
+
+  state.plano.diasExpandidos[key] = diaExp;
+
+  // Also update seriesData so planMode shows the right exercises
+  var serieObj = state.series.find(function(s) { return s.label === diaExp.serie; });
+  if (serieObj && state.plano.seriesData) {
+    state.plano.seriesData[serieObj.id] = {
+      serieId: serieObj.id,
+      semana: 'SEMANA ' + diaExp.semana,
+      foco: diaExp.foco || '',
+      exercises: diaExp.exercicios.map(function(ex) {
+        var nome = ex.nome || ex.name || '';
+        var status = ex.status || prevStatusMap[nome] || 'undone';
+        return { id: ex.id || uid(), name: ex.nome, sets: ex.sets, weight: ex.weight, notes: ex.notes||'', status: status, skippedLast: false };
+      })
+    };
+    serieObj.planMode = true;
+  }
+
+  saveState();
+  addPlanoChatMsg('system', '✓ ' + diaExp.dia + ' semana ' + diaExp.semana + ' expandido com ' + diaExp.exercicios.length + ' exercícios.');
+
+  var dayKey2 = diaExp._dayKey || ('sem' + diaExp.semana + '_' + diaExp.dia);
+  // Get serie from diaExp or fall back to plan data
+  var serieLabel2 = diaExp.serie;
+  if (!serieLabel2 && dayKey2) {
+    var parts2 = dayKey2.match(/^sem(\d+)_(.+)$/);
+    if (parts2 && state.plano && state.plano.semanas) {
+      var semObj2 = state.plano.semanas[parseInt(parts2[1]) - 1];
+      var diaObj2 = semObj2 && (semObj2.dias || semObj2.agenda || []).find(function(d) { return d.dia === parts2[2]; });
+      if (diaObj2) serieLabel2 = diaObj2.serie;
+    }
+  }
+
+  renderAgendaLinear();
+  setTimeout(function() {
+    var c = document.getElementById('agendadia-' + dayKey2);
+    if (c) {
+      c.classList.add('open');
+      var inline = c.querySelector('.agenda-treino-inline');
+      if (inline) inline.remove();
+      irParaTreino(dayKey2, serieLabel2);
+    }
+  }, 300);
+  toast('Treino gerado ✓');
+}
+
+function renderReplanejamento(rep) {
+  var msg = 'Replanejamento para dia perdido (' + rep.diaPerdido + '):\n';
+  if (rep.ajustes) rep.ajustes.forEach(function(a) { msg += '\n' + a.dia + ': ' + a.serie + ' — ' + a.orientacao; });
+  if (rep.observacao) msg += '\n\n' + rep.observacao;
+  addPlanoChatMsg('ai', msg);
+  if (rep.ajustes && state.plano) {
+    // Apply adjustments to agenda
+    if (!state.plano.ajustes) state.plano.ajustes = [];
+    rep.ajustes.forEach(function(a) { state.plano.ajustes.push(a); });
+    saveState();
+    renderAgendaLinear();
+  }
+}
+
+
+function renderAgendaLinear() {
+  const list = document.getElementById('agenda-linear-list');
+  if (!list) return;
+  if (!state.plano || !state.plano.semanas) {
+    list.innerHTML = '<div style="color:var(--muted);font-family:\'DM Mono\',monospace;font-size:12px;padding:20px 0">Nenhum plano ativo. Gere um plano na aba PLANO.</div>';
+    return;
+  }
+
+  const diasStatus = state.plano.diasStatus || {};
+
+  // Determine "today" relative to plan start date
+  var planoInicio = state.plano.dataInicio ? new Date(state.plano.dataInicio) : null;
+  var hoje = new Date();
+  hoje.setHours(0,0,0,0);
+
+  // Map each plan day to a real calendar date based on start date
+  function getDiasComData(semanas) {
+    if (!planoInicio) return null;
+    var diasSemana = ['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
+    var inicio = new Date(planoInicio);
+    inicio.setHours(0,0,0,0);
+    var map = {};
+    semanas.forEach(function(semana) {
+      var dias = semana.dias || semana.agenda || [];
+      dias.forEach(function(d) {
+        var dayKey = 'sem' + semana.semana + '_' + d.dia;
+        // Find the correct weekday index for this day name
+        var targetDow = diasSemana.indexOf(d.dia);
+        if (targetDow === -1) return;
+        // Start from Monday of the correct week
+        var weekOffset = (semana.semana - 1) * 7;
+        // Find the date of the target weekday in that week
+        var date = new Date(inicio);
+        date.setDate(inicio.getDate() + weekOffset);
+        // Adjust to correct day of week
+        var startDow = date.getDay(); // 0=Sun, 1=Mon...
+        var diff = targetDow - startDow;
+        date.setDate(date.getDate() + diff);
+        map[dayKey] = date;
+      });
+    });
+    return map;
+  }
+
+  var dataMap = getDiasComData(state.plano.semanas);
+
+  function isHojeDate(dayKey) {
+    if (!dataMap || !dataMap[dayKey]) return false;
+    var d = new Date(dataMap[dayKey]);
+    d.setHours(0,0,0,0);
+    return d.getTime() === hoje.getTime();
+  }
+
+  function formatDate(dayKey) {
+    if (!dataMap || !dataMap[dayKey]) return '';
+    return dataMap[dayKey].toLocaleDateString('pt-BR', {day:'2-digit', month:'2-digit'});
+  }
+
+  // Start date picker header
+  var dataInicioStr = state.plano.dataInicio ? new Date(state.plano.dataInicio).toLocaleDateString('pt-BR') : 'Não definida';
+  var headerHTML = '<div style="display:flex;align-items:center;gap:12px;padding:10px 4px 14px;border-bottom:1px solid var(--border);margin-bottom:12px">' +
+    '<span style="font-family:\'DM Mono\',monospace;font-size:10px;letter-spacing:2px;color:var(--muted)">INÍCIO DO CICLO</span>' +
+    '<input type="date" id="plano-inicio-input" value="' + (state.plano.dataInicio ? state.plano.dataInicio.slice(0,10) : '') + '" ' +
+    'onchange="setPlanoInicio(this.value)" ' +
+    'style="font-family:\'DM Mono\',monospace;font-size:12px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:4px 10px;color:var(--text);cursor:pointer">' +
+    '<span style="font-family:\'DM Mono\',monospace;font-size:10px;color:var(--muted)">' + (state.plano.dataInicio ? '' : '← defina para ver as datas') + '</span>' +
+    '</div>';
+
+  let html = headerHTML;
+
+  state.plano.semanas.forEach(function(semana) {
+    var semKey = 'sem' + semana.semana;
+    var semOpen = state.plano.semanaOpen && state.plano.semanaOpen[semKey] !== false;
+
+    html += '<div class="agenda-semana" id="' + semKey + '">' +
+      '<div class="agenda-semana-head" onclick="toggleSemana(\'' + semKey + '\')">' +
+        '<span class="agenda-semana-chevron">' + (semOpen ? '▾' : '▸') + '</span>' +
+        '<span>SEMANA ' + semana.semana + (semana.foco ? ' — ' + semana.foco : '') + '</span>' +
+        (semana.intensidade ? '<span style="font-family:\'DM Mono\',monospace;font-size:10px;color:var(--accent2);margin-left:auto">' + semana.intensidade + '</span>' : '') +
+      '</div>' +
+      '<div class="agenda-semana-body" style="' + (semOpen ? '' : 'display:none') + '">';
+
+    var dias = semana.dias || semana.agenda || [];
+    dias.forEach(function(d) {
+      const dayKey = 'sem' + semana.semana + '_' + d.dia;
+      const status = diasStatus[dayKey] || 'pendente';
+      const isDiaHoje = isHojeDate(dayKey);
+      const dateStr = formatDate(dayKey);
+      const isRest = d.serie === 'descanso';
+      const serieObj = state.series.find(function(s) { return s.label === d.serie; });
+      const tipo = isRest ? (d.tipo || 'recuperacao') : 'treino';
+
+      let cardClass = 'agenda-dia';
+      if (isDiaHoje && status === 'pendente') cardClass += ' hoje';
+      if (status === 'perdido') cardClass += ' perdido';
+      if (status === 'concluido') cardClass += ' concluido';
+      if (status === 'ausente') cardClass += ' perdido';
+
+      let tipoLabel = '', tipoClass = '';
+      if (status === 'concluido') { tipoLabel = '✓ CONCLUÍDO'; tipoClass = 'tipo-concluido'; }
+      else if (status === 'perdido') { tipoLabel = '✕ PERDIDO'; tipoClass = 'tipo-perdido'; }
+      else if (status === 'ausente') { tipoLabel = '⚑ AUSÊNCIA PLANEJADA'; tipoClass = 'tipo-perdido'; }
+      else if (isRest && tipo === 'aerobico') { tipoLabel = 'AERÓBICO'; tipoClass = 'tipo-aerobico'; }
+      else if (isRest) { tipoLabel = 'DESCANSO'; tipoClass = 'tipo-recuperacao'; }
+      else { tipoLabel = 'TREINO'; tipoClass = 'tipo-treino'; }
+
+      var expanded = state.plano.diasExpandidos && state.plano.diasExpandidos[dayKey];
+
+      // Exercise list — show expanded if available, else show placeholder
+      var exHTML = '';
+      if (!isRest) {
+        if (expanded && expanded.exercicios) {
+          exHTML = '<div class="agenda-ex-list">' +
+            expanded.exercicios.map(function(ex, i) {
+              return '<div class="agenda-ex-item">' +
+                '<span class="agenda-ex-num">' + (i+1) + '</span>' +
+                '<span class="agenda-ex-name">' + escHtml(ex.nome) + '</span>' +
+                '<span class="agenda-ex-sets">' + escHtml(ex.sets) + '</span>' +
+                '<span class="agenda-ex-weight">' + escHtml(ex.weight) + '</span>' +
+                '</div>';
+            }).join('') + '</div>';
+        } else {
+          exHTML = '';
+        }
+      }
+      var actionsHTML = '<div class="agenda-dia-actions">';
+      if (status === 'pendente' || status === 'ausente') {
+        if (!isRest) {
+          if (expanded) {
+            actionsHTML += '<button class="agenda-action-btn accent3" onclick="reexpandirDia(\'' + dayKey + '\',' + semana.semana + ',\'' + d.dia + '\',\'' + d.serie + '\')">↺ RECRIAR</button>';
+          } else {
+            actionsHTML += '<button class="agenda-action-btn accent3" onclick="expandirDia(' + semana.semana + ',\'' + d.dia + '\',\'' + d.serie + '\')">✦ GERAR TREINO</button>';
+          }
+        }
+        if (status !== 'ausente') {
+          if (!isRest) actionsHTML += '<button class="agenda-action-btn done" onclick="marcarDia(\'' + dayKey + '\',\'concluido\')">✓ CONCLUÍDO</button>';
+          actionsHTML += '<button class="agenda-action-btn danger" onclick="marcarDiaPerdido(\'' + dayKey + '\',\'' + d.dia + '\',' + semana.semana + ')">✕ PERDI ESTE DIA</button>';
+          if (!isRest) actionsHTML += '<button class="agenda-action-btn warning" onclick="marcarAusente(\'' + dayKey + '\',\'' + d.dia + '\',' + semana.semana + ')">⚑ NÃO PODEREI TREINAR NESTE DIA</button>';
+        } else {
+          actionsHTML += '<button class="agenda-action-btn" onclick="marcarDia(\'' + dayKey + '\',\'pendente\')">↺ DESFAZER</button>';
+        }
+      } else {
+        actionsHTML += '<button class="agenda-action-btn" onclick="marcarDia(\'' + dayKey + '\',\'pendente\')">↺ DESFAZER</button>';
+      }
+      actionsHTML += '</div>';
+
+      html += '<div class="' + cardClass + '" id="agendadia-' + dayKey + '">' +
+        '<div class="agenda-dia-head" onclick="toggleAgendaDia(\'' + dayKey + '\')">' +
+          '<span class="agenda-dia-label">' + escHtml(d.dia) + (dateStr ? '<br><span style="font-size:10px;font-family:\'DM Mono\',monospace;color:var(--muted)">' + dateStr + '</span>' : '') + '</span>' +
+          '<span class="agenda-dia-serie">' + (isRest ? (tipo === 'aerobico' ? 'Aeróbico / Cardio' : 'Descanso') : (serieObj ? d.serie + ' — ' + serieObj.name : d.serie)) + '</span>' +
+          '<span class="agenda-dia-tipo ' + tipoClass + '">' + tipoLabel + '</span>' +
+        '</div>' +
+        '<div class="agenda-dia-body">' +
+          (d.orientacao || d.instrucoes ? '<div class="agenda-instrucoes">' + escHtml(d.orientacao || d.instrucoes) + '</div>' : '') +
+          exHTML +
+          actionsHTML +
+          (isRest ? '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">' +
+            (expanded ? '<button class="agenda-action-btn danger" onclick="limparCacheDia(\'' + dayKey + '\')">✕ LIMPAR TREINO CANCELADO</button>' : '<span></span>') +
+            '<button class="agenda-action-btn" style="border-color:var(--accent3);color:var(--accent3)" onclick="toggleChatInline(\'' + dayKey + '\',\'\')">✦ AJUSTAR COM IA</button>' +
+            '</div>' +
+            '<div id="chat-inline-' + dayKey + '" style="display:none;margin-top:12px;border-top:1px solid var(--border);padding-top:10px">' +
+              '<div id="chat-inline-msgs-' + dayKey + '" style="max-height:200px;overflow-y:auto;display:flex;flex-direction:column;gap:6px;margin-bottom:8px"></div>' +
+              '<div style="display:flex;gap:6px">' +
+                '<textarea id="chat-inline-input-' + dayKey + '" placeholder="Como posso otimizar este dia?" ' +
+                'style="flex:1;font-family:\'DM Sans\',sans-serif;font-size:12px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px;color:var(--text);resize:none;height:60px;outline:none" ' +
+                'onkeydown="if(event.key===\'Enter\'&&!event.shiftKey){event.preventDefault();enviarChatInlineDia(\'' + dayKey + '\',\'' + d.dia + '\',' + semana.semana + ')}"></textarea>' +
+                '<button onclick="enviarChatInlineDia(\'' + dayKey + '\',\'' + d.dia + '\',' + semana.semana + ')" ' +
+                'style="font-family:\'DM Mono\',monospace;font-size:11px;background:none;border:1px solid var(--accent3);color:var(--accent3);border-radius:8px;padding:0 14px;cursor:pointer">↑</button>' +
+              '</div>' +
+            '</div>'
+          : '') +
+        '</div>' +
+      '</div>';
+    });
+
+    html += '</div></div>'; // close agenda-semana-body + agenda-semana
+  });
+
+  list.innerHTML = html;
+
+  // Auto-open today's card
+  const hojeCard = list.querySelector('.agenda-dia.hoje');
+  if (hojeCard) hojeCard.classList.add('open');
+}
+
+function toggleSemana(semKey) {
+  if (!state.plano.semanaOpen) state.plano.semanaOpen = {};
+  var isOpen = state.plano.semanaOpen[semKey] !== false;
+  state.plano.semanaOpen[semKey] = !isOpen;
+  saveState();
+  renderAgendaLinear();
+}
+
+function toggleAgendaDia(dayKey) {
+  var card = document.getElementById('agendadia-' + dayKey);
+  if (!card) return;
+
+  var isOpen = card.classList.contains('open');
+  var hasInline = !!card.querySelector('.agenda-treino-inline');
+
+  if (!isOpen) {
+    // Closed → open (and load inline if expanded)
+    card.classList.add('open');
+    if (state.plano && state.plano.diasExpandidos && state.plano.diasExpandidos[dayKey]) {
+      var parts = dayKey.match(/^sem(\d+)_(.+)$/);
+      var serie = state.plano.diasExpandidos[dayKey].serie || '';
+      if (!serie && parts) {
+        var semanaObj = state.plano.semanas ? state.plano.semanas[parseInt(parts[1])-1] : null;
+        var diaObj = semanaObj ? (semanaObj.dias || semanaObj.agenda || []).find(function(d) { return d.dia === parts[2]; }) : null;
+        if (diaObj) serie = diaObj.serie;
+      }
+      if (serie && serie !== 'descanso') irParaTreino(dayKey, serie);
+    }
+  } else if (hasInline) {
+    // Open with inline → close
+    card.classList.remove('open');
+    var inline = card.querySelector('.agenda-treino-inline');
+    if (inline) inline.remove();
+  } else {
+    // Semiopen (no inline) → load inline if expanded, otherwise close
+    if (state.plano && state.plano.diasExpandidos && state.plano.diasExpandidos[dayKey]) {
+      var parts2 = dayKey.match(/^sem(\d+)_(.+)$/);
+      var serie2 = state.plano.diasExpandidos[dayKey].serie || '';
+      if (!serie2 && parts2) {
+        var semanaObj2 = state.plano.semanas ? state.plano.semanas[parseInt(parts2[1])-1] : null;
+        var diaObj2 = semanaObj2 ? (semanaObj2.dias || semanaObj2.agenda || []).find(function(d) { return d.dia === parts2[2]; }) : null;
+        if (diaObj2) serie2 = diaObj2.serie;
+      }
+      if (serie2 && serie2 !== 'descanso') irParaTreino(dayKey, serie2);
+    } else {
+      card.classList.remove('open');
+    }
+  }
+}
+
+function irParaTreino(dayKey, serieLabel) {
+  var s = state.series.find(function(s) { return s.label === serieLabel; });
+  if (!s) return;
+
+  var expanded = state.plano.diasExpandidos && state.plano.diasExpandidos[dayKey];
+  var exercises = expanded && expanded.exercicios
+    ? expanded.exercicios.map(function(ex) {
+        var pd = state.plano.seriesData && state.plano.seriesData[s.id];
+        var pdEx = pd && pd.exercises.find(function(e) { return e.id === ex.id || e.name === ex.nome; });
+        return { id: ex.id || uid(), name: ex.nome, sets: ex.sets, weight: ex.weight, notes: ex.notes||'', status: pdEx ? pdEx.status : 'undone' };
+      })
+    : s.exercises;
+
+  var container = document.getElementById('agendadia-' + dayKey);
+  if (!container) return;
+
+  var existing = container.querySelector('.agenda-treino-inline');
+  if (existing) existing.remove();
+
+  // Store exercises in seriesData for status tracking
+  if (!state.plano.seriesData) state.plano.seriesData = {};
+  if (!state.plano.seriesData[s.id]) {
+    state.plano.seriesData[s.id] = { serieId: s.id, exercises: exercises.map(function(ex) { return Object.assign({}, ex); }) };
+  } else if (expanded && expanded.exercicios) {
+    // Always sync weight/sets from expanded into existing seriesData, preserving status
+    expanded.exercicios.forEach(function(ex) {
+      var stored = state.plano.seriesData[s.id].exercises.find(function(e) { return e.id === ex.id || e.name === ex.nome; });
+      if (stored) {
+        stored.weight = ex.weight;
+        stored.sets = ex.sets;
+      }
+    });
+  }
+
+  var div = document.createElement('div');
+  div.className = 'agenda-treino-inline';
+  div.style.cssText = 'border-top:1px solid var(--border);padding:12px 16px';
+
+  div.innerHTML = '<div style="display:flex;align-items:center;gap:16px;margin-bottom:10px">' +
+    '<span style="font-family:\'Bebas Neue\',sans-serif;font-size:13px;letter-spacing:2px;color:var(--accent3)">' + serieLabel + ' — ' + s.name + '</span>' +
+    '<span style="font-family:\'DM Mono\',monospace;font-size:10px;color:var(--muted)">' +
+    '<span style="color:var(--done)">●</span> feito &nbsp; ' +
+    '<span style="color:var(--danger)">✕</span> pulado &nbsp; ' +
+    '<span style="color:var(--muted)">○</span> não feito' +
+    '</span>' +
+    '</div>' +
+    '<table style="width:100%;border-collapse:collapse">' +
+    exercises.map(function(ex) { return renderInlineEx(ex, dayKey, serieLabel); }).join('') +
+    '</table>' +
+    '<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">' +
+      '<button class="agenda-action-btn done" onclick="marcarTodosInline(\'' + dayKey + '\',\'' + serieLabel + '\')">✓ MARCAR TODOS</button>' +
+      '<button class="agenda-action-btn" onclick="finishSerieFromAgenda(\'' + dayKey + '\',\'' + s.id + '\')">⬤ REGISTRAR NO HISTÓRICO</button>' +
+      '<button class="agenda-action-btn" style="border-color:var(--accent3);color:var(--accent3);margin-left:auto" onclick="toggleChatInline(\'' + dayKey + '\',\'' + serieLabel + '\')">✦ AJUSTAR COM IA</button>' +
+    '</div>' +
+    '<div id="chat-inline-' + dayKey + '" style="display:none;margin-top:12px;border-top:1px solid var(--border);padding-top:10px">' +
+      '<div style="display:flex;justify-content:flex-end;margin-bottom:6px">' +
+        '<button onclick="limparChatInline(\'' + dayKey + '\')" style="font-family:\'DM Mono\',monospace;font-size:9px;letter-spacing:1px;background:none;border:1px solid var(--border);color:var(--muted);border-radius:4px;padding:2px 10px;cursor:pointer">↺ NOVA CONVERSA</button>' +
+      '</div>' +
+      '<div id="chat-inline-msgs-' + dayKey + '" style="max-height:200px;overflow-y:auto;display:flex;flex-direction:column;gap:6px;margin-bottom:8px"></div>' +
+      '<div style="display:flex;gap:6px">' +
+        '<textarea id="chat-inline-input-' + dayKey + '" placeholder="Ex: por que esse exercício? / troque o skull crusher por outra coisa / aumente o volume de posterior de deltóide..." ' +
+        'style="flex:1;font-family:\'DM Sans\',sans-serif;font-size:12px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px;color:var(--text);resize:none;height:60px;outline:none" ' +
+        'onkeydown="if(event.key===\'Enter\'&&!event.shiftKey){event.preventDefault();enviarChatInline(\'' + dayKey + '\',\'' + serieLabel + '\')}"></textarea>' +
+        '<button onclick="enviarChatInline(\'' + dayKey + '\',\'' + serieLabel + '\')" style="font-family:\'DM Mono\',monospace;font-size:11px;padding:8px 14px;border-radius:8px;border:none;background:var(--accent3);color:#000;cursor:pointer;align-self:flex-end">↑</button>' +
+      '</div>' +
+    '</div>';
+
+  container.querySelector('.agenda-dia-body').appendChild(div);
+}
+
+function renderInlineEx(ex, dayKey, serieLabel) {
+  var dotMap = { done: '●', skipped: '✕', undone: '○' };
+  var colorMap = { done: 'var(--done)', skipped: 'var(--danger)', undone: 'var(--muted)' };
+  var status = ex.status === 'partial' ? 'done' : (ex.status || 'undone');
+  return '<tr id="inline-ex-' + ex.id + '">' +
+    '<td style="width:24px;padding:6px 4px 6px 0;vertical-align:top;padding-top:10px">' +
+      '<span onclick="cycleInlineEx(\'' + dayKey + '\',\'' + serieLabel + '\',\'' + ex.id + '\')" ' +
+      'style="font-size:16px;color:' + colorMap[status] + ';cursor:pointer;display:block;text-align:center;transition:color .15s">' + dotMap[status] + '</span>' +
+    '</td>' +
+    '<td style="padding:6px 4px;vertical-align:middle">' +
+      '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:4px;margin-bottom:3px">' +
+        '<span style="font-size:13px;line-height:1.4">' + escHtml(ex.name) + '</span>' +
+        '<div style="display:flex;gap:4px;flex-shrink:0;margin-left:6px;margin-top:1px">' +
+          '<span onclick="toggleExNotes(\'' + ex.id + '\',\'' + escHtml(ex.name).replace(/'/g, "\\'") + '\',\'' + serieLabel + '\')" title="Como fazer?" ' +
+          'style="font-family:\'DM Mono\',monospace;font-size:10px;width:16px;height:16px;border-radius:50%;border:1px solid var(--muted);color:var(--muted);cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1">i</span>' +
+          '<span onclick="addExToLibrary(\'' + escHtml(ex.name).replace(/'/g, "\\'") + '\',\'' + escHtml(ex.sets).replace(/'/g, "\\'") + '\',\'' + escHtml(ex.weight).replace(/'/g, "\\'") + '\',\'' + serieLabel + '\')" title="Adicionar à Biblioteca" ' +
+          'style="font-family:\'DM Mono\',monospace;font-size:12px;width:16px;height:16px;border-radius:50%;border:1px solid var(--accent3);color:var(--accent3);cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1">+</span>' +
+        '</div>' +
+      '</div>' +
+      '<div id="notes-' + ex.id + '" style="display:none;font-size:12px;color:var(--muted);line-height:1.6;padding:6px 0 4px;border-top:1px solid var(--border);margin-bottom:4px"></div>' +
+      '<div style="display:flex;gap:8px;align-items:center">' +
+        '<input type="text" value="' + escHtml(ex.sets) + '" ' +
+        'onchange="updateInlineEx(\'' + dayKey + '\',\'' + serieLabel + '\',\'' + ex.id + '\',\'sets\',this.value)" ' +
+        'style="font-family:\'DM Mono\',monospace;font-size:11px;color:var(--accent);background:transparent;border:none;border-bottom:1px solid var(--border);width:80px;text-align:center;outline:none;padding:2px;flex-shrink:0">' +
+        '<input type="text" value="' + escHtml(ex.weight) + '" ' +
+        'onchange="updateInlineEx(\'' + dayKey + '\',\'' + serieLabel + '\',\'' + ex.id + '\',\'weight\',this.value)" ' +
+        'style="font-family:\'DM Mono\',monospace;font-size:11px;color:var(--accent2);background:transparent;border:none;border-bottom:1px solid var(--border);flex:1;text-align:right;outline:none;padding:2px;min-width:0">' +
+      '</div>' +
+    '</td>' +
+  '</tr>';
+}
+
+function marcarTodosInline(dayKey, serieLabel) {
+  var s = state.series.find(function(s) { return s.label === serieLabel; });
+  if (!s || !state.plano.seriesData || !state.plano.seriesData[s.id]) return;
+  state.plano.seriesData[s.id].exercises.forEach(function(ex) { ex.status = 'done'; });
+  saveState();
+  var container = document.getElementById('agendadia-' + dayKey);
+  if (container) {
+    container.querySelectorAll('[id^="inline-ex-"] span').forEach(function(span) {
+      if (span.style.cursor === 'pointer') { span.textContent = '●'; span.style.color = 'var(--done)'; }
+    });
+  }
+}
+
+function cycleInlineEx(dayKey, serieLabel, exId) {
+  var s = state.series.find(function(s) { return s.label === serieLabel; });
+  if (!s || !state.plano.seriesData || !state.plano.seriesData[s.id]) return;
+  var ex = state.plano.seriesData[s.id].exercises.find(function(e) { return e.id === exId; });
+  if (!ex) return;
+  var cycle = { undone: 'done', done: 'skipped', skipped: 'undone' };
+  ex.status = cycle[ex.status] || 'undone';
+  saveState();
+  var dotMap = { done: '●', skipped: '✕', undone: '○' };
+  var colorMap = { done: 'var(--done)', skipped: 'var(--danger)', undone: 'var(--muted)' };
+  var span = document.querySelector('#inline-ex-' + exId + ' span');
+  if (span) { span.textContent = dotMap[ex.status]; span.style.color = colorMap[ex.status]; }
+}
+
+function updateInlineEx(dayKey, serieLabel, exId, field, value) {
+  var s = state.series.find(function(s) { return s.label === serieLabel; });
+  if (!s || !state.plano.seriesData || !state.plano.seriesData[s.id]) return;
+  var pd = state.plano.seriesData[s.id];
+  var ex = pd.exercises.find(function(e) { return e.id === exId; });
+  if (ex) ex[field] = value;
+
+  // Also update diasExpandidos so changes persist
+  var expanded = state.plano.diasExpandidos && state.plano.diasExpandidos[dayKey];
+  if (expanded && expanded.exercicios) {
+    var dex = expanded.exercicios.find(function(e) { return e.id === exId; });
+    if (dex) dex[field === 'sets' ? 'sets' : 'weight'] = value;
+  }
+
+  // Also update the base library exercise as reference for future plans
+  var libEx = s.exercises.find(function(e) { return e.id === exId || e.name === (ex && ex.name); });
+  if (libEx) libEx[field] = value;
+
+  saveState();
+  toast('Atualizado ✓');
+}
+
+function finishSerieFromAgenda(dayKey, serieId) {
+  var s = state.series.find(function(s) { return s.id === serieId; });
+  if (!s) return;
+
+  var expanded = state.plano.diasExpandidos && state.plano.diasExpandidos[dayKey];
+  var pd = state.plano.seriesData && state.plano.seriesData[serieId];
+
+  // Get exercise list from diasExpandidos (has names/sets/weights)
+  var expandedExs = (expanded && expanded.exercicios) || [];
+  // Get status from seriesData (has current status)
+  var statusMap = {};
+  if (pd && pd.exercises) {
+    pd.exercises.forEach(function(e) { statusMap[e.id] = e.status || 'undone'; });
+  }
+
+  // Merge: use expanded for details, seriesData for status
+  var exercises = expandedExs.length > 0 ? expandedExs.map(function(e) {
+    return {
+      name: e.nome || e.name,
+      sets: e.sets,
+      weight: e.weight,
+      status: statusMap[e.id] || e.status || 'undone'
+    };
+  }) : (pd ? pd.exercises.map(function(e) {
+    return { name: e.name, sets: e.sets, weight: e.weight, status: e.status || 'undone' };
+  }) : []);
+
+  var done = exercises.filter(function(e) { return e.status === 'done'; }).length;
+  var total = exercises.length;
+
+  // Get real workout date from agenda calendar
+  var workoutDate = new Date().toISOString();
+  if (state.plano.dataInicio) {
+    var dataMap = (function() {
+      var diasSemana = ['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
+      var inicio = new Date(state.plano.dataInicio);
+      inicio.setHours(0,0,0,0);
+      var map = {};
+      (state.plano.semanas || []).forEach(function(sem) {
+        (sem.dias || sem.agenda || []).forEach(function(d) {
+          var k = 'sem' + sem.semana + '_' + d.dia;
+          var targetDow = diasSemana.indexOf(d.dia);
+          if (targetDow === -1) return;
+          var date = new Date(inicio);
+          date.setDate(inicio.getDate() + (sem.semana - 1) * 7);
+          var diff = targetDow - date.getDay();
+          date.setDate(date.getDate() + diff);
+          map[k] = date;
+        });
+      });
+      return map;
+    })();
+    if (dataMap[dayKey]) workoutDate = dataMap[dayKey].toISOString();
+  }
+
+  state.history.unshift({
+    id: uid(),
+    date: workoutDate,
+    registeredAt: new Date().toISOString(),
+    serieId: s.id,
+    serieLabel: s.label,
+    serieName: s.name,
+    variant: 'Plano',
+    done: done,
+    total: total,
+    exercises: exercises
+  });
+  s.lastDone = new Date().toISOString();
+  marcarDia(dayKey, 'concluido');
+  saveState();
+  renderHistory();
+  toast('Registrado no histórico ✓');
+}
+
+function setPlanoInicio(dateStr) {
+  if (!state.plano) return;
+  state.plano.dataInicio = dateStr;
+  // Auto-open the semana that contains today
+  saveState();
+  renderAgendaLinear();
+  toast('Data de início definida ✓');
+}
+
+function marcarAusente(dayKey, diaNome, semana) {
+  if (!state.plano.diasStatus) state.plano.diasStatus = {};
+  state.plano.diasStatus[dayKey] = 'ausente';
+  saveState();
+  renderAgendaLinear();
+
+  // Notify AI to replan proactively
+  var msg = 'Já sei que não poderei treinar na ' + diaNome + ' (semana ' + semana + '). Como você sugere ajustar os dias seguintes para compensar?';
+  addPlanoChatMsg('user', msg);
+  // Auto-send to AI
+  var input = document.getElementById('plano-input');
+  if (input) {
+    input.value = msg;
+    enviarMensagemPlano();
+    input.value = '';
+  }
+}
+
+function limparCacheDia(dayKey) {
+  // Remove expanded workout
+  if (state.plano.diasExpandidos) delete state.plano.diasExpandidos[dayKey];
+  // Remove inline chat history
+  if (state.plano.chatInline) delete state.plano.chatInline[dayKey];
+  if (chatInlineHistory[dayKey]) delete chatInlineHistory[dayKey];
+  // Remove exercise explanations for exercises in this day (if any were cached)
+  // Note: exExplanations are shared across days so we don't clear those
+  saveState();
+  renderAgendaLinear();
+  toast('Cache do dia limpo ✓');
+}
+
+function marcarDia(dayKey, status) {
+  if (!state.plano.diasStatus) state.plano.diasStatus = {};
+  state.plano.diasStatus[dayKey] = status;
+  saveState();
+  renderAgendaLinear();
+}
+
+function marcarDiaPerdido(dayKey, diaNome, semana) {
+  if (!state.plano.diasStatus) state.plano.diasStatus = {};
+  state.plano.diasStatus[dayKey] = 'perdido';
+
+  // Flatten all days into ordered list
+  var todosDias = [];
+  state.plano.semanas.forEach(function(sem) {
+    (sem.dias || sem.agenda || []).forEach(function(d) {
+      todosDias.push({ semana: sem.semana, dia: d, key: 'sem' + sem.semana + '_' + d.dia });
+    });
+  });
+
+  var perdidoIdx = todosDias.findIndex(function(d) { return d.key === dayKey; });
+  if (perdidoIdx === -1 || !todosDias[perdidoIdx].dia.serie || todosDias[perdidoIdx].dia.serie === 'descanso') {
+    saveState(); renderAgendaLinear(); return;
+  }
+
+  // Shift all workout series forward by 1 from perdidoIdx
+  // The lost day becomes descanso, and each subsequent day gets the previous day's serie
+  var expanded = state.plano.diasExpandidos || {};
+  var newExpanded = Object.assign({}, expanded);
+
+  // Shift from the end back to perdidoIdx to avoid overwrites
+  for (var i = todosDias.length - 1; i > perdidoIdx; i--) {
+    var cur = todosDias[i];
+    var prev = todosDias[i - 1];
+    // Move serie forward
+    cur.dia.serie = prev.dia.serie;
+    cur.dia.tipo = prev.dia.tipo;
+    cur.dia.orientacao = prev.dia.orientacao;
+    // Move expanded treino forward
+    if (newExpanded[prev.key]) {
+      newExpanded[cur.key] = Object.assign({}, newExpanded[prev.key], { _dayKey: cur.key });
+    } else {
+      delete newExpanded[cur.key];
+    }
+  }
+
+  // Lost day becomes descanso
+  todosDias[perdidoIdx].dia.serie = 'descanso';
+  todosDias[perdidoIdx].dia.tipo = 'recuperacao';
+  todosDias[perdidoIdx].dia.orientacao = 'Descanso — treino perdido redistribuído';
+  delete newExpanded[dayKey];
+
+  state.plano.diasExpandidos = newExpanded;
+  saveState();
+  renderAgendaLinear();
+
+  // Now ask AI to handle the overflow at the end of the plan
+  var ultimoDia = todosDias[todosDias.length - 1];
+  var planoDias = todosDias.map(function(d) {
+    return d.dia.dia + ' (sem' + d.semana + '): ' + (d.dia.serie || 'descanso');
+  }).join(', ');
+
+  var msg = 'Perdi o treino de ' + diaNome + ' semana ' + semana + '. ' +
+    'Já redistribuí os treinos automaticamente — todos avançaram um dia. ' +
+    'O último dia do plano (' + ultimoDia.dia.dia + ', semana ' + ultimoDia.semana + ') agora tem série ' + (ultimoDia.dia.serie || 'descanso') + ' mas era para ser descanso. ' +
+    'Agenda atual: ' + planoDias + '. ' +
+    'Como você sugere resolver o overflow no final? Retorne um JSON de replanejamento com os ajustes necessários apenas nos últimos dias.';
+
+  setTimeout(function() {
+    var input = document.getElementById('plano-input');
+    if (input) {
+      input.value = msg;
+      enviarMensagemPlano();
+      switchTab('ia');
+    }
+  }, 300);
+
+  toast('Treino da ' + diaNome + ' redistribuído — veja sugestão da IA ✓');
+}
+
+
+function renderPlanoAgenda() {
+  if (!state.plano) return;
+  var ciclo = state.plano.ciclos ? state.plano.ciclos[state.planoSemana] : null;
+  if (!ciclo) return;
+  var dia = ciclo.dias[state.planoDia];
+  if (!dia) return;
+
+  var isRest = dia.serie === 'descanso';
+  var serieObj = state.series.find(function(s) { return s.label === dia.serie; });
+
+  var wrap = document.getElementById('agenda-hoje');
+  if (!wrap) return;
+  wrap.innerHTML =
+    '<div class="agenda-today">' +
+      '<div class="agenda-today-label">SEMANA ' + ciclo.semana + ' — ' + dia.dia.toUpperCase() + '</div>' +
+      '<div class="agenda-today-serie">' + (isRest ? 'DESCANSO' : (serieObj ? dia.serie + ' — ' + serieObj.name : dia.serie)) + '</div>' +
+      '<div class="agenda-today-notes">' + escHtml(dia.foco) + '</div>' +
+      (!isRest && serieObj ? '<button class="agenda-go-btn" onclick="switchTab(\'workout-' + serieObj.id + '\')">IR PARA O TREINO →</button>' : '') +
+    '</div>' +
+    '<div style="display:flex;gap:8px;margin:8px 0 4px">' +
+      '<button class="btn" onclick="avancarDia(-1)">← ANTERIOR</button>' +
+      '<button class="btn primary" onclick="avancarDia(1)">PRÓXIMO →</button>' +
+    '</div>';
+}
+
+function avancarDia(dir) {
+  if (!state.plano) return;
+  var ciclo = state.plano.ciclos[state.planoSemana];
+  state.planoDia += dir;
+  if (state.planoDia >= ciclo.dias.length) {
+    state.planoDia = 0;
+    state.planoSemana = Math.min(state.planoSemana + 1, state.plano.ciclos.length - 1);
+  }
+  if (state.planoDia < 0) {
+    state.planoSemana = Math.max(state.planoSemana - 1, 0);
+    state.planoDia = state.plano.ciclos[state.planoSemana].dias.length - 1;
+  }
+  saveState();
+  renderPlanoAgenda();
+}
+
+
+async function renameWithAI(serieId, exId) {
+  const s = state.series.find(s => s.id === serieId);
+  const ex = s.exercises.find(e => e.id === exId);
+  const btn = document.getElementById('rename-btn-'+exId);
+  if (!btn) return;
+
+  btn.classList.add('loading');
+  btn.textContent = '…';
+
+  try {
+    const exerciseContext = s.exercises.map(e => e.name).join(', ');
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': getApiKey(), 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 100,
+        messages: [{
+          role: 'user',
+          content: `Você é um especialista em musculação e anatomia. Preciso do nome técnico correto em português brasileiro para um exercício de academia.
+
+Contexto:
+- Grupo muscular da série: ${s.name}
+- Outros exercícios da mesma série: ${exerciseContext}
+- Nome informal atual: "${ex.name}"
+- Séries/reps: ${ex.sets}
+- Carga/equipamento: ${ex.weight}
+- Notas: ${ex.notes || 'nenhuma'}
+
+Regras:
+- Responda APENAS com o nome técnico correto, sem explicações, sem pontuação, sem aspas
+- Se o exercício for unilateral (um lado de cada vez), inclua "Unilateral" no nome
+- Se houver posição relevante (em pé, sentado, no banco, inclinado), inclua no nome
+- Seja preciso: prefira o nome anatômico consagrado ao nome popular`
+        }]
+      })
+    });
+    const data = await response.json();
+    const suggested = data.content?.map(c => c.text||'').join('').trim();
+
+    if (!suggested) throw new Error('empty');
+
+    // Show confirmation inline
+    const card = document.getElementById('excard-'+exId);
+    const nameInput = card.querySelector('.ex-name-input');
+    const oldName = ex.name;
+
+    btn.classList.remove('loading');
+    btn.textContent = '✦';
+
+    // Build a small inline confirm UI
+    const confirm = document.createElement('div');
+    confirm.className = 'rename-confirm';
+    confirm.innerHTML = `
+      <span class="rename-suggested">${escHtml(suggested)}</span>
+      <button class="rename-accept" onclick="applyRename('${serieId}','${exId}',this)">✓</button>
+      <button class="rename-reject" onclick="this.closest('.rename-confirm').remove()">✕</button>
+    `;
+    confirm.dataset.name = suggested;
+    // insert after the name input's parent
+    card.querySelector('.ex-col-name').appendChild(confirm);
+
+  } catch(e) {
+    btn.classList.remove('loading');
+    btn.textContent = '✦';
+    toast('Erro ao consultar IA');
+  }
+}
+
+function applyRename(serieId, exId, btn) {
+  const confirm = btn.closest('.rename-confirm');
+  const suggested = confirm.dataset.name;
+  const s = state.series.find(s => s.id === serieId);
+  const ex = s.exercises.find(e => e.id === exId);
+  ex.name = suggested;
+  saveState();
+  rerenderSerie(serieId);
+  toast('Nome atualizado ✓');
+}
+
+
+function openModal(title, fields, cb) {
+  document.getElementById('modal-title').textContent = title;
+  const body = document.getElementById('modal-body');
+  body.innerHTML = fields.map(f => f.type === 'hidden'
+    ? `<div style="font-size:13px;color:var(--muted);line-height:1.5;padding:4px 0">${f.label}</div>`
+    : `<div>
+        <div class="modal-field-label">${f.label}</div>
+        <input class="modal-input" id="mf-${f.key}" type="${f.type||'text'}" placeholder="${f.placeholder||''}" value="${f.default||''}" />
+      </div>`
+  ).join('');
+  modalCallback = () => {
+    const data = {};
+    fields.filter(f => f.type !== 'hidden').forEach(f => data[f.key] = document.getElementById('mf-'+f.key).value);
+    cb(data);
+    closeModal();
+  };
+  document.getElementById('modal-confirm').onclick = modalCallback;
+  document.getElementById('modal').classList.add('open');
+  setTimeout(() => body.querySelector('input')?.focus(), 100);
+}
+
+function closeModal() {
+  document.getElementById('modal').classList.remove('open');
+  modalCallback = null;
+}
+document.getElementById('modal').addEventListener('click', e => { if (e.target === e.currentTarget) closeModal(); });
+
+// ─────────────────────────── UTILS ───────────────────────────
+function rerenderSerie(serieId) {
+  // Remember open cards
+  const openCards = [...document.querySelectorAll('.ex-card.open')].map(c => c.id.replace('excard-',''));
+
+  // Re-render inside biblioteca if currently viewing this serie
+  if (currentTab === 'workout-'+serieId) {
+    renderBiblioteca('workout-'+serieId);
+  } else if (currentTab === 'biblioteca') {
+    renderBiblioteca(currentTab);
+  }
+
+  // Restore open cards
+  openCards.forEach(id => {
+    const c = document.getElementById('excard-'+id);
+    if (c) c.classList.add('open');
+  });
+  renderTabs();
+  setTimeout(autoResizeAll, 0);
+}
+
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+function escHtml(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function resetData() {
+  openModal('RESETAR TODOS OS DADOS', [
+    { label: '⚠️ ATENÇÃO: Esta ação apaga todos os seus exercícios, histórico, perfil e plano gerado pela IA. Esta ação não pode ser desfeita.', key: '_', type: 'hidden', placeholder: '' }
+  ], function() {
+    state = JSON.parse(JSON.stringify(DEFAULT_DATA));
+    state._version = DATA_VERSION;
+    localStorage.removeItem(STORAGE_KEY);
+    saveState();
+    render();
+    switchTab('biblioteca');
+    setTimeout(autoResizeAll, 100);
+    toast('Dados resetados ✓');
+  });
+}
+
+function importData() {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.json';
+  input.onchange = e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(ev) {
+      try {
+        var imported = JSON.parse(ev.target.result);
+        if (!imported.series) throw new Error('Formato inválido');
+        state = imported;
+        planoChatHistory = state.planoChatHistory || [];
+        render();
+        renderPlanoChatMessages();
+        if (state.planoRascunho || state.plano) {
+          renderPlanoMacro(state.planoRascunho || state.plano);
+        }
+        switchTab('agenda');
+        setTimeout(autoResizeAll, 100);
+        toast('Dados importados ✓');
+      } catch(e) {
+        toast('Erro: ' + e.message);
+      }
+    };
+    reader.readAsText(file);
+  };
+  document.body.appendChild(input);
+  input.click();
+  document.body.removeChild(input);
+}
+
+
+function exportData() {
+  // Ensure in-memory chat history is synced to state before export
+  state.planoChatHistory = planoChatHistory;
+  const json = JSON.stringify(state, null, 2);
+  const blob = new Blob([json], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'treino_backup.json';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  toast('Dados exportados ✓');
+}
+
+// keyboard shortcut: Enter in modal
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeModal();
+  if (e.key === 'Enter' && document.getElementById('modal').classList.contains('open') && e.target.tagName === 'INPUT') {
+    if (modalCallback) modalCallback();
+  }
+});
+
+// ─────────────────────────── INIT ───────────────────────────
+loadPersistedState(function() {
+  if (!state.perfil) state.perfil = DEFAULT_PERFIL;
+  render();
+  if (state.plano) {
+    switchTab('agenda');
+  } else {
+    switchTab('biblioteca');
+  }
+  setTimeout(autoResizeAll, 100);
+  setTimeout(renderPlanoAgenda, 150);
+  setTimeout(loadPerfil, 200);
+  // Restore chat history
+  if (state.planoChatHistory) {
+    planoChatHistory = state.planoChatHistory;
+  }
+  // Restore chat messages visually
+  if (state.planoChatMessages && state.planoChatMessages.length) {
+    renderPlanoChatMessages();
+  }
+  // Restore planoRascunho panel on init
+  if (state.planoRascunho || state.plano) {
+    renderPlanoMacro(state.planoRascunho || state.plano);
+  }
+  // Register Service Worker for PWA
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function() {
+      navigator.serviceWorker.register('./sw.js').then(function(reg) {
+        console.log('Service Worker registrado:', reg.scope);
+      }).catch(function(err) {
+        console.log('Service Worker falhou:', err);
+      });
+    });
+  }
+});
+</script>
+</body>
+</html>
