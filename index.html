@@ -4364,6 +4364,7 @@ function openDB(cb) {
 function saveState() {
   if (state.plano) sanitizePlanoTipos(state.plano);
   var json = JSON.stringify(state);
+  console.log('saveState called, json size:', json.length);
   try { localStorage.setItem(STORAGE_KEY, json); } catch(e) {}
   openDB(function(db) {
     if (!db) { console.warn('IDB: db is null'); return; }
