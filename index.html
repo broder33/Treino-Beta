@@ -1456,86 +1456,6 @@ function sanitizePlanoTipos(plano) {
   });
 }
 
-// IndexedDB storage with localStorage fallback
-var _db = null;
-var DB_NAME = 'treino_db';
-var DB_STORE = 'state';
-var DB_KEY = 'main';
-
-function openDB(cb) {
-  if (_db) { cb(_db); return; }
-  var req = indexedDB.open(DB_NAME, 1);
-  req.onupgradeneeded = function(e) {
-    e.target.result.createObjectStore(DB_STORE);
-  };
-  req.onsuccess = function(e) {
-    _db = e.target.result;
-    cb(_db);
-  };
-  req.onerror = function() {
-    cb(null);
-  };
-}
-
-function saveState() {
-  if (state.plano) sanitizePlanoTipos(state.plano);
-  var json = JSON.stringify(state);
-  // Always save to localStorage as backup
-  try { localStorage.setItem(STORAGE_KEY, json); } catch(e) {}
-  // Save to IndexedDB as primary
-  openDB(function(db) {
-    if (!db) return;
-    try {
-      var tx = db.transaction(DB_STORE, 'readwrite');
-      tx.objectStore(DB_STORE).put(json, DB_KEY);
-    } catch(e) {}
-  });
-}
-
-function loadPersistedState(cb) {
-  openDB(function(db) {
-    if (!db) {
-      // Fallback to localStorage
-      try {
-        var saved = localStorage.getItem(STORAGE_KEY);
-        if (saved) state = Object.assign(loadState(), JSON.parse(saved));
-      } catch(e) {}
-      cb();
-      return;
-    }
-    try {
-      var tx = db.transaction(DB_STORE, 'readonly');
-      var req = tx.objectStore(DB_STORE).get(DB_KEY);
-      req.onsuccess = function(e) {
-        var saved = e.target.result;
-        if (!saved) {
-          // Try localStorage migration
-          try {
-            saved = localStorage.getItem(STORAGE_KEY);
-          } catch(e2) {}
-        }
-        if (saved) {
-          try {
-            state = Object.assign(loadState(), JSON.parse(saved));
-            // Migrate to IndexedDB if came from localStorage
-            saveState();
-          } catch(e3) {}
-        }
-        cb();
-      };
-      req.onerror = function() {
-        try {
-          var saved = localStorage.getItem(STORAGE_KEY);
-          if (saved) state = Object.assign(loadState(), JSON.parse(saved));
-        } catch(e) {}
-        cb();
-      };
-    } catch(e) {
-      cb();
-    }
-  });
-}
-
 let state = loadState();
 let currentTab = 'workout-s1';
 let modalCallback = null;
@@ -4419,6 +4339,74 @@ function resetData() {
   });
 }
 
+// ─── IndexedDB ───────────────────────────────────────────────
+var _db = null;
+var DB_NAME = 'treino_db';
+var DB_STORE = 'keyval';
+var DB_KEY = 'state';
+
+function openDB(cb) {
+  if (_db) { cb(_db); return; }
+  try {
+    var req = indexedDB.open(DB_NAME, 2);
+    req.onupgradeneeded = function(e) {
+      var db = e.target.result;
+      // Create store if it doesn't exist
+      if (!db.objectStoreNames.contains(DB_STORE)) {
+        db.createObjectStore(DB_STORE);
+      }
+      // Remove old store name if exists
+      if (db.objectStoreNames.contains('state')) {
+        db.deleteObjectStore('state');
+      }
+    };
+    req.onsuccess = function(e) { _db = e.target.result; cb(_db); };
+    req.onerror = function() { cb(null); };
+  } catch(e) { cb(null); }
+}
+
+function saveState() {
+  if (state.plano) sanitizePlanoTipos(state.plano);
+  var json = JSON.stringify(state);
+  try { localStorage.setItem(STORAGE_KEY, json); } catch(e) {}
+  openDB(function(db) {
+    if (!db) return;
+    try {
+      db.transaction(DB_STORE, 'readwrite').objectStore(DB_STORE).put(json, DB_KEY);
+    } catch(e) {}
+  });
+}
+
+function loadPersistedState(cb) {
+  openDB(function(db) {
+    if (!db) {
+      try {
+        var s = localStorage.getItem(STORAGE_KEY);
+        if (s) state = Object.assign(loadState(), JSON.parse(s));
+      } catch(e) {}
+      cb(); return;
+    }
+    var req = db.transaction(DB_STORE, 'readonly').objectStore(DB_STORE).get(DB_KEY);
+    req.onsuccess = function(e) {
+      var saved = e.target.result;
+      if (!saved) {
+        try { saved = localStorage.getItem(STORAGE_KEY); } catch(e2) {}
+      }
+      if (saved) {
+        try { state = Object.assign(loadState(), JSON.parse(saved)); } catch(e3) {}
+      }
+      cb();
+    };
+    req.onerror = function() {
+      try {
+        var s = localStorage.getItem(STORAGE_KEY);
+        if (s) state = Object.assign(loadState(), JSON.parse(s));
+      } catch(e) {}
+      cb();
+    };
+  });
+}
+
 function importData() {
   const input = document.createElement('input');
   input.type = 'file';
@@ -4430,9 +4418,15 @@ function importData() {
     reader.onload = function(ev) {
       try {
         var imported = JSON.parse(ev.target.result);
-        if (!imported.series) throw new Error('Formato inválido');
-        state = imported;
+        // Retrocompatibility: accept any JSON that has at least one known field
+        if (!imported.series && !imported.plano && !imported.history &&
+            !imported.perfil && !imported.planoChatMessages) {
+          throw new Error('Formato inválido');
+        }
+        // Merge imported over defaults to fill any missing fields
+        state = Object.assign(loadState(), imported);
         planoChatHistory = state.planoChatHistory || [];
+        saveState();
         render();
         renderPlanoChatMessages();
         if (state.planoRascunho || state.plano) {
