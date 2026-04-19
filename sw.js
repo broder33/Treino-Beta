@@ -1,21 +1,20 @@
-const CACHE_NAME = 'treino-v6';
-const ASSETS = [
-  './index.html',
+const CACHE_NAME = 'treino-v7';
+const STATIC_ASSETS = [
   './manifest.json',
+  './icons/icon-192.png',
+  './icons/icon-512.png',
   'https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow+Condensed:wght@600;700&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;600&display=swap'
 ];
 
-// Install: cache core assets
 self.addEventListener('install', function(event) {
   event.waitUntil(
     caches.open(CACHE_NAME).then(function(cache) {
-      return cache.addAll(ASSETS);
+      return cache.addAll(STATIC_ASSETS);
     })
   );
   self.skipWaiting();
 });
 
-// Activate: clean old caches
 self.addEventListener('activate', function(event) {
   event.waitUntil(
     caches.keys().then(function(keys) {
@@ -28,48 +27,28 @@ self.addEventListener('activate', function(event) {
   self.clients.claim();
 });
 
-// Fetch: serve from cache, fallback to network
 self.addEventListener('fetch', function(event) {
-  // Don't intercept Anthropic API calls — always go to network
-  if (event.request.url.includes('api.anthropic.com')) {
-    return;
-  }
-  // Don't intercept Supabase calls — always go to network
-  if (event.request.url.includes('supabase.co')) {
-    return;
-  }
-  // Don't intercept Google Fonts API calls
-  if (event.request.url.includes('fonts.gstatic.com')) {
-    return;
-  }
-  // Always fetch fresh HTML for navigation requests
-  if (event.request.mode === 'navigate') {
+  if (event.request.url.includes('api.anthropic.com')) return;
+  if (event.request.url.includes('supabase.co')) return;
+  if (event.request.url.includes('fonts.gstatic.com')) return;
+  if (event.request.url.includes('unpkg.com')) return;
+
+  // index.html always from network — never cached
+  if (event.request.mode === 'navigate' || event.request.url.endsWith('index.html')) {
     event.respondWith(
       fetch(event.request).catch(function() {
-        return caches.match('./index.html');
+        return new Response('<h1>Offline</h1><p>Conecte-se para usar o app.</p>', {
+          headers: { 'Content-Type': 'text/html' }
+        });
       })
     );
     return;
   }
 
+  // Static assets from cache
   event.respondWith(
     caches.match(event.request).then(function(cached) {
-      if (cached) return cached;
-      return fetch(event.request).then(function(response) {
-        // Cache successful GET responses
-        if (event.request.method === 'GET' && response.status === 200) {
-          var clone = response.clone();
-          caches.open(CACHE_NAME).then(function(cache) {
-            cache.put(event.request, clone);
-          });
-        }
-        return response;
-      }).catch(function() {
-        // Offline fallback: return cached index.html for navigation requests
-        if (event.request.mode === 'navigate') {
-          return caches.match('./index.html');
-        }
-      });
+      return cached || fetch(event.request);
     })
   );
 });
