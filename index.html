@@ -1198,7 +1198,7 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
     <button class="btn" onclick="resetData()" title="Limpar todos os dados e voltar ao padrão">↺ RESET</button>
     <button class="btn" onclick="exportData()">EXPORTAR</button>
     <button class="btn" onclick="importData()">IMPORTAR</button>
-    <span style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);margin-left:4px">v0.8.5.3</span>
+    <span style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);margin-left:4px">v0.8.5.4</span>
     <div id="auth-status" style="display:flex;align-items:center;margin-left:8px"></div>
   </div>
 </header>
@@ -4651,11 +4651,23 @@ loadPersistedState(function() {
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', function() {
       navigator.serviceWorker.register('./sw.js').then(function(reg) {
-        // Force update check
         reg.update();
-        console.log('Service Worker registrado:', reg.scope);
+        // When a new SW is waiting, force it to activate immediately
+        reg.addEventListener('updatefound', function() {
+          var newWorker = reg.installing;
+          newWorker.addEventListener('statechange', function() {
+            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+              newWorker.postMessage({ type: 'SKIP_WAITING' });
+              window.location.reload();
+            }
+          });
+        });
       }).catch(function(err) {
         console.log('Service Worker falhou:', err);
+      });
+      // Reload when SW controller changes
+      navigator.serviceWorker.addEventListener('controllerchange', function() {
+        window.location.reload();
       });
     });
   }

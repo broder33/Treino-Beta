@@ -1,4 +1,10 @@
-const CACHE_NAME = 'treino-v8';
+const CACHE_NAME = 'treino-v9';
+
+self.addEventListener('message', function(event) {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
+});
 const STATIC_ASSETS = [
   './manifest.json',
   './icons/icon-192.png',
