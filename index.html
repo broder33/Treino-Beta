@@ -1198,7 +1198,7 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
     <button class="btn" onclick="resetData()" title="Limpar todos os dados e voltar ao padrão">↺ RESET</button>
     <button class="btn" onclick="exportData()">EXPORTAR</button>
     <button class="btn" onclick="importData()">IMPORTAR</button>
-    <span style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);margin-left:4px">v0.8.5.4</span>
+    <span style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);margin-left:4px">v0.8.5.5</span>
     <div id="auth-status" style="display:flex;align-items:center;margin-left:8px"></div>
   </div>
 </header>
@@ -4349,7 +4349,9 @@ function resetData() {
 // ─── Supabase ─────────────────────────────────────────────────
 const SUPABASE_URL = 'https://exhajkhacgnsrnnmeism.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_qva0Cd3bLobjKW0-epdo1Q_ud9FqK2C';
+const SUPABASE_REDIRECT = 'https://broder33.github.io/Treino-Beta/';
 var sbClient = null;
+
 function getSbClient() {
   if (sbClient) return sbClient;
   var factory = window._supabaseCreateClient || (window.supabase && window.supabase.createClient);
@@ -4361,6 +4363,13 @@ function getSbClient() {
 
 var _supabaseUser = null;
 var _syncTimeout = null;
+var _authListenerRegistered = false;
+
+// Detect if running as installed PWA (standalone mode)
+function isPWA() {
+  return window.matchMedia('(display-mode: standalone)').matches ||
+         window.navigator.standalone === true;
+}
 
 async function supabaseInit() {
   const db = getSbClient();
@@ -4369,33 +4378,55 @@ async function supabaseInit() {
     return;
   }
   try {
-    // Handle token from URL hash (after OAuth redirect)
-    if (window.location.hash && window.location.hash.includes('access_token')) {
+    // Handle OAuth redirect: token may be in hash (implicit) or exchanged via PKCE
+    // Must call getSession() first so the SDK can process any pending tokens in the URL
+    if (window.location.hash && (
+        window.location.hash.includes('access_token') ||
+        window.location.hash.includes('error'))) {
       await db.auth.getSession();
+      // Clean the URL without reloading (important for PWA)
       window.history.replaceState(null, '', window.location.pathname);
     }
 
+    // Register auth state listener BEFORE checking session
+    // so we never miss an event (critical for PWA redirect flow)
+    if (!_authListenerRegistered) {
+      _authListenerRegistered = true;
+      db.auth.onAuthStateChange(async function(event, session) {
+        if (event === 'SIGNED_IN' && session && session.user) {
+          var wasLoggedOut = !_supabaseUser;
+          _supabaseUser = session.user;
+          renderAuthUI();
+          if (wasLoggedOut) {
+            // First login in this session: load cloud data
+            await supabaseLoad();
+            render();
+            if (state.planoChatHistory) planoChatHistory = state.planoChatHistory;
+            if (state.planoChatMessages && state.planoChatMessages.length) renderPlanoChatMessages();
+            if (state.planoRascunho || state.plano) renderPlanoMacro(state.planoRascunho || state.plano);
+            toast('Login realizado ✓');
+          }
+        } else if (event === 'TOKEN_REFRESHED' && session) {
+          _supabaseUser = session.user;
+        } else if (event === 'SIGNED_OUT') {
+          _supabaseUser = null;
+          renderAuthUI();
+          toast('Logout realizado');
+        }
+      });
+    }
+
+    // Check for existing session
     const { data: { session } } = await db.auth.getSession();
-    if (session) {
+    if (session && session.user) {
       _supabaseUser = session.user;
       await supabaseLoad();
-      renderAuthUI();
-    } else {
-      renderAuthUI();
+      render();
+      if (state.planoChatHistory) planoChatHistory = state.planoChatHistory;
+      if (state.planoChatMessages && state.planoChatMessages.length) renderPlanoChatMessages();
+      if (state.planoRascunho || state.plano) renderPlanoMacro(state.planoRascunho || state.plano);
     }
-    const db2 = getSbClient(); if (db2) db2.auth.onAuthStateChange(async function(event, session) {
-      if (event === 'SIGNED_IN' && session) {
-        _supabaseUser = session.user;
-        await supabaseLoad();
-        render();
-        renderAuthUI();
-        toast('Login realizado ✓');
-      } else if (event === 'SIGNED_OUT') {
-        _supabaseUser = null;
-        renderAuthUI();
-        toast('Logout realizado');
-      }
-    });
+    renderAuthUI();
   } catch(e) {
     console.warn('Supabase init error:', e);
     renderAuthUI();
@@ -4403,29 +4434,46 @@ async function supabaseInit() {
 }
 
 async function supabaseLogin() {
-  const dbl = getSbClient(); if (!dbl) return;
-  await dbl.auth.signInWithOAuth({
-    provider: 'google',
-    options: { redirectTo: window.location.href }
-  });
+  const dbl = getSbClient();
+  if (!dbl) { toast('Supabase não carregado'); return; }
+  try {
+    await dbl.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: SUPABASE_REDIRECT,
+        // queryParams forces account selection on every login
+        queryParams: { prompt: 'select_account' }
+      }
+    });
+  } catch(e) {
+    console.warn('Login error:', e);
+    toast('Erro ao iniciar login');
+  }
 }
 
 async function supabaseLogout() {
   const dbs = getSbClient(); if (!dbs) return;
-  await dbs.auth.signOut();
+  try {
+    await dbs.auth.signOut();
+  } catch(e) {
+    _supabaseUser = null;
+    renderAuthUI();
+  }
 }
 
 async function supabaseSave() {
   if (!_supabaseUser) return;
   try {
-    var json = JSON.stringify(state);
     const dbu = getSbClient(); if (!dbu) return;
-    await dbu.from('user_data').upsert({
+    // Save state as jsonb object (not double-serialized string)
+    var stateObj = JSON.parse(JSON.stringify(state));
+    var { error } = await dbu.from('user_data').upsert({
       id: _supabaseUser.id,
-      state: json,
+      state: stateObj,
       updated_at: new Date().toISOString()
     });
-  } catch(e) { console.warn('Supabase save error:', e); }
+    if (error) console.warn('Supabase save error:', error.message);
+  } catch(e) { console.warn('Supabase save exception:', e); }
 }
 
 async function supabaseLoad() {
@@ -4436,30 +4484,41 @@ async function supabaseLoad() {
       .select('state')
       .eq('id', _supabaseUser.id)
       .single();
+    if (error && error.code !== 'PGRST116') {
+      // PGRST116 = row not found (first login) — not an error
+      console.warn('Supabase load error:', error.message);
+      return;
+    }
     if (data && data.state) {
-      var parsed = JSON.parse(data.state);
+      // state column is jsonb — may be object or string depending on schema
+      var parsed = typeof data.state === 'string' ? JSON.parse(data.state) : data.state;
       state = Object.assign(loadState(), parsed);
       saveState();
     }
-  } catch(e) { console.warn('Supabase load error:', e); }
+  } catch(e) { console.warn('Supabase load exception:', e); }
 }
 
 function scheduleSyncToSupabase() {
   if (_syncTimeout) clearTimeout(_syncTimeout);
   _syncTimeout = setTimeout(function() {
     supabaseSave();
-  }, 2000); // debounce 2s
+  }, 2000);
 }
 
 function renderAuthUI() {
   var el = document.getElementById('auth-status');
   if (!el) return;
   if (_supabaseUser) {
-    el.innerHTML = '<span style="font-family:\'DM Mono\',monospace;font-size:10px;color:var(--done)">● ' +
-      escHtml(_supabaseUser.email) + '</span>' +
+    var emailDisplay = _supabaseUser.email || '';
+    // On small screens (PWA) shorten to first part before @
+    if (isPWA() && emailDisplay.includes('@')) emailDisplay = emailDisplay.split('@')[0];
+    el.innerHTML =
+      '<span style="font-family:\'DM Mono\',monospace;font-size:10px;color:var(--done)">● ' +
+      escHtml(emailDisplay) + '</span>' +
       '<button onclick="supabaseLogout()" style="font-family:\'DM Mono\',monospace;font-size:10px;background:none;border:1px solid var(--border);color:var(--muted);border-radius:4px;padding:2px 10px;cursor:pointer;margin-left:8px">SAIR</button>';
   } else {
-    el.innerHTML = '<button onclick="supabaseLogin()" style="font-family:\'DM Mono\',monospace;font-size:11px;background:none;border:1px solid var(--accent3);color:var(--accent3);border-radius:6px;padding:4px 16px;cursor:pointer">● ENTRAR COM GOOGLE</button>';
+    el.innerHTML =
+      '<button onclick="supabaseLogin()" style="font-family:\'DM Mono\',monospace;font-size:11px;background:none;border:1px solid var(--accent3);color:var(--accent3);border-radius:6px;padding:4px 16px;cursor:pointer">● ENTRAR COM GOOGLE</button>';
   }
 }
 var _db = null;
@@ -4486,18 +4545,13 @@ function openDB(cb) {
 function saveState() {
   if (state.plano) sanitizePlanoTipos(state.plano);
   var json = JSON.stringify(state);
-  console.log('saveState called, json size:', json.length);
   try { localStorage.setItem(STORAGE_KEY, json); } catch(e) {}
   openDB(function(db) {
-    if (!db) { console.warn('IDB: db is null'); return; }
+    if (!db) return;
     try {
-      console.log('IDB: saving, store:', DB_STORE, 'key:', DB_KEY, 'size:', json.length);
       var tx = db.transaction(DB_STORE, 'readwrite');
       var req = tx.objectStore(DB_STORE).put(json, DB_KEY);
-      req.onsuccess = function() { console.log('IDB: saved ok'); };
-      req.onerror = function(e) { console.warn('IDB req error:', e.target.error); };
-      tx.oncomplete = function() { console.log('IDB: tx complete'); };
-      tx.onerror = function(e) { console.warn('IDB tx error:', e.target.error); };
+      req.onerror = function(e) { console.warn('IDB save error:', e.target.error); };
     } catch(e) { console.warn('IDB save exception:', e); }
   });
   scheduleSyncToSupabase();
