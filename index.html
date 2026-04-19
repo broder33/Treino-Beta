@@ -8,8 +8,10 @@
 <meta name="theme-color" content="#0a0a0a">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Treino">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
+<script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow+Condensed:wght@600;700&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;600&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -1193,6 +1195,7 @@
     <button class="btn" onclick="resetData()" title="Limpar todos os dados e voltar ao padrão">↺ RESET</button>
     <button class="btn" onclick="exportData()">EXPORTAR</button>
     <button class="btn" onclick="importData()">IMPORTAR</button>
+    <div id="auth-status" style="display:flex;align-items:center;margin-left:8px"></div>
   </div>
 </header>
 
@@ -4339,7 +4342,116 @@ function resetData() {
   });
 }
 
-// ─── IndexedDB ───────────────────────────────────────────────
+// ─── Supabase ─────────────────────────────────────────────────
+const SUPABASE_URL = 'https://exhajkhacgnsrnnmeism.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_qva0Cd3bLobjKW0-epdo1Q_ud9FqK2C';
+var sbClient = null;
+function getSbClient() {
+  if (sbClient) return sbClient;
+  var factory = window._supabaseCreateClient || (window.supabase && window.supabase.createClient);
+  if (factory) {
+    sbClient = factory(SUPABASE_URL, SUPABASE_KEY);
+  }
+  return sbClient;
+}
+
+var _supabaseUser = null;
+var _syncTimeout = null;
+
+async function supabaseInit() {
+  const db = getSbClient();
+  if (!db) {
+    renderAuthUI();
+    return;
+  }
+  try {
+    const { data: { session } } = await db.auth.getSession();
+    if (session) {
+      _supabaseUser = session.user;
+      await supabaseLoad();
+      renderAuthUI();
+    } else {
+      renderAuthUI();
+    }
+    const db2 = getSbClient(); if (db2) db2.auth.onAuthStateChange(async function(event, session) {
+      if (event === 'SIGNED_IN' && session) {
+        _supabaseUser = session.user;
+        await supabaseLoad();
+        render();
+        renderAuthUI();
+        toast('Login realizado ✓');
+      } else if (event === 'SIGNED_OUT') {
+        _supabaseUser = null;
+        renderAuthUI();
+        toast('Logout realizado');
+      }
+    });
+  } catch(e) {
+    console.warn('Supabase init error:', e);
+    renderAuthUI();
+  }
+}
+
+async function supabaseLogin() {
+  const dbl = getSbClient(); if (!dbl) return;
+  await dbl.auth.signInWithOAuth({
+    provider: 'google',
+    options: { redirectTo: window.location.href }
+  });
+}
+
+async function supabaseLogout() {
+  const dbs = getSbClient(); if (!dbs) return;
+  await dbs.auth.signOut();
+}
+
+async function supabaseSave() {
+  if (!_supabaseUser) return;
+  try {
+    var json = JSON.stringify(state);
+    const dbu = getSbClient(); if (!dbu) return;
+    await dbu.from('user_data').upsert({
+      id: _supabaseUser.id,
+      state: json,
+      updated_at: new Date().toISOString()
+    });
+  } catch(e) { console.warn('Supabase save error:', e); }
+}
+
+async function supabaseLoad() {
+  if (!_supabaseUser) return;
+  try {
+    const dbl2 = getSbClient(); if (!dbl2) return;
+    var { data, error } = await dbl2.from('user_data')
+      .select('state')
+      .eq('id', _supabaseUser.id)
+      .single();
+    if (data && data.state) {
+      var parsed = JSON.parse(data.state);
+      state = Object.assign(loadState(), parsed);
+      saveState();
+    }
+  } catch(e) { console.warn('Supabase load error:', e); }
+}
+
+function scheduleSyncToSupabase() {
+  if (_syncTimeout) clearTimeout(_syncTimeout);
+  _syncTimeout = setTimeout(function() {
+    supabaseSave();
+  }, 2000); // debounce 2s
+}
+
+function renderAuthUI() {
+  var el = document.getElementById('auth-status');
+  if (!el) return;
+  if (_supabaseUser) {
+    el.innerHTML = '<span style="font-family:\'DM Mono\',monospace;font-size:10px;color:var(--done)">● ' +
+      escHtml(_supabaseUser.email) + '</span>' +
+      '<button onclick="supabaseLogout()" style="font-family:\'DM Mono\',monospace;font-size:10px;background:none;border:1px solid var(--border);color:var(--muted);border-radius:4px;padding:2px 10px;cursor:pointer;margin-left:8px">SAIR</button>';
+  } else {
+    el.innerHTML = '<button onclick="supabaseLogin()" style="font-family:\'DM Mono\',monospace;font-size:11px;background:none;border:1px solid var(--accent3);color:var(--accent3);border-radius:6px;padding:4px 16px;cursor:pointer">● ENTRAR COM GOOGLE</button>';
+  }
+}
 var _db = null;
 var DB_NAME = 'treino_db';
 var DB_STORE = 'state';
@@ -4378,6 +4490,7 @@ function saveState() {
       tx.onerror = function(e) { console.warn('IDB tx error:', e.target.error); };
     } catch(e) { console.warn('IDB save exception:', e); }
   });
+  scheduleSyncToSupabase();
 }
 
 function loadPersistedState(cb) {
@@ -4500,6 +4613,22 @@ loadPersistedState(function() {
   }
   // Pre-open IndexedDB so it's ready when saveState is called
   openDB(function() {});
+
+  // Show auth button immediately
+  renderAuthUI();
+
+  // Init Supabase auth — wait for SDK to load
+  setTimeout(function() {
+    if (window._supabaseCreateClient) {
+      supabaseInit();
+    } else {
+      // Try again after another second
+      setTimeout(function() {
+        if (window._supabaseCreateClient) supabaseInit();
+        else console.warn('Supabase SDK not loaded');
+      }, 1000);
+    }
+  }, 500);
 
   // Request persistent storage to prevent Android Chrome from clearing localStorage
   if (navigator.storage && navigator.storage.persist) {
