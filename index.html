@@ -1198,7 +1198,7 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
     <button class="btn" onclick="resetData()" title="Limpar todos os dados e voltar ao padrão">↺ RESET</button>
     <button class="btn" onclick="exportData()">EXPORTAR</button>
     <button class="btn" onclick="importData()">IMPORTAR</button>
-    <span style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);margin-left:4px">v0.8.5.5</span>
+    <span style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);margin-left:4px">v0.8.5.6</span>
     <div id="auth-status" style="display:flex;align-items:center;margin-left:8px"></div>
   </div>
 </header>
@@ -4480,21 +4480,23 @@ async function supabaseLoad() {
   if (!_supabaseUser) return;
   try {
     const dbl2 = getSbClient(); if (!dbl2) return;
+    // Use array result (no .single()) to avoid 406 when row doesn't exist yet
     var { data, error } = await dbl2.from('user_data')
       .select('state')
       .eq('id', _supabaseUser.id)
-      .single();
-    if (error && error.code !== 'PGRST116') {
-      // PGRST116 = row not found (first login) — not an error
+      .limit(1);
+    if (error) {
       console.warn('Supabase load error:', error.message);
       return;
     }
-    if (data && data.state) {
+    // data is an array — first element is the row (or empty if first login)
+    if (data && data.length > 0 && data[0].state) {
       // state column is jsonb — may be object or string depending on schema
-      var parsed = typeof data.state === 'string' ? JSON.parse(data.state) : data.state;
+      var parsed = typeof data[0].state === 'string' ? JSON.parse(data[0].state) : data[0].state;
       state = Object.assign(loadState(), parsed);
       saveState();
     }
+    // If data is empty array: first login, nothing to load — that's fine
   } catch(e) { console.warn('Supabase load exception:', e); }
 }
 
