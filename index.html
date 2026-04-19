@@ -1198,7 +1198,7 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
     <button class="btn" onclick="resetData()" title="Limpar todos os dados e voltar ao padrão">↺ RESET</button>
     <button class="btn" onclick="exportData()">EXPORTAR</button>
     <button class="btn" onclick="importData()">IMPORTAR</button>
-    <span style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);margin-left:4px">v0.8.5.8</span>
+    <span style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);margin-left:4px">v0.8.5.9</span>
     <div id="auth-status" style="display:flex;align-items:center;margin-left:8px"></div>
   </div>
 </header>
@@ -3587,7 +3587,8 @@ function renderAgendaLinear() {
   // Map each plan day to a real calendar date based on start date
   function getDiasComData(semanas) {
     if (!planoInicio) return null;
-    var diasSemana = ['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
+    // Week order: Segunda=0 ... Sábado=5, Domingo=6 (Sunday at END of week)
+    var ordemSemana = ['Segunda','Terça','Quarta','Quinta','Sexta','Sábado','Domingo'];
     var inicio = new Date(planoInicio);
     inicio.setHours(0,0,0,0);
     var map = {};
@@ -3595,18 +3596,15 @@ function renderAgendaLinear() {
       var dias = semana.dias || semana.agenda || [];
       dias.forEach(function(d) {
         var dayKey = 'sem' + semana.semana + '_' + d.dia;
-        // Find the correct weekday index for this day name
-        var targetDow = diasSemana.indexOf(d.dia);
-        if (targetDow === -1) return;
-        // Start from Monday of the correct week
-        var weekOffset = (semana.semana - 1) * 7;
-        // Find the date of the target weekday in that week
-        var date = new Date(inicio);
-        date.setDate(inicio.getDate() + weekOffset);
-        // Adjust to correct day of week
-        var startDow = date.getDay(); // 0=Sun, 1=Mon...
-        var diff = targetDow - startDow;
-        date.setDate(date.getDate() + diff);
+        // Get offset within week (0=Segunda ... 6=Domingo)
+        var targetOffset = ordemSemana.indexOf(d.dia);
+        if (targetOffset === -1) return;
+        // Semana 1 starts at dataInicio (which should be a Monday)
+        var weekStart = new Date(inicio);
+        weekStart.setDate(inicio.getDate() + (semana.semana - 1) * 7);
+        // Add day offset within the week
+        var date = new Date(weekStart);
+        date.setDate(weekStart.getDate() + targetOffset);
         map[dayKey] = date;
       });
     });
@@ -3989,19 +3987,19 @@ function finishSerieFromAgenda(dayKey, serieId) {
   var workoutDate = new Date().toISOString();
   if (state.plano.dataInicio) {
     var dataMap = (function() {
-      var diasSemana = ['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
+      var ordemSemana = ['Segunda','Terça','Quarta','Quinta','Sexta','Sábado','Domingo'];
       var inicio = new Date(state.plano.dataInicio);
       inicio.setHours(0,0,0,0);
       var map = {};
       (state.plano.semanas || []).forEach(function(sem) {
         (sem.dias || sem.agenda || []).forEach(function(d) {
           var k = 'sem' + sem.semana + '_' + d.dia;
-          var targetDow = diasSemana.indexOf(d.dia);
-          if (targetDow === -1) return;
-          var date = new Date(inicio);
-          date.setDate(inicio.getDate() + (sem.semana - 1) * 7);
-          var diff = targetDow - date.getDay();
-          date.setDate(date.getDate() + diff);
+          var targetOffset = ordemSemana.indexOf(d.dia);
+          if (targetOffset === -1) return;
+          var weekStart = new Date(inicio);
+          weekStart.setDate(inicio.getDate() + (sem.semana - 1) * 7);
+          var date = new Date(weekStart);
+          date.setDate(weekStart.getDate() + targetOffset);
           map[k] = date;
         });
       });
