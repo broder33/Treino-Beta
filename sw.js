@@ -1,4 +1,4 @@
-const CACHE_NAME = 'treino-v7';
+const CACHE_NAME = 'treino-v8';
 const STATIC_ASSETS = [
   './manifest.json',
   './icons/icon-192.png',
@@ -32,6 +32,7 @@ self.addEventListener('fetch', function(event) {
   if (event.request.url.includes('supabase.co')) return;
   if (event.request.url.includes('fonts.gstatic.com')) return;
   if (event.request.url.includes('unpkg.com')) return;
+  if (event.request.url.includes('jsdelivr.net')) return;
 
   // index.html always from network — never cached
   if (event.request.mode === 'navigate' || event.request.url.endsWith('index.html')) {

@@ -11,7 +11,10 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Treino">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
-<script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script>
+if (window.supabase) window._supabaseCreateClient = window.supabase.createClient;
+</script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow+Condensed:wght@600;700&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;600&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -1195,7 +1198,7 @@
     <button class="btn" onclick="resetData()" title="Limpar todos os dados e voltar ao padrão">↺ RESET</button>
     <button class="btn" onclick="exportData()">EXPORTAR</button>
     <button class="btn" onclick="importData()">IMPORTAR</button>
-    <span style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);margin-left:4px">v0.8.5.1</span>
+    <span style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);margin-left:4px">v0.8.5.3</span>
     <div id="auth-status" style="display:flex;align-items:center;margin-left:8px"></div>
   </div>
 </header>
@@ -4648,6 +4651,8 @@ loadPersistedState(function() {
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', function() {
       navigator.serviceWorker.register('./sw.js').then(function(reg) {
+        // Force update check
+        reg.update();
         console.log('Service Worker registrado:', reg.scope);
       }).catch(function(err) {
         console.log('Service Worker falhou:', err);
