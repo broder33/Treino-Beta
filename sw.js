@@ -1,4 +1,4 @@
-const CACHE_NAME = 'treino-v2';
+const CACHE_NAME = 'treino-v4';
 const ASSETS = [
   './index.html',
   './manifest.json',
@@ -32,6 +32,10 @@ self.addEventListener('activate', function(event) {
 self.addEventListener('fetch', function(event) {
   // Don't intercept Anthropic API calls — always go to network
   if (event.request.url.includes('api.anthropic.com')) {
+    return;
+  }
+  // Don't intercept Supabase calls — always go to network
+  if (event.request.url.includes('supabase.co')) {
     return;
   }
   // Don't intercept Google Fonts API calls
