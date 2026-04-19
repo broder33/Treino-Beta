@@ -1,4 +1,4 @@
-const CACHE_NAME = 'treino-v5';
+const CACHE_NAME = 'treino-v6';
 const ASSETS = [
   './index.html',
   './manifest.json',
@@ -40,6 +40,15 @@ self.addEventListener('fetch', function(event) {
   }
   // Don't intercept Google Fonts API calls
   if (event.request.url.includes('fonts.gstatic.com')) {
+    return;
+  }
+  // Always fetch fresh HTML for navigation requests
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      fetch(event.request).catch(function() {
+        return caches.match('./index.html');
+      })
+    );
     return;
   }
 
