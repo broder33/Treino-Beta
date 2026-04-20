@@ -1198,7 +1198,7 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
     <button class="btn" onclick="resetData()" title="Limpar todos os dados e voltar ao padrão">RESET</button>
     <button class="btn" onclick="exportData()">EXPORTAR</button>
     <button class="btn" onclick="importData()">IMPORTAR</button>
-    <span style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);margin-left:4px">v0.8.5.17</span>
+    <span style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);margin-left:4px">v0.8.5.18</span>
     <div id="auth-status" style="display:flex;align-items:center;margin-left:8px"></div>
     <div id="sync-status" style="display:none;align-items:center;margin-left:4px"></div>
   </div>
@@ -4350,16 +4350,20 @@ const SUPABASE_URL = 'https://exhajkhacgnsrnnmeism.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_qva0Cd3bLobjKW0-epdo1Q_ud9FqK2C';
 const SUPABASE_REDIRECT = 'https://broder33.github.io/Treino-Beta/';
 var sbClient = null;
+var _sbClientCreating = false;
 
 function getSbClient() {
   if (sbClient) return sbClient;
+  if (_sbClientCreating) return null; // prevent duplicate creation
   var factory = window._supabaseCreateClient || (window.supabase && window.supabase.createClient);
   if (factory) {
+    _sbClientCreating = true;
     sbClient = factory(SUPABASE_URL, SUPABASE_KEY, {
       auth: {
         storage: window.localStorage,
         persistSession: true,
-        detectSessionInUrl: true
+        detectSessionInUrl: true,
+        lockAcquireTimeout: 10000 // 10s timeout to avoid infinite lock wait
       }
     });
   }
@@ -4368,6 +4372,7 @@ function getSbClient() {
 
 var _supabaseUser = null;
 var _syncTimeout = null;
+var _suppressNextSync = false; // prevents re-upload after downloading from cloud
 var _authListenerRegistered = false;
 
 // Detect if running as installed PWA (standalone mode)
@@ -4506,7 +4511,7 @@ async function supabaseLoad() {
     if (cloudUpdatedAt > localUpdatedAt) {
       var parsed = typeof data[0].state === 'string' ? JSON.parse(data[0].state) : data[0].state;
       state = Object.assign(loadState(), parsed);
-      saveState();
+      saveState(true); // fromCloud — don't re-upload
     }
     // Local is newer: upload to cloud
     else if (localUpdatedAt > cloudUpdatedAt) {
@@ -4588,7 +4593,7 @@ async function syncFromCloud() {
         ? JSON.parse(result.data[0].state)
         : result.data[0].state;
       state = Object.assign(loadState(), parsed);
-      saveState();
+      saveState(true); // fromCloud — don't re-upload
       render();
       if (state.planoChatHistory) planoChatHistory = state.planoChatHistory;
       if (state.planoChatMessages && state.planoChatMessages.length) renderPlanoChatMessages();
@@ -4673,9 +4678,9 @@ function openDB(cb) {
   } catch(e) { cb(null); }
 }
 
-function saveState() {
+function saveState(fromCloud) {
   if (state.plano) sanitizePlanoTipos(state.plano);
-  state._updatedAt = new Date().toISOString();
+  if (!fromCloud) state._updatedAt = new Date().toISOString();
   var json = JSON.stringify(state);
   try { localStorage.setItem(STORAGE_KEY, json); } catch(e) {}
   openDB(function(db) {
@@ -4686,7 +4691,7 @@ function saveState() {
       req.onerror = function(e) { console.warn('IDB save error:', e.target.error); };
     } catch(e) { console.warn('IDB save exception:', e); }
   });
-  scheduleSyncToSupabase();
+  if (!fromCloud) scheduleSyncToSupabase();
 }
 
 function loadPersistedState(cb) {
