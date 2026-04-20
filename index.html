@@ -1198,8 +1198,9 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
     <button class="btn" onclick="resetData()" title="Limpar todos os dados e voltar ao padrão">↺ RESET</button>
     <button class="btn" onclick="exportData()">EXPORTAR</button>
     <button class="btn" onclick="importData()">IMPORTAR</button>
-    <span style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);margin-left:4px">v0.8.5.10</span>
+    <span style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);margin-left:4px">v0.8.5.11</span>
     <div id="auth-status" style="display:flex;align-items:center;margin-left:8px"></div>
+    <div id="sync-status" style="display:none;align-items:center;margin-left:4px"></div>
   </div>
 </header>
 
@@ -4526,8 +4527,28 @@ function scheduleSyncToSupabase() {
   }, 2000);
 }
 
+async function syncFromCloud() {
+  if (!_supabaseUser) { toast('Faça login para sincronizar'); return; }
+  var syncEl = document.getElementById('sync-status');
+  var btn = syncEl && syncEl.querySelector('button');
+  if (btn) { btn.textContent = '↻'; btn.disabled = true; btn.style.opacity = '0.5'; }
+  try {
+    await supabaseLoad();
+    render();
+    if (state.planoChatHistory) planoChatHistory = state.planoChatHistory;
+    if (state.planoChatMessages && state.planoChatMessages.length) renderPlanoChatMessages();
+    if (state.planoRascunho || state.plano) renderPlanoMacro(state.planoRascunho || state.plano);
+    renderAgendaLinear();
+    toast('Sincronizado ✓');
+  } catch(e) {
+    toast('Erro ao sincronizar');
+  }
+  if (btn) { btn.textContent = '⇅'; btn.disabled = false; btn.style.opacity = '1'; }
+}
+
 function renderAuthUI() {
   var el = document.getElementById('auth-status');
+  var syncEl = document.getElementById('sync-status');
   if (!el) return;
   el.innerHTML = '';
   if (_supabaseUser) {
@@ -4544,6 +4565,19 @@ function renderAuthUI() {
     btn.addEventListener('click', function() { supabaseLogout(); });
     el.appendChild(span);
     el.appendChild(btn);
+    // Show sync button
+    if (syncEl) {
+      syncEl.style.display = 'flex';
+      syncEl.innerHTML = '';
+      var syncBtn = document.createElement('button');
+      syncBtn.title = 'Sincronizar com a nuvem';
+      syncBtn.textContent = '\u21c5';
+      syncBtn.style.cssText = "font-family:'DM Mono',monospace;font-size:14px;background:none;border:1px solid var(--border);color:var(--muted);border-radius:4px;padding:1px 8px;cursor:pointer;transition:color .15s,border-color .15s;line-height:1.4";
+      syncBtn.addEventListener('mouseenter', function() { this.style.color='var(--accent3)'; this.style.borderColor='var(--accent3)'; });
+      syncBtn.addEventListener('mouseleave', function() { this.style.color='var(--muted)'; this.style.borderColor='var(--border)'; });
+      syncBtn.addEventListener('click', function() { syncFromCloud(); });
+      syncEl.appendChild(syncBtn);
+    }
   } else {
     var btnLogin = document.createElement('button');
     btnLogin.style.cssText = "font-family:'DM Mono',monospace;font-size:11px;background:none;border:1px solid var(--accent3);color:var(--accent3);border-radius:6px;padding:4px 16px;cursor:pointer;transition:background .15s";
@@ -4552,6 +4586,8 @@ function renderAuthUI() {
     btnLogin.addEventListener('mouseleave', function() { this.style.background='none'; });
     btnLogin.addEventListener('click', function() { supabaseLogin(); });
     el.appendChild(btnLogin);
+    // Hide sync button when logged out
+    if (syncEl) syncEl.style.display = 'none';
   }
 }
 var _db = null;
