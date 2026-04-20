@@ -1198,7 +1198,7 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
     <button class="btn" onclick="resetData()" title="Limpar todos os dados e voltar ao padrão">↺ RESET</button>
     <button class="btn" onclick="exportData()">EXPORTAR</button>
     <button class="btn" onclick="importData()">IMPORTAR</button>
-    <span style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);margin-left:4px">v0.8.5.12</span>
+    <span style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);margin-left:4px">v0.8.5.13</span>
     <div id="auth-status" style="display:flex;align-items:center;margin-left:8px"></div>
     <div id="sync-status" style="display:none;align-items:center;margin-left:4px"></div>
   </div>
@@ -4355,7 +4355,13 @@ function getSbClient() {
   if (sbClient) return sbClient;
   var factory = window._supabaseCreateClient || (window.supabase && window.supabase.createClient);
   if (factory) {
-    sbClient = factory(SUPABASE_URL, SUPABASE_KEY);
+    sbClient = factory(SUPABASE_URL, SUPABASE_KEY, {
+      auth: {
+        storage: window.localStorage,
+        persistSession: true,
+        detectSessionInUrl: true
+      }
+    });
   }
   return sbClient;
 }
