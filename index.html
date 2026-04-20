@@ -1198,7 +1198,7 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
     <button class="btn" onclick="resetData()" title="Limpar todos os dados e voltar ao padrão">↺ RESET</button>
     <button class="btn" onclick="exportData()">EXPORTAR</button>
     <button class="btn" onclick="importData()">IMPORTAR</button>
-    <span style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);margin-left:4px">v0.8.5.13</span>
+    <span style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);margin-left:4px">v0.8.5.14</span>
     <div id="auth-status" style="display:flex;align-items:center;margin-left:8px"></div>
     <div id="sync-status" style="display:none;align-items:center;margin-left:4px"></div>
   </div>
@@ -4525,11 +4525,13 @@ function scheduleSyncToSupabase() {
 
 async function syncFromCloud() {
   if (!_supabaseUser) { toast('Faça login para sincronizar'); return; }
+  // Set loading state
   var syncEl = document.getElementById('sync-status');
   var btn = syncEl && syncEl.querySelector('button');
-  if (btn) { btn.textContent = '↻'; btn.disabled = true; btn.style.opacity = '0.5'; }
+  if (btn) { btn.textContent = '⏳'; btn.disabled = true; btn.style.opacity = '0.5'; }
   try {
     await supabaseLoad();
+    // render() recreates the sync button via renderAuthUI — so restore AFTER render
     render();
     if (state.planoChatHistory) planoChatHistory = state.planoChatHistory;
     if (state.planoChatMessages && state.planoChatMessages.length) renderPlanoChatMessages();
@@ -4539,7 +4541,10 @@ async function syncFromCloud() {
   } catch(e) {
     toast('Erro ao sincronizar');
   }
-  if (btn) { btn.textContent = '⇅'; btn.disabled = false; btn.style.opacity = '1'; }
+  // Re-fetch button reference after render() recreated it
+  var syncEl2 = document.getElementById('sync-status');
+  var btn2 = syncEl2 && syncEl2.querySelector('button');
+  if (btn2) { btn2.textContent = '🔄'; btn2.disabled = false; btn2.style.opacity = '1'; }
 }
 
 function renderAuthUI() {
@@ -4567,7 +4572,7 @@ function renderAuthUI() {
       syncEl.innerHTML = '';
       var syncBtn = document.createElement('button');
       syncBtn.title = 'Sincronizar com a nuvem';
-      syncBtn.textContent = '\u21c5';
+      syncBtn.textContent = '🔄';
       syncBtn.style.cssText = "font-family:'DM Mono',monospace;font-size:14px;background:none;border:1px solid var(--border);color:var(--muted);border-radius:4px;padding:1px 8px;cursor:pointer;transition:color .15s,border-color .15s;line-height:1.4";
       syncBtn.addEventListener('mouseenter', function() { this.style.color='var(--accent3)'; this.style.borderColor='var(--accent3)'; });
       syncBtn.addEventListener('mouseleave', function() { this.style.color='var(--muted)'; this.style.borderColor='var(--border)'; });
