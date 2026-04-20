@@ -1198,7 +1198,7 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
     <button class="btn" onclick="resetData()" title="Limpar todos os dados e voltar ao padrão">↺ RESET</button>
     <button class="btn" onclick="exportData()">EXPORTAR</button>
     <button class="btn" onclick="importData()">IMPORTAR</button>
-    <span style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);margin-left:4px">v0.8.5.11</span>
+    <span style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);margin-left:4px">v0.8.5.12</span>
     <div id="auth-status" style="display:flex;align-items:center;margin-left:8px"></div>
     <div id="sync-status" style="display:none;align-items:center;margin-left:4px"></div>
   </div>
@@ -4481,7 +4481,6 @@ async function supabaseLoad() {
   if (!_supabaseUser) return;
   try {
     const dbl2 = getSbClient(); if (!dbl2) return;
-    // Use array result (no .single()) to avoid 406 when row doesn't exist yet
     var { data, error } = await dbl2.from('user_data')
       .select('state, updated_at')
       .eq('id', _supabaseUser.id)
@@ -4495,28 +4494,19 @@ async function supabaseLoad() {
       supabaseSave();
       return;
     }
-    // Compare cloud vs local by updated_at
     var cloudUpdatedAt = data[0].updated_at ? new Date(data[0].updated_at).getTime() : 0;
     var localUpdatedAt = state._updatedAt ? new Date(state._updatedAt).getTime() : 0;
-    // Cloud is newer: load from cloud
+    // Cloud is newer: always load from cloud
     if (cloudUpdatedAt > localUpdatedAt) {
       var parsed = typeof data[0].state === 'string' ? JSON.parse(data[0].state) : data[0].state;
-      // Only replace local if cloud has richer data (has plano or local doesn't)
-      var cloudHasPlano = parsed && parsed.plano && parsed.plano.semanas && parsed.plano.semanas.length > 0;
-      var localHasPlano = state.plano && state.plano.semanas && state.plano.semanas.length > 0;
-      if (cloudHasPlano || !localHasPlano) {
-        state = Object.assign(loadState(), parsed);
-        saveState();
-      }
-      // Local has plano but cloud doesn't: keep local, upload to cloud
-      else {
-        supabaseSave();
-      }
+      state = Object.assign(loadState(), parsed);
+      saveState();
     }
-    // Local is newer or same: keep local, upload to cloud
-    else {
+    // Local is newer: upload to cloud
+    else if (localUpdatedAt > cloudUpdatedAt) {
       supabaseSave();
     }
+    // Same timestamp: do nothing
   } catch(e) { console.warn('Supabase load exception:', e); }
 }
 
