@@ -1198,7 +1198,7 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
     <button class="btn" onclick="resetData()" title="Limpar todos os dados e voltar ao padrão">RESET</button>
     <button class="btn" onclick="exportData()">EXPORTAR</button>
     <button class="btn" onclick="importData()">IMPORTAR</button>
-    <span style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);margin-left:4px">v0.8.5.15</span>
+    <span style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);margin-left:4px">v0.8.5.17</span>
     <div id="auth-status" style="display:flex;align-items:center;margin-left:8px"></div>
     <div id="sync-status" style="display:none;align-items:center;margin-left:4px"></div>
   </div>
@@ -4523,28 +4523,89 @@ function scheduleSyncToSupabase() {
   }, 2000);
 }
 
+function formatTS(iso) {
+  if (!iso) return '—';
+  var d = new Date(iso);
+  return d.toLocaleDateString('pt-BR', {day:'2-digit',month:'2-digit'}) + ' às ' +
+    d.toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit'});
+}
+
 async function syncFromCloud() {
   if (!_supabaseUser) { toast('Faça login para sincronizar'); return; }
-  // Set loading state
   var syncEl = document.getElementById('sync-status');
   var btn = syncEl && syncEl.querySelector('button');
   if (btn) { btn.textContent = '↺'; btn.disabled = true; btn.style.opacity = '0.4'; }
+
   try {
-    await supabaseLoad();
-    // render() recreates the sync button via renderAuthUI — so restore AFTER render
-    render();
-    if (state.planoChatHistory) planoChatHistory = state.planoChatHistory;
-    if (state.planoChatMessages && state.planoChatMessages.length) renderPlanoChatMessages();
-    if (state.planoRascunho || state.plano) renderPlanoMacro(state.planoRascunho || state.plano);
-    renderAgendaLinear();
-    toast('Sincronizado ✓');
+    var dbl = getSbClient(); if (!dbl) throw new Error('no client');
+    var result = await dbl.from('user_data')
+      .select('state, updated_at')
+      .eq('id', _supabaseUser.id)
+      .limit(1);
+    if (result.error) throw result.error;
+
+    // Restore button before showing modal
+    var syncEl2 = document.getElementById('sync-status');
+    var btn2 = syncEl2 && syncEl2.querySelector('button');
+    if (btn2) { btn2.disabled = false; btn2.style.opacity = '1'; }
+
+    if (!result.data || result.data.length === 0 || !result.data[0].state) {
+      toast('Nuvem vazia — nada para sincronizar');
+      return;
+    }
+
+    var cloudUpdatedAt = result.data[0].updated_at;
+    var localUpdatedAt = state._updatedAt || null;
+    var cloudNewer = cloudUpdatedAt && localUpdatedAt
+      ? new Date(cloudUpdatedAt) > new Date(localUpdatedAt)
+      : true;
+
+    var cloudStr = formatTS(cloudUpdatedAt);
+    var localStr = formatTS(localUpdatedAt);
+    var aviso = cloudNewer
+      ? '☁ A nuvem é mais recente. Os dados locais serão substituídos.'
+      : '⚠️ Seus dados locais são mais recentes que a nuvem. Confirmar vai substituir o local pela versão da nuvem.';
+
+    // Show confirmation modal with timestamps
+    var modalOverlay = document.getElementById('modal');
+    document.getElementById('modal-title').textContent = 'SINCRONIZAR COM A NUVEM';
+    var body = document.getElementById('modal-body');
+    body.innerHTML =
+      '<div style="display:flex;flex-direction:column;gap:10px">' +
+        '<div style="display:flex;justify-content:space-between;font-family:DM Mono,monospace;font-size:12px;background:var(--surface2);border-radius:8px;padding:10px 14px">' +
+          '<span style="color:var(--muted)">☁ Nuvem</span>' +
+          '<span style="color:var(--accent3)">' + cloudStr + '</span>' +
+        '</div>' +
+        '<div style="display:flex;justify-content:space-between;font-family:DM Mono,monospace;font-size:12px;background:var(--surface2);border-radius:8px;padding:10px 14px">' +
+          '<span style="color:var(--muted)">Local</span>' +
+          '<span style="color:' + (cloudNewer ? 'var(--muted)' : 'var(--accent)') + '">' + localStr + '</span>' +
+        '</div>' +
+        '<div style="font-size:12px;color:' + (cloudNewer ? 'var(--accent3)' : 'var(--partial)') + ';line-height:1.5;padding:4px 2px">' + aviso + '</div>' +
+      '</div>';
+
+    modalCallback = function() {
+      var parsed = typeof result.data[0].state === 'string'
+        ? JSON.parse(result.data[0].state)
+        : result.data[0].state;
+      state = Object.assign(loadState(), parsed);
+      saveState();
+      render();
+      if (state.planoChatHistory) planoChatHistory = state.planoChatHistory;
+      if (state.planoChatMessages && state.planoChatMessages.length) renderPlanoChatMessages();
+      if (state.planoRascunho || state.plano) renderPlanoMacro(state.planoRascunho || state.plano);
+      renderAgendaLinear();
+      closeModal();
+      toast('Sincronizado ✓');
+    };
+    document.getElementById('modal-confirm').onclick = modalCallback;
+    modalOverlay.classList.add('open');
+
   } catch(e) {
     toast('Erro ao sincronizar');
+    var syncEl3 = document.getElementById('sync-status');
+    var btn3 = syncEl3 && syncEl3.querySelector('button');
+    if (btn3) { btn3.disabled = false; btn3.style.opacity = '1'; }
   }
-  // Re-fetch button reference after render() recreated it
-  var syncEl2 = document.getElementById('sync-status');
-  var btn2 = syncEl2 && syncEl2.querySelector('button');
-  if (btn2) { btn2.textContent = '↺'; btn2.disabled = false; btn2.style.opacity = '1'; }
 }
 
 function renderAuthUI() {
