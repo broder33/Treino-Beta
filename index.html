@@ -1198,7 +1198,7 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
     <button class="btn" onclick="resetData()" title="Limpar todos os dados e voltar ao padrão">RESET</button>
     <button class="btn" onclick="exportData()">EXPORTAR</button>
     <button class="btn" onclick="importData()">IMPORTAR</button>
-    <span style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);margin-left:4px">v0.8.5.18</span>
+    <span style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);margin-left:4px">v0.8.5.19</span>
     <div id="auth-status" style="display:flex;align-items:center;margin-left:8px"></div>
     <div id="sync-status" style="display:none;align-items:center;margin-left:4px"></div>
   </div>
@@ -4473,29 +4473,71 @@ function supabaseLogout() {
   });
 }
 
+async function supabaseReconnect() {
+  // Reset client and re-check session
+  sbClient = null;
+  var db = getSbClient();
+  if (!db) return false;
+  try {
+    var { data: { session } } = await db.auth.getSession();
+    if (session && session.user) {
+      _supabaseUser = session.user;
+      return true;
+    }
+  } catch(e) {}
+  return false;
+}
+
+async function supabaseWithTimeout(fn, timeoutMs) {
+  return Promise.race([
+    fn(),
+    new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), timeoutMs))
+  ]);
+}
+
 async function supabaseSave() {
   if (!_supabaseUser) return;
   try {
     const dbu = getSbClient(); if (!dbu) return;
-    // Save state as jsonb object (not double-serialized string)
     var stateObj = JSON.parse(JSON.stringify(state));
-    var { error } = await dbu.from('user_data').upsert({
-      id: _supabaseUser.id,
-      state: stateObj,
-      updated_at: new Date().toISOString()
-    });
-    if (error) console.warn('Supabase save error:', error.message);
-  } catch(e) { console.warn('Supabase save exception:', e); }
+    var result = await supabaseWithTimeout(() =>
+      dbu.from('user_data').upsert({
+        id: _supabaseUser.id,
+        state: stateObj,
+        updated_at: new Date().toISOString()
+      }), 8000);
+    if (result.error) {
+      console.warn('Supabase save error:', result.error.message);
+      // Try reconnecting and saving again
+      var reconnected = await supabaseReconnect();
+      if (reconnected) {
+        var dbu2 = getSbClient();
+        if (dbu2) await dbu2.from('user_data').upsert({
+          id: _supabaseUser.id,
+          state: stateObj,
+          updated_at: new Date().toISOString()
+        });
+      }
+    }
+  } catch(e) {
+    console.warn('Supabase save exception:', e.message);
+    // On timeout, try reconnecting
+    if (e.message === 'timeout') {
+      supabaseReconnect().then(function(ok) {
+        if (ok) scheduleSyncToSupabase();
+      });
+    }
+  }
 }
 
 async function supabaseLoad() {
   if (!_supabaseUser) return;
   try {
     const dbl2 = getSbClient(); if (!dbl2) return;
-    var { data, error } = await dbl2.from('user_data')
-      .select('state, updated_at')
-      .eq('id', _supabaseUser.id)
-      .limit(1);
+    var loadResult = await supabaseWithTimeout(() =>
+      dbl2.from('user_data').select('state, updated_at').eq('id', _supabaseUser.id).limit(1),
+      8000);
+    var data = loadResult.data, error = loadResult.error;
     if (error) {
       console.warn('Supabase load error:', error.message);
       return;
@@ -4543,10 +4585,9 @@ async function syncFromCloud() {
 
   try {
     var dbl = getSbClient(); if (!dbl) throw new Error('no client');
-    var result = await dbl.from('user_data')
-      .select('state, updated_at')
-      .eq('id', _supabaseUser.id)
-      .limit(1);
+    var result = await supabaseWithTimeout(() =>
+      dbl.from('user_data').select('state, updated_at').eq('id', _supabaseUser.id).limit(1),
+      8000);
     if (result.error) throw result.error;
 
     // Restore button before showing modal
