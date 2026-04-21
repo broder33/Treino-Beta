@@ -1198,7 +1198,7 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
     <button class="btn" onclick="resetData()" title="Limpar todos os dados e voltar ao padrão">RESET</button>
     <button class="btn" onclick="exportData()">EXPORTAR</button>
     <button class="btn" onclick="importData()">IMPORTAR</button>
-    <span style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);margin-left:4px">v0.8.5.26</span>
+    <span style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);margin-left:4px">v0.8.5.28</span>
     <div id="auth-status" style="display:flex;align-items:center;margin-left:8px"></div>
     <div id="sync-status" style="display:none;align-items:center;margin-left:4px"></div>
   </div>
@@ -2292,7 +2292,9 @@ ${temPlano ?
 4. DIA PERDIDO
 {"replanejamento":{"diaPerdido":"Quarta","motivoPerdido":"viagem","ajustes":[{"dia":"Quinta","serie":"C","orientacao":"ajuste"}],"observacao":"explicação"}}
 
-5. CONVERSA NORMAL — responda em português, direto e técnico.`;
+5. CONVERSA NORMAL — responda em português, direto e técnico.
+
+REGRA DE FORMATO: quando retornar JSON, retorne APENAS o JSON — sem texto antes, sem texto depois, sem markdown, sem explicações. Se precisar explicar algo, faça em uma mensagem separada antes do JSON.`;
 }
 
 function buildContextoTreino() {
@@ -2484,35 +2486,27 @@ async function enviarMensagemPlano() {
     var cleanText = text.replace(/^```json\s*/m, '').replace(/^```\s*/m, '').replace(/```$/m, '').trim();
     var parsed = null;
     var parseError = null;
-    try {
-      if (cleanText.startsWith('{')) {
-        parsed = JSON.parse(cleanText);
-      } else {
-        // Find the start of JSON object
-        var jsonStart = cleanText.indexOf('{');
-        if (jsonStart !== -1) {
-          // Try from first { to end
-          try {
-            parsed = JSON.parse(cleanText.slice(jsonStart));
-          } catch(e1) {
-            // Try to find matching closing brace by scanning
-            var depth = 0;
-            var inString = false;
-            var escape = false;
-            var end = -1;
-            for (var ci = jsonStart; ci < cleanText.length; ci++) {
-              var ch = cleanText[ci];
-              if (escape) { escape = false; continue; }
-              if (ch === '\\' && inString) { escape = true; continue; }
-              if (ch === '"') { inString = !inString; continue; }
-              if (inString) continue;
-              if (ch === '{') depth++;
-              if (ch === '}') { depth--; if (depth === 0) { end = ci; break; } }
-            }
-            if (end !== -1) parsed = JSON.parse(cleanText.slice(jsonStart, end + 1));
-          }
-        }
+
+    // Robust JSON extractor: find matching { } block, ignoring any text before/after
+    function extractJSON(str) {
+      var jsonStart = str.indexOf('{');
+      if (jsonStart === -1) return null;
+      var depth = 0, inString = false, escape = false;
+      for (var ci = jsonStart; ci < str.length; ci++) {
+        var ch = str[ci];
+        if (escape) { escape = false; continue; }
+        if (ch === '\\' && inString) { escape = true; continue; }
+        if (ch === '"') { inString = !inString; continue; }
+        if (inString) continue;
+        if (ch === '{') depth++;
+        if (ch === '}') { depth--; if (depth === 0) { return str.slice(jsonStart, ci + 1); } }
       }
+      return null;
+    }
+
+    try {
+      var jsonStr = extractJSON(cleanText);
+      if (jsonStr) parsed = JSON.parse(jsonStr);
     } catch(e) { parseError = e.message; }
 
     if (parsed && parsed.planoMacro) {
@@ -4383,6 +4377,7 @@ var _supabaseUser = null;
 var _syncTimeout = null;
 var _suppressNextSync = false; // prevents re-upload after downloading from cloud
 var _authListenerRegistered = false;
+var _initCompleted = false; // prevents onAuthStateChange from firing during supabaseInit
 
 // Detect if running as installed PWA (standalone mode)
 function isPWA() {
@@ -4416,7 +4411,8 @@ async function supabaseInit() {
           var wasLoggedOut = !_supabaseUser;
           _supabaseUser = session.user;
           renderAuthUI();
-          if (wasLoggedOut) {
+          // Skip if init is still running — supabaseInit handles the first load
+          if (wasLoggedOut && _initCompleted) {
             // First login in this session: load cloud data
             await supabaseLoad();
             render();
@@ -4448,9 +4444,11 @@ async function supabaseInit() {
       if (state.planoRascunho || state.plano) renderPlanoMacro(state.planoRascunho || state.plano);
     }
     renderAuthUI();
+    _initCompleted = true;
   } catch(e) {
     console.warn('Supabase init error:', e);
     renderAuthUI();
+    _initCompleted = true;
   }
 }
 
