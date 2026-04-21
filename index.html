@@ -1198,7 +1198,7 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
     <button class="btn" onclick="resetData()" title="Limpar todos os dados e voltar ao padrão">RESET</button>
     <button class="btn" onclick="exportData()">EXPORTAR</button>
     <button class="btn" onclick="importData()">IMPORTAR</button>
-    <span style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);margin-left:4px">v0.8.5.28</span>
+    <span style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted);margin-left:4px">v0.8.5.32</span>
     <div id="auth-status" style="display:flex;align-items:center;margin-left:8px"></div>
     <div id="sync-status" style="display:none;align-items:center;margin-left:4px"></div>
   </div>
@@ -1217,7 +1217,7 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
 <!-- AGENDA -->
 <div class="view" id="view-agenda">
   <div class="agenda-linear" id="agenda-linear-list">
-    <div style="color:var(--muted);font-family:'DM Mono',monospace;font-size:12px;padding:20px 0">Nenhum plano ativo. Gere um plano na aba PLANO.</div>
+    <div style="color:var(--muted);font-family:DM Mono,monospace;font-size:12px;padding:20px 0">Nenhum plano ativo. Gere um plano na aba PLANO.</div>
   </div>
 </div>
 
@@ -1255,9 +1255,55 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
             <option value="ocasionalmente">Ocasionalmente</option>
           </select>
         </div>
+        <div class="perfil-field"><label>Dias de treino no ciclo (máx. 40)</label><input type="number" id="pf-diasCiclo" placeholder="20" min="1" max="40" oninput="savePerfil()"></div>
       </div>
       <div class="perfil-field full"><label>Estilo de treino</label>
         <textarea id="pf-estilo" placeholder="Ex: treino explosivo com cargas altas para o porte. Precisa de moderação para evitar lesões." oninput="savePerfil()"></textarea>
+      </div>
+    </div>
+
+
+    <div class="perfil-section">
+      <div class="perfil-section-title">CONFIGURAÇÃO DE RELOCAMENTO</div>
+      <div style="font-family:DM Mono,monospace;font-size:11px;color:var(--muted);margin-bottom:16px">Define como os treinos são sequenciados e redistribuídos automaticamente.</div>
+
+      <div class="perfil-field full" style="margin-bottom:16px">
+        <label>Séries da fila principal <span style="font-family:DM Mono,monospace;font-size:10px;color:var(--muted)">(seguem ordem circular)</span></label>
+        <div id="config-fila-principal" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px"></div>
+        <div style="font-family:DM Mono,monospace;font-size:10px;color:var(--muted);margin-top:6px">Marque as séries que entram na fila circular e defina a ordem.</div>
+      </div>
+
+      <div class="perfil-field full" style="margin-bottom:16px">
+        <label>Séries intercaladas <span style="font-family:DM Mono,monospace;font-size:10px;color:var(--muted)">(inseridas a cada N treinos da fila principal)</span></label>
+        <div id="config-intercaladas" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px"></div>
+      </div>
+
+      <div class="perfil-field full" style="margin-bottom:16px">
+        <label>Ponto de entrada da fila</label>
+        <select id="cfg-entrada-fila" onchange="saveConfigTreino()"
+          style="font-family:DM Mono,monospace;font-size:13px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:6px 10px;color:var(--text);outline:none;width:100%">
+        </select>
+      </div>
+
+      <div class="perfil-field full" style="margin-bottom:16px">
+        <label>Dias de treino disponíveis</label>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:6px">
+          <label style="display:flex;align-items:center;gap:6px;font-family:DM Mono,monospace;font-size:12px;cursor:pointer"><input type="checkbox" id="cfg-dia-Segunda" onchange="saveConfigTreino()"> Segunda</label>
+          <label style="display:flex;align-items:center;gap:6px;font-family:DM Mono,monospace;font-size:12px;cursor:pointer"><input type="checkbox" id="cfg-dia-Terca" onchange="saveConfigTreino()"> Terça</label>
+          <label style="display:flex;align-items:center;gap:6px;font-family:DM Mono,monospace;font-size:12px;cursor:pointer"><input type="checkbox" id="cfg-dia-Quarta" onchange="saveConfigTreino()"> Quarta</label>
+          <label style="display:flex;align-items:center;gap:6px;font-family:DM Mono,monospace;font-size:12px;cursor:pointer"><input type="checkbox" id="cfg-dia-Quinta" onchange="saveConfigTreino()"> Quinta</label>
+          <label style="display:flex;align-items:center;gap:6px;font-family:DM Mono,monospace;font-size:12px;cursor:pointer"><input type="checkbox" id="cfg-dia-Sexta" onchange="saveConfigTreino()"> Sexta</label>
+          <label style="display:flex;align-items:center;gap:6px;font-family:DM Mono,monospace;font-size:12px;cursor:pointer"><input type="checkbox" id="cfg-dia-Sabado" onchange="saveConfigTreino()"> Sábado (requer confirmação)</label>
+          <label style="display:flex;align-items:center;gap:6px;font-family:DM Mono,monospace;font-size:12px;color:var(--muted)"><input type="checkbox" disabled> Domingo (sem força)</label>
+        </div>
+      </div>
+
+      <div class="perfil-grid">
+        <div class="perfil-field">
+          <label>Intervalo mínimo entre séries intercaladas (dias)</label>
+          <input type="number" id="cfg-intervalo" min="1" max="7" placeholder="2" oninput="saveConfigTreino()"
+            style="font-family:DM Mono,monospace;font-size:13px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:6px 10px;color:var(--text);outline:none;width:100%">
+        </div>
       </div>
     </div>
 
@@ -1291,24 +1337,24 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
 
     <div style="padding:0 24px 40px">
       <button class="ai-btn" onclick="salvarPerfil()" style="margin-top:8px">✓ SALVAR PERFIL</button>
-      <div id="perfil-status" style="font-family:'DM Mono',monospace;font-size:11px;color:var(--done);text-align:center;margin-top:8px;height:16px"></div>
+      <div id="perfil-status" style="font-family:DM Mono,monospace;font-size:11px;color:var(--done);text-align:center;margin-top:8px;height:16px"></div>
     </div>
 
     <div style="padding:0 24px 32px;border-top:1px solid var(--border);margin:0 24px">
-      <div style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:2px;color:var(--muted);padding:20px 0 10px">CHAVE DE API</div>
-      <div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);margin-bottom:12px">Necessária para usar as funções de IA fora do Claude.ai (ex: Edge). Obtenha em <span style="color:var(--accent3)">console.anthropic.com</span></div>
+      <div style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:2px;color:var(--muted);padding:20px 0 10px">CHAVE DE API</div>
+      <div style="font-family:DM Mono,monospace;font-size:11px;color:var(--muted);margin-bottom:12px">Necessária para usar as funções de IA fora do Claude.ai (ex: Edge). Obtenha em <span style="color:var(--accent3)">console.anthropic.com</span></div>
       <div style="display:flex;gap:8px;align-items:center">
         <input id="api-key-input" type="password" placeholder="sk-ant-..." 
-          style="flex:1;font-family:'DM Mono',monospace;font-size:12px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:8px 12px;color:var(--text);outline:none">
+          style="flex:1;font-family:DM Mono,monospace;font-size:12px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:8px 12px;color:var(--text);outline:none">
         <button id="api-key-toggle" onclick="toggleApiKeyVisibility()" 
           style="background:none;border:1px solid var(--border);border-radius:6px;padding:8px;cursor:pointer;font-size:14px">👁</button>
         <button onclick="saveApiKey(document.getElementById('api-key-input').value)"
-          style="font-family:'DM Mono',monospace;font-size:11px;letter-spacing:1px;background:none;border:1px solid var(--accent3);color:var(--accent3);border-radius:6px;padding:8px 16px;cursor:pointer">SALVAR</button>
+          style="font-family:DM Mono,monospace;font-size:11px;letter-spacing:1px;background:none;border:1px solid var(--accent3);color:var(--accent3);border-radius:6px;padding:8px 16px;cursor:pointer">SALVAR</button>
       </div>
       <div style="margin-top:16px;padding:10px 12px;background:var(--surface2);border-radius:6px;border:1px solid var(--border)">
-        <div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--muted);margin-bottom:6px">CONSUMO DE TOKENS (sessão atual)</div>
-        <div id="token-usage-display" style="font-family:'DM Mono',monospace;font-size:11px">—</div>
-        <button onclick="resetTokenUsage()" style="margin-top:8px;font-family:'DM Mono',monospace;font-size:9px;background:none;border:1px solid var(--border);color:var(--muted);border-radius:4px;padding:2px 10px;cursor:pointer">↺ zerar contador</button>
+        <div style="font-family:DM Mono,monospace;font-size:9px;letter-spacing:2px;color:var(--muted);margin-bottom:6px">CONSUMO DE TOKENS (sessão atual)</div>
+        <div id="token-usage-display" style="font-family:DM Mono,monospace;font-size:11px">—</div>
+        <button onclick="resetTokenUsage()" style="margin-top:8px;font-family:DM Mono,monospace;font-size:9px;background:none;border:1px solid var(--border);color:var(--muted);border-radius:4px;padding:2px 10px;cursor:pointer">↺ zerar contador</button>
       </div>
     </div>
   </div>
@@ -1337,9 +1383,9 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
 
       <!-- Quick actions -->
       <div style="display:flex;gap:6px;padding:8px 16px 0;flex-wrap:wrap">
-        <button onclick="gerarPlanoCompleto()" style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1px;padding:5px 14px;border-radius:8px;border:1px solid var(--accent);color:var(--accent);background:rgba(232,255,60,.07);cursor:pointer">✦ GERAR PLANO MACRO</button>
-        <button onclick="enviarPlanoAtual()" style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1px;padding:5px 14px;border-radius:8px;border:1px solid var(--accent3);color:var(--accent3);background:transparent;cursor:pointer" title="Envia o plano macro atual para a IA">⬡ ENVIAR PLANO ATUAL</button>
-        <button onclick="limparChatPlano()" style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1px;padding:5px 14px;border-radius:8px;border:1px solid var(--border);color:var(--muted);background:transparent;cursor:pointer">↺ NOVA CONVERSA</button>
+        <button onclick="gerarPlanoCompleto()" style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;padding:5px 14px;border-radius:8px;border:1px solid var(--accent);color:var(--accent);background:rgba(232,255,60,.07);cursor:pointer">✦ GERAR PLANO MACRO</button>
+        <button onclick="enviarPlanoAtual()" style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;padding:5px 14px;border-radius:8px;border:1px solid var(--accent3);color:var(--accent3);background:transparent;cursor:pointer" title="Envia o plano macro atual para a IA">⬡ ENVIAR PLANO ATUAL</button>
+        <button onclick="limparChatPlano()" style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;padding:5px 14px;border-radius:8px;border:1px solid var(--border);color:var(--muted);background:transparent;cursor:pointer">↺ NOVA CONVERSA</button>
       </div>
 
       <!-- Input row -->
@@ -1357,7 +1403,7 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
     <div class="plano-sidebar">
       <div class="plano-sidebar-title">PLANO ATUAL</div>
       <div id="plano-resultado">
-        <div style="color:var(--muted);font-family:'DM Mono',monospace;font-size:11px;padding:12px 0">Nenhum plano gerado ainda.</div>
+        <div style="color:var(--muted);font-family:DM Mono,monospace;font-size:11px;padding:12px 0">Nenhum plano gerado ainda.</div>
       </div>
     </div>
 
@@ -1600,7 +1646,7 @@ function buildSerieHTML(s) {
     <div class="serie-meta">
       <div class="last-done">ÚLTIMO TREINO: <span>${lastDate}</span></div>
       <div class="progress-bar-wrap"><div class="progress-bar-fill" style="width:${pct}%"></div></div>
-      <span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted)">${done}/${total}</span>
+      <span style="font-family:DM Mono,monospace;font-size:11px;color:var(--muted)">${done}/${total}</span>
     </div>
     ${!planMode ? `
     <div class="variant-row">
@@ -1683,7 +1729,7 @@ function toggleExNotes(exId, exName, serieLabel) {
   if (!state.exExplanations) state.exExplanations = {};
   var cached = state.exExplanations[exName];
   if (cached) {
-    el.innerHTML = cached + '<div style="margin-top:6px"><button onclick="recarregarExNotes(\'' + exId.replace(/'/g,"\\'" ) + '\',\'' + exName.replace(/'/g,"\\'") + '\')" style="font-family:\'DM Mono\',monospace;font-size:9px;background:none;border:1px solid var(--border);color:var(--muted);border-radius:4px;padding:2px 8px;cursor:pointer">↺ recarregar</button></div>';
+    el.innerHTML = cached + '<div style="margin-top:6px"><button onclick="recarregarExNotes(\'' + exId.replace(/'/g,"\\'" ) + '\',\'' + exName.replace(/'/g,"\\'") + '\')" style="font-family:DM Mono,monospace;font-size:9px;background:none;border:1px solid var(--border);color:var(--muted);border-radius:4px;padding:2px 8px;cursor:pointer">↺ recarregar</button></div>';
     return;
   }
 
@@ -1723,16 +1769,16 @@ function fetchExNotes(exId, exName) {
   }).then(function(r) { return r.json(); }).then(function(data) {
     var text = Array.isArray(data.content) ? data.content.map(function(c) { return c.text||''; }).join('') : '';
     if (!text || data.error) {
-      el.innerHTML = 'Erro ao consultar a IA. <button onclick="recarregarExNotes(\'' + exId.replace(/'/g,"\\'") + '\',\'' + exName.replace(/'/g,"\\'") + '\')" style="font-family:\'DM Mono\',monospace;font-size:9px;background:none;border:1px solid var(--border);color:var(--muted);border-radius:4px;padding:2px 8px;cursor:pointer">↺ tentar novamente</button>';
+      el.innerHTML = 'Erro ao consultar a IA. <button onclick="recarregarExNotes(\'' + exId.replace(/'/g,"\\'") + '\',\'' + exName.replace(/'/g,"\\'") + '\')" style="font-family:DM Mono,monospace;font-size:9px;background:none;border:1px solid var(--border);color:var(--muted);border-radius:4px;padding:2px 8px;cursor:pointer">↺ tentar novamente</button>';
       return;
     }
-    var html = text.replace(/\n/g, '<br>') + '<div style="margin-top:6px"><button onclick="recarregarExNotes(\'' + exId.replace(/'/g,"\\'") + '\',\'' + exName.replace(/'/g,"\\'") + '\')" style="font-family:\'DM Mono\',monospace;font-size:9px;background:none;border:1px solid var(--border);color:var(--muted);border-radius:4px;padding:2px 8px;cursor:pointer">↺ recarregar</button></div>';
+    var html = text.replace(/\n/g, '<br>') + '<div style="margin-top:6px"><button onclick="recarregarExNotes(\'' + exId.replace(/'/g,"\\'") + '\',\'' + exName.replace(/'/g,"\\'") + '\')" style="font-family:DM Mono,monospace;font-size:9px;background:none;border:1px solid var(--border);color:var(--muted);border-radius:4px;padding:2px 8px;cursor:pointer">↺ recarregar</button></div>';
     el.innerHTML = html;
     if (!state.exExplanations) state.exExplanations = {};
     state.exExplanations[exName] = html;
     saveState();
   }).catch(function() {
-    el.innerHTML = 'Erro de rede. <button onclick="recarregarExNotes(\'' + exId.replace(/'/g,"\\'") + '\',\'' + exName.replace(/'/g,"\\'") + '\')" style="font-family:\'DM Mono\',monospace;font-size:9px;background:none;border:1px solid var(--border);color:var(--muted);border-radius:4px;padding:2px 8px;cursor:pointer">↺ tentar novamente</button>';
+    el.innerHTML = 'Erro de rede. <button onclick="recarregarExNotes(\'' + exId.replace(/'/g,"\\'") + '\',\'' + exName.replace(/'/g,"\\'") + '\')" style="font-family:DM Mono,monospace;font-size:9px;background:none;border:1px solid var(--border);color:var(--muted);border-radius:4px;padding:2px 8px;cursor:pointer">↺ tentar novamente</button>';
   });
 }
 
@@ -1990,7 +2036,7 @@ function openAddSerie() {
 function renderHistory() {
   const list = document.getElementById('history-list');
   if (!state.history.length) {
-    list.innerHTML = '<div style="color:var(--muted);font-family:\'DM Mono\',monospace;font-size:12px;padding:20px 0">Nenhum treino registrado ainda.</div>';
+    list.innerHTML = '<div style="color:var(--muted);font-family:DM Mono,monospace;font-size:12px;padding:20px 0">Nenhum treino registrado ainda.</div>';
     return;
   }
   const clearBtn = `<div style="display:flex;justify-content:flex-end;margin-bottom:12px">
@@ -2012,8 +2058,8 @@ function renderHistory() {
         return '<div style="display:flex;align-items:baseline;gap:8px;padding:3px 0;border-bottom:1px solid rgba(255,255,255,.04)">' +
           '<span style="color:' + statusColor + ';font-size:10px;width:12px;flex-shrink:0">' + statusDot + '</span>' +
           '<span style="flex:1;font-size:12px;color:var(--text)">' + escHtml(ex.name || '') + '</span>' +
-          '<span style="font-family:\'DM Mono\',monospace;font-size:11px;color:var(--accent)">' + escHtml(ex.sets || '') + '</span>' +
-          '<span style="font-family:\'DM Mono\',monospace;font-size:11px;color:var(--accent2);min-width:80px;text-align:right">' + escHtml(ex.weight || '') + '</span>' +
+          '<span style="font-family:DM Mono,monospace;font-size:11px;color:var(--accent)">' + escHtml(ex.sets || '') + '</span>' +
+          '<span style="font-family:DM Mono,monospace;font-size:11px;color:var(--accent2);min-width:80px;text-align:right">' + escHtml(ex.weight || '') + '</span>' +
           '</div>';
       }).join('');
       exHTML = '<div id="hist-ex-' + h.id + '" style="display:none;margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">' + rows + '</div>';
@@ -2025,8 +2071,8 @@ function renderHistory() {
         <div style="cursor:${hasEx ? 'pointer' : 'default'}" onclick="${hasEx ? 'toggleHistoryEx(\'' + h.id + '\')' : ''}">
           <div style="display:flex;align-items:baseline;gap:10px">
             <div class="history-serie">${escHtml(h.serieLabel)} — ${escHtml(h.serieName)}</div>
-            <div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--accent2)">${dataFormatada}</div>
-            <div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted)">${diaSemanaCapit}</div>
+            <div style="font-family:DM Mono,monospace;font-size:11px;color:var(--accent2)">${dataFormatada}</div>
+            <div style="font-family:DM Mono,monospace;font-size:11px;color:var(--muted)">${diaSemanaCapit}</div>
           </div>
           <div class="history-date">${escHtml(h.variant)}${reg ? ' · registrado ' + reg : ''}${hasEx ? ' · <span style="color:var(--accent3)">ver exercícios ▾</span>' : ''}</div>
         </div>
@@ -2127,7 +2173,8 @@ var DEFAULT_PERFIL = {
   aerobico: 'Academia fica a 2.2km de casa (4.4km ida+volta a pé, mesmo ritmo). Esse cardio já está embutido em todo dia de treino. Academia tem equipamentos de cardio disponíveis (não usa atualmente mas pode). Nos dias de descanso/aeróbico, preferir variações concretas: caminhada acelerada, elíptico leve.',
   lesoes: 'Tendão bíceps distal bilateral — APENAS pegada neutra para bíceps, sem exceção. Tendão perna direita — cautela no leg press com carga elevada. Ombro direito: lesão por acidente mecânico (não pelo overhead), overhead press é SEGURO e prioritário. Histórico de treino explosivo — moderar progressão de carga.',
   obs: '',
-  regrasRelocamento: 'REGRAS DE RELOCAMENTO DE TREINOS\n\nEstrutura semanal: A, B, C (1x cada) + D (2x) = 5 sessoes, Seg-Sex.\n\nOrdem de sacrificio quando dias sao perdidos: primeiro o segundo D da semana, depois A, B ou C na ordem inversa da semana, e por ultimo o primeiro D (apenas se todos os outros ja foram sacrificados).\n\nQuando um dia e perdido: o segundo D da semana e imediatamente sacrificado. O treino do dia perdido avanca para o proximo dia disponivel. Os demais treinos seguem na sequencia.\n\nQuando 2 ou mais dias sao perdidos: sacrifica-se o segundo D mais o proximo treino ABC na ordem de prioridade. Os treinos restantes avancam continuamente.\n\nLogica de inicio da semana seguinte: se a semana teve D e pelo menos 1 superior (ABC), a semana seguinte comeca com D. Se a semana teve apenas D e nenhum superior, a semana seguinte comeca com superior (ABC). Se a semana teve apenas superior e nenhum D, a semana seguinte comeca com D.\n\nFins de semana: Sabado sem treino por padrao. Treino no Sabado so e possivel se o usuario confirmar disponibilidade explicitamente — nunca marcar treino no Sabado automaticamente. Domingo e aerobico ou descanso, sem treino de forca.\n\nFila continua: a ordem nao reinicia a cada semana, sempre continua de onde parou.'
+  regrasRelocamento: 'REGRAS DE RELOCAMENTO DE TREINOS\n\nEstrutura semanal: A, B, C (1x cada) + D (2x) = 5 sessoes, Seg-Sex.\n\nOrdem de sacrificio quando dias sao perdidos: primeiro o segundo D da semana, depois A, B ou C na ordem inversa da semana, e por ultimo o primeiro D (apenas se todos os outros ja foram sacrificados).\n\nQuando um dia e perdido: o segundo D da semana e imediatamente sacrificado. O treino do dia perdido avanca para o proximo dia disponivel. Os demais treinos seguem na sequencia.\n\nQuando 2 ou mais dias sao perdidos: sacrifica-se o segundo D mais o proximo treino ABC na ordem de prioridade. Os treinos restantes avancam continuamente.\n\nLogica de inicio da semana seguinte: se a semana teve D e pelo menos 1 superior (ABC), a semana seguinte comeca com D. Se a semana teve apenas D e nenhum superior, a semana seguinte comeca com superior (ABC). Se a semana teve apenas superior e nenhum D, a semana seguinte comeca com D.\n\nFins de semana: Sabado sem treino por padrao. Treino no Sabado so e possivel se o usuario confirmar disponibilidade explicitamente — nunca marcar treino no Sabado automaticamente. Domingo e aerobico ou descanso, sem treino de forca.\n\nFila continua: a ordem nao reinicia a cada semana, sempre continua de onde parou.',
+  diasCiclo: '20'
 };
 
 function getApiKey() {
@@ -2192,7 +2239,7 @@ function loadPerfil() {
   if (input && saved) input.value = saved;
   renderTokenUsage();
   var p = state.perfil || DEFAULT_PERFIL;
-  ['altura','peso','idade','pesoobj','objetivos','prioridades','dias','estilo','aerobico','lesoes','obs','regrasRelocamento'].forEach(function(k) {
+  ['altura','peso','idade','pesoobj','objetivos','prioridades','dias','diasCiclo','estilo','aerobico','lesoes','obs','regrasRelocamento'].forEach(function(k) {
     var el = document.getElementById('pf-' + k) || document.getElementById('pf-regras-relocamento');
     if (k === 'regrasRelocamento') el = document.getElementById('pf-regras-relocamento');
     else el = document.getElementById('pf-' + k);
@@ -2200,6 +2247,311 @@ function loadPerfil() {
   });
   var fds = document.getElementById('pf-fds');
   if (fds) fds.value = p.fds || 'ocasionalmente';
+  loadConfigTreino();
+}
+
+function getDefaultConfigTreino() {
+  // Build default: all series except last are "fila principal", last is "intercalada"
+  var series = state.series || [];
+  var filaPrincipal = [];
+  var intercaladas = [];
+  series.forEach(function(s) {
+    if (s.label === 'D') {
+      intercaladas.push({ label: s.label, freqApos: 2, prioridade: 1 });
+    } else {
+      filaPrincipal.push(s.label);
+    }
+  });
+  return {
+    filaPrincipal: filaPrincipal,
+    intercaladas: intercaladas,
+    entradaFila: filaPrincipal[0] || 'A',
+    posicaoFila: 0, // current position in the static queue
+    diasTreino: ['Segunda','Terça','Quarta','Quinta','Sexta'],
+    intervaloMinimo: 2
+  };
+}
+
+function gerarFilaEstatica(cfg, totalDias) {
+  // Generate the static queue: filaPrincipal circular with intercaladas inserted every N
+  var fila = cfg.filaPrincipal || ['A','B','C'];
+  var intercaladas = cfg.intercaladas || [];
+  var resultado = [];
+  var contadoresPrincipal = {}; // count since last intercalada per intercalada
+  intercaladas.forEach(function(ic) { contadoresPrincipal[ic.label] = 0; });
+
+  var idxFila = 0;
+  var limite = totalDias * 3; // safety limit
+  var count = 0;
+
+  while (resultado.length < totalDias && count < limite) {
+    count++;
+    // Check if any intercalada should be inserted now (by priority order)
+    var intercaladaAgora = null;
+    var intercaladasProntas = intercaladas.filter(function(ic) {
+      return contadoresPrincipal[ic.label] >= ic.freqApos;
+    }).sort(function(a, b) { return a.prioridade - b.prioridade; });
+
+    if (intercaladasProntas.length > 0) {
+      intercaladaAgora = intercaladasProntas[0];
+      resultado.push(intercaladaAgora.label);
+      // Reset counter for inserted intercalada, keep others accumulating
+      contadoresPrincipal[intercaladaAgora.label] = 0;
+    } else {
+      // Insert next from fila principal
+      resultado.push(fila[idxFila % fila.length]);
+      idxFila++;
+      // Increment all intercalada counters
+      intercaladas.forEach(function(ic) { contadoresPrincipal[ic.label]++; });
+    }
+  }
+  return resultado;
+}
+
+function loadConfigTreino() {
+  var cfg = (state.perfil && state.perfil.configTreino) || getDefaultConfigTreino();
+  var series = state.series || [];
+
+  // Render fila principal
+  var container = document.getElementById('config-fila-principal');
+  if (container) {
+    container.innerHTML = '';
+    series.forEach(function(s, idx) {
+      var isInFila = cfg.filaPrincipal && cfg.filaPrincipal.indexOf(s.label) !== -1;
+      var div = document.createElement('div');
+      div.style.cssText = 'display:flex;align-items:center;gap:6px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:6px 10px;cursor:pointer;transition:border-color .15s';
+      div.innerHTML = '<input type="checkbox" id="cfg-fila-' + s.label + '" ' + (isInFila ? 'checked' : '') + ' onchange="saveConfigTreino()">' +
+        '<span style="font-family:DM Mono,monospace;font-size:12px;color:var(--accent)">' + s.label + '</span>' +
+        '<span style="font-family:DM Mono,monospace;font-size:11px;color:var(--muted)">' + s.name + '</span>';
+      container.appendChild(div);
+    });
+  }
+
+  // Render intercaladas
+  var container2 = document.getElementById('config-intercaladas');
+  if (container2) {
+    container2.innerHTML = '';
+    series.forEach(function(s) {
+      var icCfg = cfg.intercaladas && cfg.intercaladas.find(function(ic) { return ic.label === s.label; });
+      var isIntercalada = !!icCfg;
+      var div = document.createElement('div');
+      div.style.cssText = 'display:flex;align-items:center;gap:8px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:6px 10px';
+      div.innerHTML = '<input type="checkbox" id="cfg-ic-' + s.label + '" ' + (isIntercalada ? 'checked' : '') + ' onchange="saveConfigTreino()">' +
+        '<span style="font-family:DM Mono,monospace;font-size:12px;color:var(--accent)">' + s.label + '</span>' +
+        '<span style="font-family:DM Mono,monospace;font-size:11px;color:var(--muted)">a cada</span>' +
+        '<input type="number" min="1" max="10" value="' + (icCfg ? icCfg.freqApos : 2) + '" id="cfg-ic-freq-' + s.label + '" oninput="saveConfigTreino()"' +
+        ' style="width:44px;font-family:DM Mono,monospace;font-size:13px;background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:2px 6px;color:var(--text);outline:none;text-align:center">' +
+        '<span style="font-family:DM Mono,monospace;font-size:11px;color:var(--muted)">superiores | prioridade</span>' +
+        '<input type="number" min="1" max="10" value="' + (icCfg ? icCfg.prioridade : 1) + '" id="cfg-ic-prio-' + s.label + '" oninput="saveConfigTreino()"' +
+        ' style="width:44px;font-family:DM Mono,monospace;font-size:13px;background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:2px 6px;color:var(--text);outline:none;text-align:center">';
+      container2.appendChild(div);
+    });
+  }
+
+  // Render entrada fila select
+  var sel = document.getElementById('cfg-entrada-fila');
+  if (sel) {
+    sel.innerHTML = '';
+    var fp = cfg.filaPrincipal || [];
+    fp.forEach(function(label) {
+      var s = series.find(function(s) { return s.label === label; });
+      var opt = document.createElement('option');
+      opt.value = label;
+      opt.textContent = label + (s ? ' — ' + s.name : '');
+      opt.selected = label === (cfg.entradaFila || fp[0]);
+      sel.appendChild(opt);
+    });
+  }
+
+  // Load dias treino checkboxes
+  var diasMap = { 'Segunda': 'Segunda', 'Terca': 'Terça', 'Quarta': 'Quarta', 'Quinta': 'Quinta', 'Sexta': 'Sexta', 'Sabado': 'Sábado' };
+  Object.keys(diasMap).forEach(function(id) {
+    var el = document.getElementById('cfg-dia-' + id);
+    if (el) el.checked = cfg.diasTreino && cfg.diasTreino.indexOf(diasMap[id]) !== -1;
+  });
+
+  // Load intervalo
+  var intEl = document.getElementById('cfg-intervalo');
+  if (intEl) intEl.value = cfg.intervaloMinimo || 2;
+}
+
+function saveConfigTreino() {
+  var series = state.series || [];
+
+  // Fila principal
+  var filaPrincipal = [];
+  series.forEach(function(s) {
+    var el = document.getElementById('cfg-fila-' + s.label);
+    if (el && el.checked) filaPrincipal.push(s.label);
+  });
+
+  // Intercaladas
+  var intercaladas = [];
+  series.forEach(function(s) {
+    var el = document.getElementById('cfg-ic-' + s.label);
+    if (el && el.checked) {
+      var freqEl = document.getElementById('cfg-ic-freq-' + s.label);
+      var prioEl = document.getElementById('cfg-ic-prio-' + s.label);
+      intercaladas.push({
+        label: s.label,
+        freqApos: freqEl ? (parseInt(freqEl.value) || 2) : 2,
+        prioridade: prioEl ? (parseInt(prioEl.value) || 1) : 1
+      });
+    }
+  });
+
+  // Entrada fila
+  var sel = document.getElementById('cfg-entrada-fila');
+  var entradaFila = sel ? sel.value : (filaPrincipal[0] || 'A');
+
+  // Dias treino
+  var diasMap = { 'Segunda': 'Segunda', 'Terca': 'Terça', 'Quarta': 'Quarta', 'Quinta': 'Quinta', 'Sexta': 'Sexta', 'Sabado': 'Sábado' };
+  var diasTreino = [];
+  Object.keys(diasMap).forEach(function(id) {
+    var el = document.getElementById('cfg-dia-' + id);
+    if (el && el.checked) diasTreino.push(diasMap[id]);
+  });
+
+  var intEl = document.getElementById('cfg-intervalo');
+  var intervalo = intEl ? (parseInt(intEl.value) || 2) : 2;
+
+  if (!state.perfil) state.perfil = Object.assign({}, DEFAULT_PERFIL);
+  var prevCfg = state.perfil.configTreino || {};
+  state.perfil.configTreino = {
+    filaPrincipal: filaPrincipal,
+    intercaladas: intercaladas,
+    entradaFila: entradaFila,
+    posicaoFila: prevCfg.posicaoFila || 0, // preserve current position
+    diasTreino: diasTreino,
+    intervaloMinimo: intervalo
+  };
+
+  // Rebuild entrada fila select options
+  var sel2 = document.getElementById('cfg-entrada-fila');
+  if (sel2) {
+    sel2.innerHTML = '';
+    filaPrincipal.forEach(function(label) {
+      var s = (state.series || []).find(function(s) { return s.label === label; });
+      var opt = document.createElement('option');
+      opt.value = label;
+      opt.textContent = label + (s ? ' — ' + s.name : '');
+      opt.selected = label === entradaFila;
+      sel2.appendChild(opt);
+    });
+  }
+
+  saveState();
+}
+
+// ─────────────────────────── RELOCATION ENGINE ───────────────────────────
+function getConfigTreino() {
+  return (state.perfil && state.perfil.configTreino) || getDefaultConfigTreino();
+}
+
+function aplicarRelocamento(dayKey, diaNome, semana, tipo) {
+  if (!state.plano || !state.plano.semanas) return;
+  if (!state.plano.diasStatus) state.plano.diasStatus = {};
+
+  var cfg = getConfigTreino();
+  var diasStatus = state.plano.diasStatus;
+
+  // Mark the day
+  diasStatus[dayKey] = tipo === 'ausente' ? 'ausente' : 'perdido';
+
+  // Find the lost day's serie
+  var seriePerdida = null;
+  state.plano.semanas.forEach(function(sem) {
+    (sem.dias || sem.agenda || []).forEach(function(d) {
+      var k = 'sem' + sem.semana + '_' + d.dia;
+      if (k === dayKey) {
+        seriePerdida = d.serie;
+        // Mark as descanso
+        d.serie = 'descanso';
+        d.tipo = 'recuperacao';
+        d.orientacao = tipo === 'ausente' ? 'Ausencia planejada' : 'Dia perdido';
+        if (state.plano.diasExpandidos) delete state.plano.diasExpandidos[k];
+      }
+    });
+  });
+
+  if (!seriePerdida || seriePerdida === 'descanso') {
+    saveState(); renderAgendaLinear(); return;
+  }
+
+  // Check if lost serie is intercalada
+  var isIntercalada = cfg.intercaladas && cfg.intercaladas.some(function(ic) { return ic.label === seriePerdida; });
+  var intervalo = cfg.intervaloMinimo || 2;
+
+  // Build flat list of all days
+  var todosDias = [];
+  state.plano.semanas.forEach(function(sem) {
+    (sem.dias || sem.agenda || []).forEach(function(d) {
+      todosDias.push({ semana: sem.semana, diaNome: d.dia, serie: d.serie, key: 'sem' + sem.semana + '_' + d.dia, diaObj: d, semObj: sem });
+    });
+  });
+
+  var perdidoIdx = todosDias.findIndex(function(d) { return d.key === dayKey; });
+
+  // If intercalada (D): just push to next valid slot respecting interval
+  // If fila principal (ABC): push to next slot, the queue position advances automatically
+  var ultimaOcorrencia = -999;
+  for (var j = 0; j <= perdidoIdx; j++) {
+    if (todosDias[j].serie === seriePerdida && diasStatus[todosDias[j].key] !== 'perdido' && diasStatus[todosDias[j].key] !== 'ausente') {
+      ultimaOcorrencia = j;
+    }
+  }
+
+  var slotEncontrado = null;
+  for (var k = perdidoIdx + 1; k < todosDias.length; k++) {
+    var candidato = todosDias[k];
+    if (candidato.diaNome === 'Domingo') continue;
+    if (candidato.diaNome === 'Sábado' && diasStatus[candidato.key] !== 'disponivel') continue;
+    if (candidato.serie !== 'descanso') continue;
+    if ((k - ultimaOcorrencia) <= intervalo) continue;
+    slotEncontrado = k;
+    break;
+  }
+
+  if (slotEncontrado !== null) {
+    var slot = todosDias[slotEncontrado];
+    slot.diaObj.serie = seriePerdida;
+    slot.diaObj.tipo = 'treino';
+    slot.diaObj.orientacao = 'Treino realocado de ' + diaNome;
+    if (state.plano.diasExpandidos) delete state.plano.diasExpandidos[slot.key];
+    toast('Treino ' + seriePerdida + ' de ' + diaNome + ' realocado para ' + slot.diaNome + ' ✓');
+  } else {
+    // Overflow — extend plan
+    var diasCiclo = (state.perfil && state.perfil.diasCiclo) ? parseInt(state.perfil.diasCiclo) : 20;
+    var totalTreinos = 0;
+    state.plano.semanas.forEach(function(sem) {
+      (sem.dias || sem.agenda || []).forEach(function(d) {
+        if (d.serie && d.serie !== 'descanso') totalTreinos++;
+      });
+    });
+
+    if (totalTreinos < diasCiclo) {
+      var ultimaSemana = state.plano.semanas[state.plano.semanas.length - 1];
+      var novosDias = ['Segunda','Terça','Quarta','Quinta','Sexta','Sábado','Domingo'].map(function(dia) {
+        return { dia: dia, serie: 'descanso', tipo: 'recuperacao', orientacao: '' };
+      });
+      novosDias[0].serie = seriePerdida;
+      novosDias[0].tipo = 'treino';
+      novosDias[0].orientacao = 'Treino realocado de ' + diaNome;
+      state.plano.semanas.push({
+        semana: ultimaSemana.semana + 1,
+        foco: ultimaSemana.foco || '',
+        intensidade: ultimaSemana.intensidade || '',
+        progressao: ultimaSemana.progressao || '',
+        dias: novosDias
+      });
+      toast('Semana ' + (ultimaSemana.semana + 1) + ' adicionada para treino ' + seriePerdida + ' ✓');
+    } else {
+      toast('Treino ' + seriePerdida + ' de ' + diaNome + ' marcado — ciclo completo.');
+    }
+  }
+
+  saveState();
+  renderAgendaLinear();
 }
 
 function savePerfil() {
@@ -2216,7 +2568,8 @@ function savePerfil() {
     aerobico: document.getElementById('pf-aerobico').value,
     lesoes: document.getElementById('pf-lesoes').value,
     obs: document.getElementById('pf-obs').value,
-    regrasRelocamento: document.getElementById('pf-regras-relocamento').value
+    regrasRelocamento: document.getElementById('pf-regras-relocamento').value,
+    diasCiclo: document.getElementById('pf-diasCiclo').value
   };
   saveState();
 }
@@ -2354,9 +2707,12 @@ function enviarPlanoAtual() {
 
 function gerarPlanoCompleto() {
   var ctx = buildContextoTreino();
+  var diasCiclo = (state.perfil && state.perfil.diasCiclo) ? parseInt(state.perfil.diasCiclo) : 20;
+  diasCiclo = Math.min(Math.max(diasCiclo, 1), 40);
+  var semanasNecessarias = Math.ceil(diasCiclo / 5);
   var input = document.getElementById('plano-input');
   if (input) {
-    input.value = 'Gere um plano macro periodizado de 4 semanas.' + (ctx ? '\n\n' + ctx : '');
+    input.value = 'Gere um plano macro periodizado com exatamente ' + diasCiclo + ' dias de treino, distribuidos em ' + semanasNecessarias + ' semanas calendário. O ciclo deve ter exatamente ' + diasCiclo + ' sessoes de treino de forca no total.' + (ctx ? '\n\n' + ctx : '');
     enviarMensagemPlano();
   }
 }
@@ -2618,7 +2974,7 @@ function renderModificacoesProposta(mod) {
   if (!resultado) return;
 
   var semanas = planoCopy.semanas || [];
-  var html = '<div style="font-family:\'DM Mono\',monospace;font-size:9px;letter-spacing:2px;color:var(--accent3);margin-bottom:10px;padding:6px 10px;background:rgba(0,212,255,.08);border-radius:6px;border:1px solid rgba(0,212,255,.2)">PRÉVIA DAS MODIFICAÇÕES</div>';
+  var html = '<div style="font-family:DM Mono,monospace;font-size:9px;letter-spacing:2px;color:var(--accent3);margin-bottom:10px;padding:6px 10px;background:rgba(0,212,255,.08);border-radius:6px;border:1px solid rgba(0,212,255,.2)">PRÉVIA DAS MODIFICAÇÕES</div>';
 
   if (planoCopy.observacoes) {
     html += '<div class="plan-raw" style="margin-bottom:12px;font-size:12px;border-color:rgba(232,255,60,.2)">' + escHtml(planoCopy.observacoes) + '</div>';
@@ -2627,7 +2983,7 @@ function renderModificacoesProposta(mod) {
   semanas.forEach(function(semana) {
     html += '<div class="plan-week"><div class="plan-week-title">SEMANA ' + semana.semana;
     if (semana.foco) html += ' <span style="font-size:12px;font-family:\'DM Sans\',sans-serif;font-weight:400;letter-spacing:0;color:var(--muted)">— ' + escHtml(semana.foco) + '</span>';
-    if (semana.intensidade) html += ' <span style="font-size:10px;font-family:\'DM Mono\',monospace;color:var(--accent2)"> ' + escHtml(semana.intensidade) + '</span>';
+    if (semana.intensidade) html += ' <span style="font-size:10px;font-family:DM Mono,monospace;color:var(--accent2)"> ' + escHtml(semana.intensidade) + '</span>';
     html += '</div>';
     var dias = semana.dias || semana.agenda || [];
     dias.forEach(function(d) {
@@ -2650,8 +3006,8 @@ function renderModificacoesProposta(mod) {
   });
 
   html += '<div style="display:flex;gap:8px;margin-top:16px">' +
-    '<button onclick="aplicarModificacoesPendentes()" style="font-family:\'DM Mono\',monospace;font-size:11px;padding:6px 16px;border-radius:8px;border:none;background:var(--accent3);color:#000;cursor:pointer">✓ APLICAR</button>' +
-    '<button onclick="descartarModificacoesPendentes()" style="font-family:\'DM Mono\',monospace;font-size:11px;padding:6px 14px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer">✕ IGNORAR</button>' +
+    '<button onclick="aplicarModificacoesPendentes()" style="font-family:DM Mono,monospace;font-size:11px;padding:6px 16px;border-radius:8px;border:none;background:var(--accent3);color:#000;cursor:pointer">✓ APLICAR</button>' +
+    '<button onclick="descartarModificacoesPendentes()" style="font-family:DM Mono,monospace;font-size:11px;padding:6px 14px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer">✕ IGNORAR</button>' +
     '</div>';
 
   resultado.innerHTML = html;
@@ -2813,7 +3169,7 @@ function renderPlanoMacro(plano) {
   semanas.forEach(function(semana) {
     html += '<div class="plan-week"><div class="plan-week-title">SEMANA ' + semana.semana;
     if (semana.foco) html += ' <span style="font-size:12px;font-family:\'DM Sans\',sans-serif;font-weight:400;letter-spacing:0;color:var(--muted)">— ' + escHtml(semana.foco) + '</span>';
-    if (semana.intensidade) html += ' <span style="font-size:10px;font-family:\'DM Mono\',monospace;color:var(--accent2)"> ' + escHtml(semana.intensidade) + '</span>';
+    if (semana.intensidade) html += ' <span style="font-size:10px;font-family:DM Mono,monospace;color:var(--accent2)"> ' + escHtml(semana.intensidade) + '</span>';
     html += '</div>';
 
     var dias = semana.dias || semana.agenda || [];
@@ -3194,7 +3550,7 @@ async function enviarChatInline(dayKey, serieLabel) {
         if (msgs2) {
           var applyDiv = document.createElement('div');
           applyDiv.style.cssText = 'padding:4px 0';
-          applyDiv.innerHTML = '<button onclick="aplicarPropostaInline(\'' + dayKey + '\',\'' + serieLabel + '\',this)" style="font-family:\'DM Mono\',monospace;font-size:10px;letter-spacing:1px;padding:5px 14px;border-radius:8px;border:none;background:var(--accent3);color:#000;cursor:pointer">✓ SIM, APLICAR</button>';
+          applyDiv.innerHTML = '<button onclick="aplicarPropostaInline(\'' + dayKey + '\',\'' + serieLabel + '\',this)" style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;padding:5px 14px;border-radius:8px;border:none;background:var(--accent3);color:#000;cursor:pointer">✓ SIM, APLICAR</button>';
           msgs2.appendChild(applyDiv);
           msgs2.scrollTop = msgs2.scrollHeight;
         }
@@ -3251,7 +3607,7 @@ function reexpandirDia(dayKey, semana, dia, serieLabel) {
   var inline = container && container.querySelector('.agenda-treino-inline');
   if (inline) {
     var table = inline.querySelector('table');
-    if (table) table.innerHTML = '<tr><td colspan="2" style="padding:20px;text-align:center;font-family:\'DM Mono\',monospace;font-size:12px;color:var(--accent3)">⏳ Gerando novo treino...</td></tr>';
+    if (table) table.innerHTML = '<tr><td colspan="2" style="padding:20px;text-align:center;font-family:DM Mono,monospace;font-size:12px;color:var(--accent3)">⏳ Gerando novo treino...</td></tr>';
   }
 
   setTimeout(function() { expandirDia(semana, dia, serieLabel, dayKey); }, 100);
@@ -3601,7 +3957,7 @@ function renderAgendaLinear() {
   const list = document.getElementById('agenda-linear-list');
   if (!list) return;
   if (!state.plano || !state.plano.semanas) {
-    list.innerHTML = '<div style="color:var(--muted);font-family:\'DM Mono\',monospace;font-size:12px;padding:20px 0">Nenhum plano ativo. Gere um plano na aba PLANO.</div>';
+    list.innerHTML = '<div style="color:var(--muted);font-family:DM Mono,monospace;font-size:12px;padding:20px 0">Nenhum plano ativo. Gere um plano na aba PLANO.</div>';
     return;
   }
 
@@ -3656,11 +4012,11 @@ function renderAgendaLinear() {
   // Start date picker header
   var dataInicioStr = state.plano.dataInicio ? new Date(state.plano.dataInicio).toLocaleDateString('pt-BR') : 'Não definida';
   var headerHTML = '<div style="display:flex;align-items:center;gap:12px;padding:10px 4px 14px;border-bottom:1px solid var(--border);margin-bottom:12px">' +
-    '<span style="font-family:\'DM Mono\',monospace;font-size:10px;letter-spacing:2px;color:var(--muted)">INÍCIO DO CICLO</span>' +
+    '<span style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:2px;color:var(--muted)">INÍCIO DO CICLO</span>' +
     '<input type="date" id="plano-inicio-input" value="' + (state.plano.dataInicio ? state.plano.dataInicio.slice(0,10) : '') + '" ' +
     'onchange="setPlanoInicio(this.value)" ' +
-    'style="font-family:\'DM Mono\',monospace;font-size:12px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:4px 10px;color:var(--text);cursor:pointer">' +
-    '<span style="font-family:\'DM Mono\',monospace;font-size:10px;color:var(--muted)">' + (state.plano.dataInicio ? '' : '← defina para ver as datas') + '</span>' +
+    'style="font-family:DM Mono,monospace;font-size:12px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:4px 10px;color:var(--text);cursor:pointer">' +
+    '<span style="font-family:DM Mono,monospace;font-size:10px;color:var(--muted)">' + (state.plano.dataInicio ? '' : '← defina para ver as datas') + '</span>' +
     '</div>';
 
   let html = headerHTML;
@@ -3673,7 +4029,7 @@ function renderAgendaLinear() {
       '<div class="agenda-semana-head" onclick="toggleSemana(\'' + semKey + '\')">' +
         '<span class="agenda-semana-chevron">' + (semOpen ? '▾' : '▸') + '</span>' +
         '<span>SEMANA ' + semana.semana + (semana.foco ? ' — ' + semana.foco : '') + '</span>' +
-        (semana.intensidade ? '<span style="font-family:\'DM Mono\',monospace;font-size:10px;color:var(--accent2);margin-left:auto">' + semana.intensidade + '</span>' : '') +
+        (semana.intensidade ? '<span style="font-family:DM Mono,monospace;font-size:10px;color:var(--accent2);margin-left:auto">' + semana.intensidade + '</span>' : '') +
       '</div>' +
       '<div class="agenda-semana-body" style="' + (semOpen ? '' : 'display:none') + '">';
 
@@ -3748,7 +4104,7 @@ function renderAgendaLinear() {
 
       html += '<div class="' + cardClass + '" id="agendadia-' + dayKey + '">' +
         '<div class="agenda-dia-head" onclick="toggleAgendaDia(\'' + dayKey + '\')">' +
-          '<span class="agenda-dia-label">' + escHtml(d.dia) + (dateStr ? '<br><span style="font-size:10px;font-family:\'DM Mono\',monospace;color:var(--muted)">' + dateStr + '</span>' : '') + '</span>' +
+          '<span class="agenda-dia-label">' + escHtml(d.dia) + (dateStr ? '<br><span style="font-size:10px;font-family:DM Mono,monospace;color:var(--muted)">' + dateStr + '</span>' : '') + '</span>' +
           '<span class="agenda-dia-serie">' + (isRest ? (tipo === 'aerobico' ? 'Aeróbico / Cardio' : 'Descanso') : (serieObj ? d.serie + ' — ' + serieObj.name : d.serie)) + '</span>' +
           '<span class="agenda-dia-tipo ' + tipoClass + '">' + tipoLabel + '</span>' +
         '</div>' +
@@ -3767,7 +4123,7 @@ function renderAgendaLinear() {
                 'style="flex:1;font-family:\'DM Sans\',sans-serif;font-size:12px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px;color:var(--text);resize:none;height:60px;outline:none" ' +
                 'onkeydown="if(event.key===\'Enter\'&&!event.shiftKey){event.preventDefault();enviarChatInlineDia(\'' + dayKey + '\',\'' + d.dia + '\',' + semana.semana + ')}"></textarea>' +
                 '<button onclick="enviarChatInlineDia(\'' + dayKey + '\',\'' + d.dia + '\',' + semana.semana + ')" ' +
-                'style="font-family:\'DM Mono\',monospace;font-size:11px;background:none;border:1px solid var(--accent3);color:var(--accent3);border-radius:8px;padding:0 14px;cursor:pointer">↑</button>' +
+                'style="font-family:DM Mono,monospace;font-size:11px;background:none;border:1px solid var(--accent3);color:var(--accent3);border-radius:8px;padding:0 14px;cursor:pointer">↑</button>' +
               '</div>' +
             '</div>'
           : '') +
@@ -3875,7 +4231,7 @@ function irParaTreino(dayKey, serieLabel) {
 
   div.innerHTML = '<div style="display:flex;align-items:center;gap:16px;margin-bottom:10px">' +
     '<span style="font-family:\'Bebas Neue\',sans-serif;font-size:13px;letter-spacing:2px;color:var(--accent3)">' + serieLabel + ' — ' + s.name + '</span>' +
-    '<span style="font-family:\'DM Mono\',monospace;font-size:10px;color:var(--muted)">' +
+    '<span style="font-family:DM Mono,monospace;font-size:10px;color:var(--muted)">' +
     '<span style="color:var(--done)">●</span> feito &nbsp; ' +
     '<span style="color:var(--danger)">✕</span> pulado &nbsp; ' +
     '<span style="color:var(--muted)">○</span> não feito' +
@@ -3891,14 +4247,14 @@ function irParaTreino(dayKey, serieLabel) {
     '</div>' +
     '<div id="chat-inline-' + dayKey + '" style="display:none;margin-top:12px;border-top:1px solid var(--border);padding-top:10px">' +
       '<div style="display:flex;justify-content:flex-end;margin-bottom:6px">' +
-        '<button onclick="limparChatInline(\'' + dayKey + '\')" style="font-family:\'DM Mono\',monospace;font-size:9px;letter-spacing:1px;background:none;border:1px solid var(--border);color:var(--muted);border-radius:4px;padding:2px 10px;cursor:pointer">↺ NOVA CONVERSA</button>' +
+        '<button onclick="limparChatInline(\'' + dayKey + '\')" style="font-family:DM Mono,monospace;font-size:9px;letter-spacing:1px;background:none;border:1px solid var(--border);color:var(--muted);border-radius:4px;padding:2px 10px;cursor:pointer">↺ NOVA CONVERSA</button>' +
       '</div>' +
       '<div id="chat-inline-msgs-' + dayKey + '" style="max-height:200px;overflow-y:auto;display:flex;flex-direction:column;gap:6px;margin-bottom:8px"></div>' +
       '<div style="display:flex;gap:6px">' +
         '<textarea id="chat-inline-input-' + dayKey + '" placeholder="Ex: por que esse exercício? / troque o skull crusher por outra coisa / aumente o volume de posterior de deltóide..." ' +
         'style="flex:1;font-family:\'DM Sans\',sans-serif;font-size:12px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px;color:var(--text);resize:none;height:60px;outline:none" ' +
         'onkeydown="if(event.key===\'Enter\'&&!event.shiftKey){event.preventDefault();enviarChatInline(\'' + dayKey + '\',\'' + serieLabel + '\')}"></textarea>' +
-        '<button onclick="enviarChatInline(\'' + dayKey + '\',\'' + serieLabel + '\')" style="font-family:\'DM Mono\',monospace;font-size:11px;padding:8px 14px;border-radius:8px;border:none;background:var(--accent3);color:#000;cursor:pointer;align-self:flex-end">↑</button>' +
+        '<button onclick="enviarChatInline(\'' + dayKey + '\',\'' + serieLabel + '\')" style="font-family:DM Mono,monospace;font-size:11px;padding:8px 14px;border-radius:8px;border:none;background:var(--accent3);color:#000;cursor:pointer;align-self:flex-end">↑</button>' +
       '</div>' +
     '</div>';
 
@@ -3919,19 +4275,19 @@ function renderInlineEx(ex, dayKey, serieLabel) {
         '<span style="font-size:13px;line-height:1.4">' + escHtml(ex.name) + '</span>' +
         '<div style="display:flex;gap:4px;flex-shrink:0;margin-left:6px;margin-top:1px">' +
           '<span onclick="toggleExNotes(\'' + ex.id + '\',\'' + escHtml(ex.name).replace(/'/g, "\\'") + '\',\'' + serieLabel + '\')" title="Como fazer?" ' +
-          'style="font-family:\'DM Mono\',monospace;font-size:10px;width:16px;height:16px;border-radius:50%;border:1px solid var(--muted);color:var(--muted);cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1">i</span>' +
+          'style="font-family:DM Mono,monospace;font-size:10px;width:16px;height:16px;border-radius:50%;border:1px solid var(--muted);color:var(--muted);cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1">i</span>' +
           '<span onclick="addExToLibrary(\'' + escHtml(ex.name).replace(/'/g, "\\'") + '\',\'' + escHtml(ex.sets).replace(/'/g, "\\'") + '\',\'' + escHtml(ex.weight).replace(/'/g, "\\'") + '\',\'' + serieLabel + '\')" title="Adicionar à Biblioteca" ' +
-          'style="font-family:\'DM Mono\',monospace;font-size:12px;width:16px;height:16px;border-radius:50%;border:1px solid var(--accent3);color:var(--accent3);cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1">+</span>' +
+          'style="font-family:DM Mono,monospace;font-size:12px;width:16px;height:16px;border-radius:50%;border:1px solid var(--accent3);color:var(--accent3);cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1">+</span>' +
         '</div>' +
       '</div>' +
       '<div id="notes-' + ex.id + '" style="display:none;font-size:12px;color:var(--muted);line-height:1.6;padding:6px 0 4px;border-top:1px solid var(--border);margin-bottom:4px"></div>' +
       '<div style="display:flex;gap:8px;align-items:center">' +
         '<input type="text" value="' + escHtml(ex.sets) + '" ' +
         'onchange="updateInlineEx(\'' + dayKey + '\',\'' + serieLabel + '\',\'' + ex.id + '\',\'sets\',this.value)" ' +
-        'style="font-family:\'DM Mono\',monospace;font-size:11px;color:var(--accent);background:transparent;border:none;border-bottom:1px solid var(--border);width:80px;text-align:center;outline:none;padding:2px;flex-shrink:0">' +
+        'style="font-family:DM Mono,monospace;font-size:11px;color:var(--accent);background:transparent;border:none;border-bottom:1px solid var(--border);width:80px;text-align:center;outline:none;padding:2px;flex-shrink:0">' +
         '<input type="text" value="' + escHtml(ex.weight) + '" ' +
         'onchange="updateInlineEx(\'' + dayKey + '\',\'' + serieLabel + '\',\'' + ex.id + '\',\'weight\',this.value)" ' +
-        'style="font-family:\'DM Mono\',monospace;font-size:11px;color:var(--accent2);background:transparent;border:none;border-bottom:1px solid var(--border);flex:1;text-align:right;outline:none;padding:2px;min-width:0">' +
+        'style="font-family:DM Mono,monospace;font-size:11px;color:var(--accent2);background:transparent;border:none;border-bottom:1px solid var(--border);flex:1;text-align:right;outline:none;padding:2px;min-width:0">' +
       '</div>' +
     '</td>' +
   '</tr>';
@@ -4070,11 +4426,7 @@ function setPlanoInicio(dateStr) {
 }
 
 function marcarAusente(dayKey, diaNome, semana) {
-  if (!state.plano.diasStatus) state.plano.diasStatus = {};
-  state.plano.diasStatus[dayKey] = 'ausente';
-  saveState();
-  renderAgendaLinear();
-  solicitarReplanejamento(dayKey, diaNome, semana, 'ausente');
+  aplicarRelocamento(dayKey, diaNome, semana, 'ausente');
 }
 
 function limparCacheDia(dayKey) {
@@ -4098,11 +4450,7 @@ function marcarDia(dayKey, status) {
 }
 
 function marcarDiaPerdido(dayKey, diaNome, semana) {
-  if (!state.plano.diasStatus) state.plano.diasStatus = {};
-  state.plano.diasStatus[dayKey] = 'perdido';
-  saveState();
-  renderAgendaLinear();
-  solicitarReplanejamento(dayKey, diaNome, semana, 'perdido');
+  aplicarRelocamento(dayKey, diaNome, semana, 'perdido');
 }
 function marcarSabadoDisponivel(dayKey, diaNome, semana) {
   if (!state.plano.diasStatus) state.plano.diasStatus = {};
@@ -4672,10 +5020,10 @@ function renderAuthUI() {
     var emailDisplay = _supabaseUser.email || '';
     if (isPWA() && emailDisplay.includes('@')) emailDisplay = emailDisplay.split('@')[0];
     var span = document.createElement('span');
-    span.style.cssText = "font-family:'DM Mono',monospace;font-size:10px;color:var(--done)";
+    span.style.cssText = "font-family:DM Mono,monospace;font-size:10px;color:var(--done)";
     span.textContent = '\u25cf ' + emailDisplay;
     var btn = document.createElement('button');
-    btn.style.cssText = "font-family:'DM Mono',monospace;font-size:10px;background:none;border:1px solid var(--border);color:var(--muted);border-radius:4px;padding:2px 10px;cursor:pointer;margin-left:8px;transition:color .15s,border-color .15s";
+    btn.style.cssText = "font-family:DM Mono,monospace;font-size:10px;background:none;border:1px solid var(--border);color:var(--muted);border-radius:4px;padding:2px 10px;cursor:pointer;margin-left:8px;transition:color .15s,border-color .15s";
     btn.textContent = 'SAIR';
     btn.addEventListener('mouseenter', function() { this.style.color='var(--danger)'; this.style.borderColor='var(--danger)'; });
     btn.addEventListener('mouseleave', function() { this.style.color='var(--muted)'; this.style.borderColor='var(--border)'; });
@@ -4689,7 +5037,7 @@ function renderAuthUI() {
       var syncBtn = document.createElement('button');
       syncBtn.title = 'Sincronizar dados com a nuvem';
       syncBtn.textContent = '↺';
-      syncBtn.style.cssText = "font-family:'DM Mono',monospace;font-size:14px;background:none;border:1px solid var(--border);color:var(--muted);border-radius:4px;padding:1px 8px;cursor:pointer;transition:color .15s,border-color .15s;line-height:1.4";
+      syncBtn.style.cssText = "font-family:DM Mono,monospace;font-size:14px;background:none;border:1px solid var(--border);color:var(--muted);border-radius:4px;padding:1px 8px;cursor:pointer;transition:color .15s,border-color .15s;line-height:1.4";
       syncBtn.addEventListener('mouseenter', function() { this.style.color='var(--accent3)'; this.style.borderColor='var(--accent3)'; });
       syncBtn.addEventListener('mouseleave', function() { this.style.color='var(--muted)'; this.style.borderColor='var(--border)'; });
       syncBtn.addEventListener('click', function() { syncFromCloud(); });
@@ -4697,7 +5045,7 @@ function renderAuthUI() {
     }
   } else {
     var btnLogin = document.createElement('button');
-    btnLogin.style.cssText = "font-family:'DM Mono',monospace;font-size:11px;background:none;border:1px solid var(--accent3);color:var(--accent3);border-radius:6px;padding:4px 16px;cursor:pointer;transition:background .15s";
+    btnLogin.style.cssText = "font-family:DM Mono,monospace;font-size:11px;background:none;border:1px solid var(--accent3);color:var(--accent3);border-radius:6px;padding:4px 16px;cursor:pointer;transition:background .15s";
     btnLogin.textContent = '\u25cf ENTRAR COM GOOGLE';
     btnLogin.addEventListener('mouseenter', function() { this.style.background='rgba(60,170,255,.1)'; });
     btnLogin.addEventListener('mouseleave', function() { this.style.background='none'; });
