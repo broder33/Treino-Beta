@@ -1198,7 +1198,7 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
     <button class="btn" onclick="resetData()" title="Limpar todos os dados e voltar ao padrão">RESET</button>
     <button class="btn" onclick="exportData()">EXPORTAR</button>
     <button class="btn" onclick="importData()">IMPORTAR</button>
-    <span style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);margin-left:4px">v0.8.5.21</span>
+    <span style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);margin-left:4px">v0.8.5.22</span>
     <div id="auth-status" style="display:flex;align-items:center;margin-left:8px"></div>
     <div id="sync-status" style="display:none;align-items:center;margin-left:4px"></div>
   </div>
@@ -2235,7 +2235,29 @@ var planoChatHistory = state.planoChatHistory || [];
 function getPLANO_SYSTEM() {
   var temPlano = state.plano && state.plano.semanas && state.plano.semanas.length > 0;
 
+  // Calculate today's date and position in plan
+  var diasSemana = ['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
+  var hoje = new Date();
+  var hojeStr = hoje.toLocaleDateString('pt-BR', {weekday:'long', day:'2-digit', month:'2-digit', year:'numeric'});
+  var hojeContexto = 'HOJE: ' + hojeStr;
+
+  // Find which dayKey corresponds to today
+  if (temPlano && state.plano.dataInicio) {
+    var ordemSemana = ['Segunda','Terça','Quarta','Quinta','Sexta','Sábado','Domingo'];
+    var inicio = new Date(state.plano.dataInicio);
+    inicio.setHours(0,0,0,0);
+    hoje.setHours(0,0,0,0);
+    var diffDays = Math.round((hoje - inicio) / 86400000);
+    if (diffDays >= 0) {
+      var semanaNum = Math.floor(diffDays / 7) + 1;
+      var diaNome = diasSemana[new Date().getDay()];
+      hojeContexto += ' — Semana ' + semanaNum + ' do plano, ' + diaNome;
+    }
+  }
+
   return `Você é um personal trainer especializado em periodização, integrado a um app de treino.
+
+${hojeContexto}
 
 ${buildPerfilTexto()}
 
