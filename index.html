@@ -1198,7 +1198,7 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
     <button class="btn" onclick="resetData()" title="Limpar todos os dados e voltar ao padrão">RESET</button>
     <button class="btn" onclick="exportData()">EXPORTAR</button>
     <button class="btn" onclick="importData()">IMPORTAR</button>
-    <span style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);margin-left:4px">v0.8.5.24</span>
+    <span style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);margin-left:4px">v0.8.5.25</span>
     <div id="auth-status" style="display:flex;align-items:center;margin-left:8px"></div>
     <div id="sync-status" style="display:none;align-items:center;margin-left:4px"></div>
   </div>
@@ -1279,6 +1279,13 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
       <div class="perfil-section-title">OUTRAS INFORMAÇÕES</div>
       <div class="perfil-field full"><label>Observações adicionais para a IA</label>
         <textarea id="pf-obs" placeholder="Qualquer outra informação relevante para personalizar o plano..." oninput="savePerfil()"></textarea>
+      </div>
+    </div>
+
+    <div class="perfil-section">
+      <div class="perfil-section-title">REGRAS DE RELOCAMENTO</div>
+      <div class="perfil-field full"><label>Regras para dias perdidos e ausências (se vazio, a IA decide)</label>
+        <textarea id="pf-regras-relocamento" rows="6" placeholder="Ex: 1 dia perdido → sacrificar o segundo D da semana. 2+ dias perdidos → semana seguinte retoma de onde parou. Fila contínua entre semanas..." oninput="savePerfil()"></textarea>
       </div>
     </div>
 
@@ -2119,7 +2126,8 @@ var DEFAULT_PERFIL = {
   estilo: 'Treino explosivo com cargas altas para o porte. Precisa de moderação para evitar novas lesões.',
   aerobico: 'Academia fica a 2.2km de casa (4.4km ida+volta a pé, mesmo ritmo). Esse cardio já está embutido em todo dia de treino. Academia tem equipamentos de cardio disponíveis (não usa atualmente mas pode). Nos dias de descanso/aeróbico, preferir variações concretas: caminhada acelerada, elíptico leve.',
   lesoes: 'Tendão bíceps distal bilateral — APENAS pegada neutra para bíceps, sem exceção. Tendão perna direita — cautela no leg press com carga elevada. Ombro direito: lesão por acidente mecânico (não pelo overhead), overhead press é SEGURO e prioritário. Histórico de treino explosivo — moderar progressão de carga.',
-  obs: ''
+  obs: '',
+  regrasRelocamento: ''
 };
 
 function getApiKey() {
@@ -2184,8 +2192,10 @@ function loadPerfil() {
   if (input && saved) input.value = saved;
   renderTokenUsage();
   var p = state.perfil || DEFAULT_PERFIL;
-  ['altura','peso','idade','pesoobj','objetivos','prioridades','dias','estilo','aerobico','lesoes','obs'].forEach(function(k) {
-    var el = document.getElementById('pf-' + k);
+  ['altura','peso','idade','pesoobj','objetivos','prioridades','dias','estilo','aerobico','lesoes','obs','regrasRelocamento'].forEach(function(k) {
+    var el = document.getElementById('pf-' + k) || document.getElementById('pf-regras-relocamento');
+    if (k === 'regrasRelocamento') el = document.getElementById('pf-regras-relocamento');
+    else el = document.getElementById('pf-' + k);
     if (el) el.value = p[k] || '';
   });
   var fds = document.getElementById('pf-fds');
@@ -2205,7 +2215,8 @@ function savePerfil() {
     estilo: document.getElementById('pf-estilo').value,
     aerobico: document.getElementById('pf-aerobico').value,
     lesoes: document.getElementById('pf-lesoes').value,
-    obs: document.getElementById('pf-obs').value
+    obs: document.getElementById('pf-obs').value,
+    regrasRelocamento: document.getElementById('pf-regras-relocamento').value
   };
   saveState();
 }
@@ -4107,9 +4118,14 @@ function solicitarReplanejamento(dayKey, diaNome, semana, tipo) {
   });
 
   var tipoTexto = tipo === 'ausente' ? 'Nao poderei treinar' : 'Perdi o treino';
+  var regras = (state.perfil && state.perfil.regrasRelocamento) ? state.perfil.regrasRelocamento.trim() : '';
+  var regrasBloco = regras
+    ? '\n\nREGRAS DE RELOCAMENTO (seguir obrigatoriamente):\n' + regras
+    : '';
   var msg = tipoTexto + ' de ' + diaNome + ' (semana ' + semana + ').\n\n' +
-    'Plano atual:\n' + planoDias.join('\n') + '\n\n' +
-    'Consulte as regras de relocamento e periodizacao definidas no meu perfil e proponha o replanejamento correto para os dias seguintes. ' +
+    'Plano atual:\n' + planoDias.join('\n') +
+    regrasBloco + '\n\n' +
+    'Proponha o replanejamento correto para os dias seguintes. ' +
     'Retorne as modificacoes no formato JSON de modificacoes.';
 
   switchTab('ia');
@@ -4118,11 +4134,9 @@ function solicitarReplanejamento(dayKey, diaNome, semana, tipo) {
     if (input) {
       input.value = msg;
       autoResizePlanoInput(input);
-      setTimeout(function() {
-        enviarMensagemPlano();
-      }, 200);
+      enviarMensagemPlano();
     }
-  }, 500);
+  }, 300);
 
   toast('Consultando IA para replanejamento...');
 }
