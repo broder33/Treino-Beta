@@ -1198,7 +1198,7 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
     <button class="btn" onclick="resetData()" title="Limpar todos os dados e voltar ao padrão">RESET</button>
     <button class="btn" onclick="exportData()">EXPORTAR</button>
     <button class="btn" onclick="importData()">IMPORTAR</button>
-    <span style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);margin-left:4px">v0.8.5.22</span>
+    <span style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);margin-left:4px">v0.8.5.24</span>
     <div id="auth-status" style="display:flex;align-items:center;margin-left:8px"></div>
     <div id="sync-status" style="display:none;align-items:center;margin-left:4px"></div>
   </div>
@@ -4064,17 +4064,7 @@ function marcarAusente(dayKey, diaNome, semana) {
   state.plano.diasStatus[dayKey] = 'ausente';
   saveState();
   renderAgendaLinear();
-
-  // Notify AI to replan proactively
-  var msg = 'Já sei que não poderei treinar na ' + diaNome + ' (semana ' + semana + '). Como você sugere ajustar os dias seguintes para compensar?';
-  addPlanoChatMsg('user', msg);
-  // Auto-send to AI
-  var input = document.getElementById('plano-input');
-  if (input) {
-    input.value = msg;
-    enviarMensagemPlano();
-    input.value = '';
-  }
+  solicitarReplanejamento(dayKey, diaNome, semana, 'ausente');
 }
 
 function limparCacheDia(dayKey) {
@@ -4100,74 +4090,43 @@ function marcarDia(dayKey, status) {
 function marcarDiaPerdido(dayKey, diaNome, semana) {
   if (!state.plano.diasStatus) state.plano.diasStatus = {};
   state.plano.diasStatus[dayKey] = 'perdido';
-
-  // Flatten all days into ordered list
-  var todosDias = [];
+  saveState();
+  renderAgendaLinear();
+  solicitarReplanejamento(dayKey, diaNome, semana, 'perdido');
+}
+function solicitarReplanejamento(dayKey, diaNome, semana, tipo) {
+  // Build current plan summary for AI context
+  var diasStatus = state.plano.diasStatus || {};
+  var planoDias = [];
   state.plano.semanas.forEach(function(sem) {
     (sem.dias || sem.agenda || []).forEach(function(d) {
-      todosDias.push({ semana: sem.semana, dia: d, key: 'sem' + sem.semana + '_' + d.dia });
+      var key = 'sem' + sem.semana + '_' + d.dia;
+      var status = diasStatus[key] || 'pendente';
+      planoDias.push('Sem' + sem.semana + ' ' + d.dia + ': ' + (d.serie || 'descanso') + ' [' + status + ']');
     });
   });
 
-  var perdidoIdx = todosDias.findIndex(function(d) { return d.key === dayKey; });
-  if (perdidoIdx === -1 || !todosDias[perdidoIdx].dia.serie || todosDias[perdidoIdx].dia.serie === 'descanso') {
-    saveState(); renderAgendaLinear(); return;
-  }
+  var tipoTexto = tipo === 'ausente' ? 'Nao poderei treinar' : 'Perdi o treino';
+  var msg = tipoTexto + ' de ' + diaNome + ' (semana ' + semana + ').\n\n' +
+    'Plano atual:\n' + planoDias.join('\n') + '\n\n' +
+    'Consulte as regras de relocamento e periodizacao definidas no meu perfil e proponha o replanejamento correto para os dias seguintes. ' +
+    'Retorne as modificacoes no formato JSON de modificacoes.';
 
-  // Shift all workout series forward by 1 from perdidoIdx
-  // The lost day becomes descanso, and each subsequent day gets the previous day's serie
-  var expanded = state.plano.diasExpandidos || {};
-  var newExpanded = Object.assign({}, expanded);
-
-  // Shift from the end back to perdidoIdx to avoid overwrites
-  for (var i = todosDias.length - 1; i > perdidoIdx; i--) {
-    var cur = todosDias[i];
-    var prev = todosDias[i - 1];
-    // Move serie forward
-    cur.dia.serie = prev.dia.serie;
-    cur.dia.tipo = prev.dia.tipo;
-    cur.dia.orientacao = prev.dia.orientacao;
-    // Move expanded treino forward
-    if (newExpanded[prev.key]) {
-      newExpanded[cur.key] = Object.assign({}, newExpanded[prev.key], { _dayKey: cur.key });
-    } else {
-      delete newExpanded[cur.key];
-    }
-  }
-
-  // Lost day becomes descanso
-  todosDias[perdidoIdx].dia.serie = 'descanso';
-  todosDias[perdidoIdx].dia.tipo = 'recuperacao';
-  todosDias[perdidoIdx].dia.orientacao = 'Descanso — treino perdido redistribuído';
-  delete newExpanded[dayKey];
-
-  state.plano.diasExpandidos = newExpanded;
-  saveState();
-  renderAgendaLinear();
-
-  // Now ask AI to handle the overflow at the end of the plan
-  var ultimoDia = todosDias[todosDias.length - 1];
-  var planoDias = todosDias.map(function(d) {
-    return d.dia.dia + ' (sem' + d.semana + '): ' + (d.dia.serie || 'descanso');
-  }).join(', ');
-
-  var msg = 'Perdi o treino de ' + diaNome + ' semana ' + semana + '. ' +
-    'Já redistribuí os treinos automaticamente — todos avançaram um dia. ' +
-    'O último dia do plano (' + ultimoDia.dia.dia + ', semana ' + ultimoDia.semana + ') agora tem série ' + (ultimoDia.dia.serie || 'descanso') + ' mas era para ser descanso. ' +
-    'Agenda atual: ' + planoDias + '. ' +
-    'Como você sugere resolver o overflow no final? Retorne um JSON de replanejamento com os ajustes necessários apenas nos últimos dias.';
-
+  switchTab('ia');
   setTimeout(function() {
     var input = document.getElementById('plano-input');
     if (input) {
       input.value = msg;
-      enviarMensagemPlano();
-      switchTab('ia');
+      autoResizePlanoInput(input);
+      setTimeout(function() {
+        enviarMensagemPlano();
+      }, 200);
     }
-  }, 300);
+  }, 500);
 
-  toast('Treino da ' + diaNome + ' redistribuído — veja sugestão da IA ✓');
+  toast('Consultando IA para replanejamento...');
 }
+
 
 
 function renderPlanoAgenda() {
