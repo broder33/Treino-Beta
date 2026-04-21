@@ -1198,7 +1198,7 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
     <button class="btn" onclick="resetData()" title="Limpar todos os dados e voltar ao padrão">RESET</button>
     <button class="btn" onclick="exportData()">EXPORTAR</button>
     <button class="btn" onclick="importData()">IMPORTAR</button>
-    <span style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);margin-left:4px">v0.8.5.19</span>
+    <span style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);margin-left:4px">v0.8.5.21</span>
     <div id="auth-status" style="display:flex;align-items:center;margin-left:8px"></div>
     <div id="sync-status" style="display:none;align-items:center;margin-left:4px"></div>
   </div>
@@ -4411,6 +4411,7 @@ async function supabaseInit() {
             // First login in this session: load cloud data
             await supabaseLoad();
             render();
+            renderAgendaLinear();
             if (state.planoChatHistory) planoChatHistory = state.planoChatHistory;
             if (state.planoChatMessages && state.planoChatMessages.length) renderPlanoChatMessages();
             if (state.planoRascunho || state.plano) renderPlanoMacro(state.planoRascunho || state.plano);
@@ -4432,6 +4433,7 @@ async function supabaseInit() {
       _supabaseUser = session.user;
       await supabaseLoad();
       render();
+      renderAgendaLinear();
       if (state.planoChatHistory) planoChatHistory = state.planoChatHistory;
       if (state.planoChatMessages && state.planoChatMessages.length) renderPlanoChatMessages();
       if (state.planoRascunho || state.plano) renderPlanoMacro(state.planoRascunho || state.plano);
@@ -4574,7 +4576,7 @@ function formatTS(iso) {
   if (!iso) return '—';
   var d = new Date(iso);
   return d.toLocaleDateString('pt-BR', {day:'2-digit',month:'2-digit'}) + ' às ' +
-    d.toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit'});
+    d.toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit',second:'2-digit'});
 }
 
 async function syncFromCloud() {
