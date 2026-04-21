@@ -1198,7 +1198,7 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
     <button class="btn" onclick="resetData()" title="Limpar todos os dados e voltar ao padrão">RESET</button>
     <button class="btn" onclick="exportData()">EXPORTAR</button>
     <button class="btn" onclick="importData()">IMPORTAR</button>
-    <span style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);margin-left:4px">v0.8.5.25</span>
+    <span style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);margin-left:4px">v0.8.5.26</span>
     <div id="auth-status" style="display:flex;align-items:center;margin-left:8px"></div>
     <div id="sync-status" style="display:none;align-items:center;margin-left:4px"></div>
   </div>
@@ -2127,7 +2127,7 @@ var DEFAULT_PERFIL = {
   aerobico: 'Academia fica a 2.2km de casa (4.4km ida+volta a pé, mesmo ritmo). Esse cardio já está embutido em todo dia de treino. Academia tem equipamentos de cardio disponíveis (não usa atualmente mas pode). Nos dias de descanso/aeróbico, preferir variações concretas: caminhada acelerada, elíptico leve.',
   lesoes: 'Tendão bíceps distal bilateral — APENAS pegada neutra para bíceps, sem exceção. Tendão perna direita — cautela no leg press com carga elevada. Ombro direito: lesão por acidente mecânico (não pelo overhead), overhead press é SEGURO e prioritário. Histórico de treino explosivo — moderar progressão de carga.',
   obs: '',
-  regrasRelocamento: ''
+  regrasRelocamento: 'REGRAS DE RELOCAMENTO DE TREINOS\n\nEstrutura semanal: A, B, C (1x cada) + D (2x) = 5 sessoes, Seg-Sex.\n\nOrdem de sacrificio quando dias sao perdidos: primeiro o segundo D da semana, depois A, B ou C na ordem inversa da semana, e por ultimo o primeiro D (apenas se todos os outros ja foram sacrificados).\n\nQuando um dia e perdido: o segundo D da semana e imediatamente sacrificado. O treino do dia perdido avanca para o proximo dia disponivel. Os demais treinos seguem na sequencia.\n\nQuando 2 ou mais dias sao perdidos: sacrifica-se o segundo D mais o proximo treino ABC na ordem de prioridade. Os treinos restantes avancam continuamente.\n\nLogica de inicio da semana seguinte: se a semana teve D e pelo menos 1 superior (ABC), a semana seguinte comeca com D. Se a semana teve apenas D e nenhum superior, a semana seguinte comeca com superior (ABC). Se a semana teve apenas superior e nenhum D, a semana seguinte comeca com D.\n\nFins de semana: Sabado sem treino por padrao. Treino no Sabado so e possivel se o usuario confirmar disponibilidade explicitamente — nunca marcar treino no Sabado automaticamente. Domingo e aerobico ou descanso, sem treino de forca.\n\nFila continua: a ordem nao reinicia a cada semana, sempre continua de onde parou.'
 };
 
 function getApiKey() {
@@ -3703,6 +3703,7 @@ function renderAgendaLinear() {
       if (status === 'concluido') { tipoLabel = '✓ CONCLUÍDO'; tipoClass = 'tipo-concluido'; }
       else if (status === 'perdido') { tipoLabel = '✕ PERDIDO'; tipoClass = 'tipo-perdido'; }
       else if (status === 'ausente') { tipoLabel = '⚑ AUSÊNCIA PLANEJADA'; tipoClass = 'tipo-perdido'; }
+      else if (status === 'disponivel') { tipoLabel = '✦ DISPONÍVEL'; tipoClass = 'tipo-aerobico'; }
       else if (isRest && tipo === 'aerobico') { tipoLabel = 'AERÓBICO'; tipoClass = 'tipo-aerobico'; }
       else if (isRest) { tipoLabel = 'DESCANSO'; tipoClass = 'tipo-recuperacao'; }
       else { tipoLabel = 'TREINO'; tipoClass = 'tipo-treino'; }
@@ -3727,7 +3728,7 @@ function renderAgendaLinear() {
         }
       }
       var actionsHTML = '<div class="agenda-dia-actions">';
-      if (status === 'pendente' || status === 'ausente') {
+      if (status === 'pendente' || status === 'ausente' || status === 'disponivel') {
         if (!isRest) {
           if (expanded) {
             actionsHTML += '<button class="agenda-action-btn accent3" onclick="reexpandirDia(\'' + dayKey + '\',' + semana.semana + ',\'' + d.dia + '\',\'' + d.serie + '\')">↺ RECRIAR</button>';
@@ -3739,6 +3740,10 @@ function renderAgendaLinear() {
           if (!isRest) actionsHTML += '<button class="agenda-action-btn done" onclick="marcarDia(\'' + dayKey + '\',\'concluido\')">✓ CONCLUÍDO</button>';
           actionsHTML += '<button class="agenda-action-btn danger" onclick="marcarDiaPerdido(\'' + dayKey + '\',\'' + d.dia + '\',' + semana.semana + ')">✕ PERDI ESTE DIA</button>';
           if (!isRest) actionsHTML += '<button class="agenda-action-btn warning" onclick="marcarAusente(\'' + dayKey + '\',\'' + d.dia + '\',' + semana.semana + ')">⚑ NÃO PODEREI TREINAR NESTE DIA</button>';
+          // Sábado: show "VOU TREINAR NESTE DIA" button if not already confirmed
+          if (d.dia === 'Sábado' && status !== 'disponivel') {
+            actionsHTML += '<button class="agenda-action-btn" style="border-color:var(--accent3);color:var(--accent3)" onclick="marcarSabadoDisponivel(\'' + dayKey + '\',\'' + d.dia + '\',' + semana.semana + ')">✦ VOU TREINAR NESTE DIA</button>';
+          }
         } else {
           actionsHTML += '<button class="agenda-action-btn" onclick="marcarDia(\'' + dayKey + '\',\'pendente\')">↺ DESFAZER</button>';
         }
@@ -4105,6 +4110,14 @@ function marcarDiaPerdido(dayKey, diaNome, semana) {
   renderAgendaLinear();
   solicitarReplanejamento(dayKey, diaNome, semana, 'perdido');
 }
+function marcarSabadoDisponivel(dayKey, diaNome, semana) {
+  if (!state.plano.diasStatus) state.plano.diasStatus = {};
+  state.plano.diasStatus[dayKey] = 'disponivel';
+  saveState();
+  renderAgendaLinear();
+  toast('Sábado marcado como disponível para treino ✓');
+}
+
 function solicitarReplanejamento(dayKey, diaNome, semana, tipo) {
   // Build current plan summary for AI context
   var diasStatus = state.plano.diasStatus || {};
@@ -4113,7 +4126,8 @@ function solicitarReplanejamento(dayKey, diaNome, semana, tipo) {
     (sem.dias || sem.agenda || []).forEach(function(d) {
       var key = 'sem' + sem.semana + '_' + d.dia;
       var status = diasStatus[key] || 'pendente';
-      planoDias.push('Sem' + sem.semana + ' ' + d.dia + ': ' + (d.serie || 'descanso') + ' [' + status + ']');
+      var statusLabel = status === 'disponivel' ? 'disponivel para treino' : status;
+      planoDias.push('Sem' + sem.semana + ' ' + d.dia + ': ' + (d.serie || 'descanso') + ' [' + statusLabel + ']');
     });
   });
 
