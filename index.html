@@ -1050,6 +1050,7 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
   }
   .agenda-dia.hoje { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
   .agenda-dia.perdido { border-color: var(--danger); background: rgba(255,68,68,.03); }
+  .agenda-dia.ausente-planejada { border-color: #ff9500; background: rgba(255,149,0,.03); }
   .agenda-dia.concluido { border-color: rgba(57,255,133,.3); background: rgba(57,255,133,.03); }
 
   .agenda-dia-head {
@@ -1086,6 +1087,7 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
   .tipo-aerobico { background: rgba(60,170,255,.1); color: var(--accent3); }
   .tipo-recuperacao { background: rgba(85,85,85,.3); color: var(--muted); }
   .tipo-perdido { background: rgba(255,68,68,.1); color: var(--danger); }
+  .tipo-ausente { background: rgba(255,149,0,.1); color: #ff9500; }
   .tipo-concluido { background: rgba(57,255,133,.1); color: var(--done); }
 
   .agenda-dia-body {
@@ -1198,7 +1200,7 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
     <button class="btn" onclick="resetData()" title="Limpar todos os dados e voltar ao padrão">RESET</button>
     <button class="btn" onclick="exportData()">EXPORTAR</button>
     <button class="btn" onclick="importData()">IMPORTAR</button>
-    <span style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted);margin-left:4px">v0.8.5.32</span>
+    <span style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted);margin-left:4px">v0.8.5.47</span>
     <div id="auth-status" style="display:flex;align-items:center;margin-left:8px"></div>
     <div id="sync-status" style="display:none;align-items:center;margin-left:4px"></div>
   </div>
@@ -1328,12 +1330,6 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
       </div>
     </div>
 
-    <div class="perfil-section">
-      <div class="perfil-section-title">REGRAS DE RELOCAMENTO</div>
-      <div class="perfil-field full"><label>Regras para dias perdidos e ausências (se vazio, a IA decide)</label>
-        <textarea id="pf-regras-relocamento" rows="6" placeholder="Ex: 1 dia perdido → sacrificar o segundo D da semana. 2+ dias perdidos → semana seguinte retoma de onde parou. Fila contínua entre semanas..." oninput="savePerfil()"></textarea>
-      </div>
-    </div>
 
     <div style="padding:0 24px 40px">
       <button class="ai-btn" onclick="salvarPerfil()" style="margin-top:8px">✓ SALVAR PERFIL</button>
@@ -1384,6 +1380,8 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
       <!-- Quick actions -->
       <div style="display:flex;gap:6px;padding:8px 16px 0;flex-wrap:wrap">
         <button onclick="gerarPlanoCompleto()" style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;padding:5px 14px;border-radius:8px;border:1px solid var(--accent);color:var(--accent);background:rgba(232,255,60,.07);cursor:pointer">✦ GERAR PLANO MACRO</button>
+        <button onclick="reorganizarPlanoAPartirDeHoje()" style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;padding:5px 14px;border-radius:8px;border:1px solid var(--done);color:var(--done);background:transparent;cursor:pointer" title="Redistribui os dias futuros seguindo a fila estática, sem alterar o passado">↺ REORGANIZAR A PARTIR DE HOJE</button>
+        <button onclick="desfazerRelocamento()" style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;padding:5px 14px;border-radius:8px;border:1px solid var(--muted);color:var(--muted);background:transparent;cursor:pointer" title="Desfaz a última reorganização ou relocamento">↩ DESFAZER</button>
         <button onclick="enviarPlanoAtual()" style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;padding:5px 14px;border-radius:8px;border:1px solid var(--accent3);color:var(--accent3);background:transparent;cursor:pointer" title="Envia o plano macro atual para a IA">⬡ ENVIAR PLANO ATUAL</button>
         <button onclick="limparChatPlano()" style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;padding:5px 14px;border-radius:8px;border:1px solid var(--border);color:var(--muted);background:transparent;cursor:pointer">↺ NOVA CONVERSA</button>
       </div>
@@ -2173,7 +2171,6 @@ var DEFAULT_PERFIL = {
   aerobico: 'Academia fica a 2.2km de casa (4.4km ida+volta a pé, mesmo ritmo). Esse cardio já está embutido em todo dia de treino. Academia tem equipamentos de cardio disponíveis (não usa atualmente mas pode). Nos dias de descanso/aeróbico, preferir variações concretas: caminhada acelerada, elíptico leve.',
   lesoes: 'Tendão bíceps distal bilateral — APENAS pegada neutra para bíceps, sem exceção. Tendão perna direita — cautela no leg press com carga elevada. Ombro direito: lesão por acidente mecânico (não pelo overhead), overhead press é SEGURO e prioritário. Histórico de treino explosivo — moderar progressão de carga.',
   obs: '',
-  regrasRelocamento: 'REGRAS DE RELOCAMENTO DE TREINOS\n\nEstrutura semanal: A, B, C (1x cada) + D (2x) = 5 sessoes, Seg-Sex.\n\nOrdem de sacrificio quando dias sao perdidos: primeiro o segundo D da semana, depois A, B ou C na ordem inversa da semana, e por ultimo o primeiro D (apenas se todos os outros ja foram sacrificados).\n\nQuando um dia e perdido: o segundo D da semana e imediatamente sacrificado. O treino do dia perdido avanca para o proximo dia disponivel. Os demais treinos seguem na sequencia.\n\nQuando 2 ou mais dias sao perdidos: sacrifica-se o segundo D mais o proximo treino ABC na ordem de prioridade. Os treinos restantes avancam continuamente.\n\nLogica de inicio da semana seguinte: se a semana teve D e pelo menos 1 superior (ABC), a semana seguinte comeca com D. Se a semana teve apenas D e nenhum superior, a semana seguinte comeca com superior (ABC). Se a semana teve apenas superior e nenhum D, a semana seguinte comeca com D.\n\nFins de semana: Sabado sem treino por padrao. Treino no Sabado so e possivel se o usuario confirmar disponibilidade explicitamente — nunca marcar treino no Sabado automaticamente. Domingo e aerobico ou descanso, sem treino de forca.\n\nFila continua: a ordem nao reinicia a cada semana, sempre continua de onde parou.',
   diasCiclo: '20'
 };
 
@@ -2239,10 +2236,8 @@ function loadPerfil() {
   if (input && saved) input.value = saved;
   renderTokenUsage();
   var p = state.perfil || DEFAULT_PERFIL;
-  ['altura','peso','idade','pesoobj','objetivos','prioridades','dias','diasCiclo','estilo','aerobico','lesoes','obs','regrasRelocamento'].forEach(function(k) {
-    var el = document.getElementById('pf-' + k) || document.getElementById('pf-regras-relocamento');
-    if (k === 'regrasRelocamento') el = document.getElementById('pf-regras-relocamento');
-    else el = document.getElementById('pf-' + k);
+  ['altura','peso','idade','pesoobj','objetivos','prioridades','dias','diasCiclo','estilo','aerobico','lesoes','obs'].forEach(function(k) {
+    var el = document.getElementById('pf-' + k);
     if (el) el.value = p[k] || '';
   });
   var fds = document.getElementById('pf-fds');
@@ -2448,80 +2443,149 @@ function getConfigTreino() {
   return (state.perfil && state.perfil.configTreino) || getDefaultConfigTreino();
 }
 
+function desfazerRelocamento() {
+  if (!state.plano._historico || state.plano._historico.length === 0) {
+    toast('Nada para desfazer.');
+    return;
+  }
+  var snapshot = state.plano._historico.pop();
+  var historico = state.plano._historico;
+  console.log('DESFAZER snapshot.diasStatus:', snapshot.diasStatus);
+  console.log('DESFAZER current diasStatus:', state.plano.diasStatus);
+  state.plano.semanas = JSON.parse(JSON.stringify(snapshot.semanas));
+  state.plano.diasStatus = JSON.parse(JSON.stringify(snapshot.diasStatus));
+  state.plano.diasExpandidos = JSON.parse(JSON.stringify(snapshot.diasExpandidos));
+  state.plano._historico = historico;
+  console.log('DESFAZER restored diasStatus:', state.plano.diasStatus);
+  saveState();
+  renderAgendaLinear();
+  toast('Ação desfeita ✓');
+}
+
 function aplicarRelocamento(dayKey, diaNome, semana, tipo) {
   if (!state.plano || !state.plano.semanas) return;
   if (!state.plano.diasStatus) state.plano.diasStatus = {};
 
+  // Save snapshot before modifying (keep last 5)
+  if (!state.plano._historico) state.plano._historico = [];
+  var snapshot = JSON.parse(JSON.stringify({
+    semanas: state.plano.semanas,
+    diasStatus: state.plano.diasStatus,
+    diasExpandidos: state.plano.diasExpandidos || {}
+  }));
+  state.plano._historico.push(snapshot);
+  if (state.plano._historico.length > 5) state.plano._historico.shift();
+
   var cfg = getConfigTreino();
   var diasStatus = state.plano.diasStatus;
-
-  // Mark the day
-  diasStatus[dayKey] = tipo === 'ausente' ? 'ausente' : 'perdido';
-
-  // Find the lost day's serie
-  var seriePerdida = null;
-  state.plano.semanas.forEach(function(sem) {
-    (sem.dias || sem.agenda || []).forEach(function(d) {
-      var k = 'sem' + sem.semana + '_' + d.dia;
-      if (k === dayKey) {
-        seriePerdida = d.serie;
-        // Mark as descanso
-        d.serie = 'descanso';
-        d.tipo = 'recuperacao';
-        d.orientacao = tipo === 'ausente' ? 'Ausencia planejada' : 'Dia perdido';
-        if (state.plano.diasExpandidos) delete state.plano.diasExpandidos[k];
-      }
-    });
-  });
-
-  if (!seriePerdida || seriePerdida === 'descanso') {
-    saveState(); renderAgendaLinear(); return;
-  }
-
-  // Check if lost serie is intercalada
-  var isIntercalada = cfg.intercaladas && cfg.intercaladas.some(function(ic) { return ic.label === seriePerdida; });
-  var intervalo = cfg.intervaloMinimo || 2;
 
   // Build flat list of all days
   var todosDias = [];
   state.plano.semanas.forEach(function(sem) {
     (sem.dias || sem.agenda || []).forEach(function(d) {
-      todosDias.push({ semana: sem.semana, diaNome: d.dia, serie: d.serie, key: 'sem' + sem.semana + '_' + d.dia, diaObj: d, semObj: sem });
+      todosDias.push({
+        semana: sem.semana,
+        diaNome: d.dia,
+        serie: d.serie,
+        key: 'sem' + sem.semana + '_' + d.dia,
+        diaObj: d,
+        semObj: sem
+      });
     });
   });
 
   var perdidoIdx = todosDias.findIndex(function(d) { return d.key === dayKey; });
+  if (perdidoIdx === -1) { saveState(); renderAgendaLinear(); return; }
 
-  // If intercalada (D): just push to next valid slot respecting interval
-  // If fila principal (ABC): push to next slot, the queue position advances automatically
+  var seriePerdida = todosDias[perdidoIdx].diaObj.serie;
+
+  // Mark the day as descanso
+  diasStatus[dayKey] = tipo === 'ausente' ? 'ausente' : 'perdido';
+  todosDias[perdidoIdx].diaObj.serie = 'descanso';
+  todosDias[perdidoIdx].diaObj.tipo = 'recuperacao';
+  todosDias[perdidoIdx].diaObj.orientacao = tipo === 'ausente' ? 'Ausencia planejada' : 'Dia perdido';
+  if (state.plano.diasExpandidos) delete state.plano.diasExpandidos[dayKey];
+
+  if (!seriePerdida || seriePerdida === 'descanso') {
+    saveState(); renderAgendaLinear(); return;
+  }
+
+  var intervalo = cfg.intervaloMinimo || 2;
+  var diasCiclo = (state.perfil && state.perfil.diasCiclo) ? parseInt(state.perfil.diasCiclo) : 20;
+
+  // Track last occurrence of seriePerdida before perdidoIdx for interval check
   var ultimaOcorrencia = -999;
-  for (var j = 0; j <= perdidoIdx; j++) {
-    if (todosDias[j].serie === seriePerdida && diasStatus[todosDias[j].key] !== 'perdido' && diasStatus[todosDias[j].key] !== 'ausente') {
+  for (var j = 0; j < perdidoIdx; j++) {
+    var dd = todosDias[j];
+    if (dd.diaObj.serie === seriePerdida &&
+        diasStatus[dd.key] !== 'perdido' &&
+        diasStatus[dd.key] !== 'ausente') {
       ultimaOcorrencia = j;
     }
   }
 
-  var slotEncontrado = null;
+  // Find first valid slot after perdidoIdx (skip Domingo, Sabado unless disponivel, respect interval)
+  var slotIdx = null;
   for (var k = perdidoIdx + 1; k < todosDias.length; k++) {
     var candidato = todosDias[k];
     if (candidato.diaNome === 'Domingo') continue;
     if (candidato.diaNome === 'Sábado' && diasStatus[candidato.key] !== 'disponivel') continue;
-    if (candidato.serie !== 'descanso') continue;
     if ((k - ultimaOcorrencia) <= intervalo) continue;
-    slotEncontrado = k;
+    slotIdx = k;
     break;
   }
 
-  if (slotEncontrado !== null) {
-    var slot = todosDias[slotEncontrado];
-    slot.diaObj.serie = seriePerdida;
-    slot.diaObj.tipo = 'treino';
-    slot.diaObj.orientacao = 'Treino realocado de ' + diaNome;
-    if (state.plano.diasExpandidos) delete state.plano.diasExpandidos[slot.key];
-    toast('Treino ' + seriePerdida + ' de ' + diaNome + ' realocado para ' + slot.diaNome + ' ✓');
+  if (slotIdx !== null) {
+    // SHIFT: insert seriePerdida at slotIdx, pushing all subsequent series forward by one slot
+    var serieAtual = seriePerdida;
+    var tipoAtual = 'treino';
+    var orientacaoAtual = 'Treino ' + seriePerdida + ' realocado de ' + diaNome;
+    var serieOverflow = null;
+    var tipoOverflow = null;
+    var absorbed = false;
+    for (var s = slotIdx; s < todosDias.length; s++) {
+      var dia = todosDias[s];
+      if (dia.diaNome === 'Domingo') continue;
+      if (dia.diaNome === 'Sábado' && diasStatus[dia.key] !== 'disponivel') continue;
+      var proxSerie = dia.diaObj.serie;
+      var proxTipo = dia.diaObj.tipo;
+      var proxOrientacao = dia.diaObj.orientacao;
+      dia.diaObj.serie = serieAtual;
+      dia.diaObj.tipo = tipoAtual;
+      dia.diaObj.orientacao = orientacaoAtual;
+      if (state.plano.diasExpandidos) delete state.plano.diasExpandidos[dia.key];
+      if (!proxSerie || proxSerie === 'descanso') { absorbed = true; break; } // absorbed into empty slot
+      serieAtual = proxSerie;
+      tipoAtual = proxTipo;
+      orientacaoAtual = proxOrientacao;
+    }
+    // If loop ended without being absorbed, the last series fell off the end
+    if (!absorbed) {
+      serieOverflow = serieAtual;
+      tipoOverflow = tipoAtual;
+    }
+    // If series fell off end of plan, add new week
+    if (serieOverflow) {
+      var ultimaSemana = state.plano.semanas[state.plano.semanas.length - 1];
+      var novosDias = ['Segunda','Terça','Quarta','Quinta','Sexta','Sábado','Domingo'].map(function(dia) {
+        return { dia: dia, serie: 'descanso', tipo: 'recuperacao', orientacao: '' };
+      });
+      novosDias[0].serie = serieOverflow;
+      novosDias[0].tipo = tipoOverflow || 'treino';
+      novosDias[0].orientacao = 'Treino realocado do final do plano';
+      state.plano.semanas.push({
+        semana: ultimaSemana.semana + 1,
+        foco: ultimaSemana.foco || '',
+        intensidade: ultimaSemana.intensidade || '',
+        progressao: ultimaSemana.progressao || '',
+        dias: novosDias
+      });
+      toast('Treino ' + seriePerdida + ' realocado — semana ' + (ultimaSemana.semana + 1) + ' adicionada ✓');
+    } else {
+      toast('Treino ' + seriePerdida + ' de ' + diaNome + ' realocado ✓');
+    }
   } else {
-    // Overflow — extend plan
-    var diasCiclo = (state.perfil && state.perfil.diasCiclo) ? parseInt(state.perfil.diasCiclo) : 20;
+    // No valid slot found at all — extend plan
     var totalTreinos = 0;
     state.plano.semanas.forEach(function(sem) {
       (sem.dias || sem.agenda || []).forEach(function(d) {
@@ -2536,7 +2600,7 @@ function aplicarRelocamento(dayKey, diaNome, semana, tipo) {
       });
       novosDias[0].serie = seriePerdida;
       novosDias[0].tipo = 'treino';
-      novosDias[0].orientacao = 'Treino realocado de ' + diaNome;
+      novosDias[0].orientacao = 'Treino ' + seriePerdida + ' realocado de ' + diaNome;
       state.plano.semanas.push({
         semana: ultimaSemana.semana + 1,
         foco: ultimaSemana.foco || '',
@@ -2568,7 +2632,6 @@ function savePerfil() {
     aerobico: document.getElementById('pf-aerobico').value,
     lesoes: document.getElementById('pf-lesoes').value,
     obs: document.getElementById('pf-obs').value,
-    regrasRelocamento: document.getElementById('pf-regras-relocamento').value,
     diasCiclo: document.getElementById('pf-diasCiclo').value
   };
   saveState();
@@ -2703,6 +2766,139 @@ function enviarPlanoAtual() {
     input.value = 'Plano macro atual:\n\n' + linhas;
     input.focus();
   }
+}
+
+function reorganizarPlanoAPartirDeHoje() {
+  if (!state.plano || !state.plano.semanas) {
+    toast('Nenhum plano ativo.');
+    return;
+  }
+
+  // Save snapshot
+  if (!state.plano._historico) state.plano._historico = [];
+  state.plano._historico.push(JSON.parse(JSON.stringify({
+    semanas: state.plano.semanas,
+    diasStatus: state.plano.diasStatus || {},
+    diasExpandidos: state.plano.diasExpandidos || {}
+  })));
+  if (state.plano._historico.length > 5) state.plano._historico.shift();
+
+  var cfg = getConfigTreino();
+  var diasStatus = state.plano.diasStatus || {};
+
+  // Flatten all days
+  var todosDias = [];
+  state.plano.semanas.forEach(function(sem) {
+    (sem.dias || sem.agenda || []).forEach(function(d) {
+      todosDias.push({
+        key: 'sem' + sem.semana + '_' + d.dia,
+        diaNome: d.dia,
+        semana: sem.semana,
+        diaObj: d
+      });
+    });
+  });
+
+  // Find last concluded treino and what serie it was
+  var ultimaSerieConc = null;
+  var ultimoConcluidoIdx = -1;
+  for (var i = 0; i < todosDias.length; i++) {
+    var d = todosDias[i];
+    if (diasStatus[d.key] === 'concluido' && d.diaObj.serie && d.diaObj.serie !== 'descanso') {
+      ultimoConcluidoIdx = i;
+      ultimaSerieConc = d.diaObj.serie;
+    }
+  }
+
+  // Generate static queue — just enough entries
+  var diasCiclo = (state.perfil && state.perfil.diasCiclo) ? parseInt(state.perfil.diasCiclo) : 20;
+  var filaCompleta = gerarFilaEstatica(cfg, diasCiclo + 20);
+
+  // Find the FIRST occurrence of ultimaSerieConc in the queue
+  // and start from the NEXT position — not the last occurrence
+  var posInicio = 0;
+  if (ultimaSerieConc) {
+    for (var f = 0; f < filaCompleta.length; f++) {
+      if (filaCompleta[f] === ultimaSerieConc) {
+        posInicio = f + 1;
+        break; // use first match, not last
+      }
+    }
+  }
+
+  // Find first future day to reorganize — skip concluded, perdido, ausente
+  var primeiroFuturoIdx = ultimoConcluidoIdx + 1;
+
+  // Calculate today's date for past-day protection
+  var hoje = new Date(); hoje.setHours(0,0,0,0);
+  var dataInicio = state.plano.dataInicio ? new Date(state.plano.dataInicio) : null;
+  if (dataInicio) dataInicio.setHours(0,0,0,0);
+  var ordemDias = ['Segunda','Terça','Quarta','Quinta','Sexta','Sábado','Domingo'];
+
+  function getDayDate(semanaNum, diaNome) {
+    if (!dataInicio) return null;
+    var diaIdx = ordemDias.indexOf(diaNome);
+    if (diaIdx === -1) return null;
+    var d = new Date(dataInicio);
+    d.setDate(dataInicio.getDate() + (semanaNum - 1) * 7 + diaIdx);
+    return d;
+  }
+
+  // Reassign future training days using the queue
+  // Only touch days that are: pendente and not in the past
+  var filaPosicao = posInicio;
+  // Count already-concluded treinos to respect diasCiclo
+  var treinosContados = 0;
+  todosDias.forEach(function(d) {
+    if ((diasStatus[d.key] === 'concluido') && d.diaObj.serie && d.diaObj.serie !== 'descanso') treinosContados++;
+  });
+
+  for (var j = primeiroFuturoIdx; j < todosDias.length; j++) {
+    var dia = todosDias[j];
+    var status = diasStatus[dia.key] || 'pendente';
+
+    // Never touch concluded, explicitly lost, or ausente days
+    if (status === 'concluido' || status === 'perdido' || status === 'ausente') continue;
+
+    // Never touch past days
+    var diaDate = getDayDate(dia.semana, dia.diaNome);
+    if (diaDate && diaDate < hoje) continue;
+
+    // Domingo: always descanso
+    if (dia.diaNome === 'Domingo') {
+      dia.diaObj.serie = 'descanso';
+      dia.diaObj.tipo = 'recuperacao';
+      dia.diaObj.orientacao = dia.diaObj.orientacao || '';
+      continue;
+    }
+
+    // Sábado: only if disponivel
+    if (dia.diaNome === 'Sábado' && status !== 'disponivel') {
+      dia.diaObj.serie = 'descanso';
+      dia.diaObj.tipo = 'recuperacao';
+      continue;
+    }
+
+    // Assign next serie from queue, respecting diasCiclo limit
+    if (filaPosicao < filaCompleta.length && treinosContados < diasCiclo) {
+      var novaSerie = filaCompleta[filaPosicao++];
+      dia.diaObj.serie = novaSerie;
+      dia.diaObj.tipo = 'treino';
+      dia.diaObj.orientacao = '';
+      diasStatus[dia.key] = 'pendente';
+      if (state.plano.diasExpandidos) delete state.plano.diasExpandidos[dia.key];
+      treinosContados++;
+    } else {
+      dia.diaObj.serie = 'descanso';
+      dia.diaObj.tipo = 'recuperacao';
+      dia.diaObj.orientacao = '';
+    }
+  }
+
+  state.plano.diasStatus = diasStatus;
+  saveState();
+  renderAgendaLinear();
+  toast('Plano reorganizado a partir de hoje ✓');
 }
 
 function gerarPlanoCompleto() {
@@ -4047,12 +4243,12 @@ function renderAgendaLinear() {
       if (isDiaHoje && status === 'pendente') cardClass += ' hoje';
       if (status === 'perdido') cardClass += ' perdido';
       if (status === 'concluido') cardClass += ' concluido';
-      if (status === 'ausente') cardClass += ' perdido';
+      if (status === 'ausente') cardClass += ' ausente-planejada';
 
       let tipoLabel = '', tipoClass = '';
       if (status === 'concluido') { tipoLabel = '✓ CONCLUÍDO'; tipoClass = 'tipo-concluido'; }
       else if (status === 'perdido') { tipoLabel = '✕ PERDIDO'; tipoClass = 'tipo-perdido'; }
-      else if (status === 'ausente') { tipoLabel = '⚑ AUSÊNCIA PLANEJADA'; tipoClass = 'tipo-perdido'; }
+      else if (status === 'ausente') { tipoLabel = '⚑ AUSÊNCIA PLANEJADA'; tipoClass = 'tipo-ausente'; }
       else if (status === 'disponivel') { tipoLabel = '✦ DISPONÍVEL'; tipoClass = 'tipo-aerobico'; }
       else if (isRest && tipo === 'aerobico') { tipoLabel = 'AERÓBICO'; tipoClass = 'tipo-aerobico'; }
       else if (isRest) { tipoLabel = 'DESCANSO'; tipoClass = 'tipo-recuperacao'; }
@@ -4077,6 +4273,20 @@ function renderAgendaLinear() {
           exHTML = '';
         }
       }
+      // Determine if this day is in the past
+      var isDiaPast = false;
+      if (state.plano.dataInicio) {
+        var _ordemDias = ['Segunda','Terça','Quarta','Quinta','Sexta','Sábado','Domingo'];
+        var _inicio = new Date(state.plano.dataInicio); _inicio.setHours(0,0,0,0);
+        var _hoje = new Date(); _hoje.setHours(0,0,0,0);
+        var _diaIdx = _ordemDias.indexOf(d.dia);
+        if (_diaIdx !== -1) {
+          var _diaDate = new Date(_inicio);
+          _diaDate.setDate(_inicio.getDate() + (semana.semana - 1) * 7 + _diaIdx);
+          isDiaPast = _diaDate < _hoje;
+        }
+      }
+
       var actionsHTML = '<div class="agenda-dia-actions">';
       if (status === 'pendente' || status === 'ausente' || status === 'disponivel') {
         if (!isRest) {
@@ -4087,18 +4297,27 @@ function renderAgendaLinear() {
           }
         }
         if (status !== 'ausente') {
-          if (!isRest) actionsHTML += '<button class="agenda-action-btn done" onclick="marcarDia(\'' + dayKey + '\',\'concluido\')">✓ CONCLUÍDO</button>';
+          if (!isRest && !isDiaPast) actionsHTML += '<button class="agenda-action-btn done" onclick="marcarDia(\'' + dayKey + '\',\'concluido\')">✓ CONCLUÍDO</button>';
           actionsHTML += '<button class="agenda-action-btn danger" onclick="marcarDiaPerdido(\'' + dayKey + '\',\'' + d.dia + '\',' + semana.semana + ')">✕ PERDI ESTE DIA</button>';
-          if (!isRest) actionsHTML += '<button class="agenda-action-btn warning" onclick="marcarAusente(\'' + dayKey + '\',\'' + d.dia + '\',' + semana.semana + ')">⚑ NÃO PODEREI TREINAR NESTE DIA</button>';
+          if (isDiaPast) {
+            actionsHTML += '<button class="agenda-action-btn warning" onclick="marcarAusente(\'' + dayKey + '\',\'' + d.dia + '\',' + semana.semana + ')">⚑ PERDA PROGRAMADA</button>';
+            actionsHTML += '<button class="agenda-action-btn" onclick="marcarDiaDescansoNeutro(\'' + dayKey + '\')">○ MARCAR COMO DESCANSO</button>';
+          } else {
+            actionsHTML += '<button class="agenda-action-btn warning" onclick="marcarAusente(\'' + dayKey + '\',\'' + d.dia + '\',' + semana.semana + ')">⚑ NÃO PODEREI TREINAR NESTE DIA</button>';
+          }
           // Sábado: show "VOU TREINAR NESTE DIA" button if not already confirmed
-          if (d.dia === 'Sábado' && status !== 'disponivel') {
+          if (d.dia === 'Sábado' && status !== 'disponivel' && !isDiaPast) {
             actionsHTML += '<button class="agenda-action-btn" style="border-color:var(--accent3);color:var(--accent3)" onclick="marcarSabadoDisponivel(\'' + dayKey + '\',\'' + d.dia + '\',' + semana.semana + ')">✦ VOU TREINAR NESTE DIA</button>';
           }
         } else {
-          actionsHTML += '<button class="agenda-action-btn" onclick="marcarDia(\'' + dayKey + '\',\'pendente\')">↺ DESFAZER</button>';
+          actionsHTML += '<button class="agenda-action-btn" onclick="marcarDia(\'' + dayKey + '\',\'perdido\')">↺ DESFAZER AUSÊNCIA</button>';
         }
+      } else if (status === 'perdido') {
+        // Past lost day — allow changing to ausente or descanso
+        actionsHTML += '<button class="agenda-action-btn warning" onclick="marcarAusente(\'' + dayKey + '\',\'' + d.dia + '\',' + semana.semana + ')">⚑ PERDA PROGRAMADA</button>';
+        actionsHTML += '<button class="agenda-action-btn" onclick="marcarDiaDescansoNeutro(\'' + dayKey + '\')">○ MARCAR COMO DESCANSO</button>';
       } else {
-        actionsHTML += '<button class="agenda-action-btn" onclick="marcarDia(\'' + dayKey + '\',\'pendente\')">↺ DESFAZER</button>';
+        actionsHTML += '<button class="agenda-action-btn" onclick="desfazerRelocamento()">↺ DESFAZER</button>';
       }
       actionsHTML += '</div>';
 
@@ -4452,6 +4671,26 @@ function marcarDia(dayKey, status) {
 function marcarDiaPerdido(dayKey, diaNome, semana) {
   aplicarRelocamento(dayKey, diaNome, semana, 'perdido');
 }
+function marcarDiaDescansoNeutro(dayKey) {
+  if (!state.plano.diasStatus) state.plano.diasStatus = {};
+  state.plano.diasStatus[dayKey] = 'pendente';
+  // Mark the day as descanso without triggering relocation
+  state.plano.semanas.forEach(function(sem) {
+    (sem.dias || sem.agenda || []).forEach(function(d) {
+      var k = 'sem' + sem.semana + '_' + d.dia;
+      if (k === dayKey) {
+        d.serie = 'descanso';
+        d.tipo = 'recuperacao';
+        d.orientacao = 'Descanso';
+        if (state.plano.diasExpandidos) delete state.plano.diasExpandidos[k];
+      }
+    });
+  });
+  saveState();
+  renderAgendaLinear();
+  toast('Dia marcado como descanso ✓');
+}
+
 function marcarSabadoDisponivel(dayKey, diaNome, semana) {
   if (!state.plano.diasStatus) state.plano.diasStatus = {};
   state.plano.diasStatus[dayKey] = 'disponivel';
@@ -4474,10 +4713,7 @@ function solicitarReplanejamento(dayKey, diaNome, semana, tipo) {
   });
 
   var tipoTexto = tipo === 'ausente' ? 'Nao poderei treinar' : 'Perdi o treino';
-  var regras = (state.perfil && state.perfil.regrasRelocamento) ? state.perfil.regrasRelocamento.trim() : '';
-  var regrasBloco = regras
-    ? '\n\nREGRAS DE RELOCAMENTO (seguir obrigatoriamente):\n' + regras
-    : '';
+  var regrasBloco = '';
   var msg = tipoTexto + ' de ' + diaNome + ' (semana ' + semana + ').\n\n' +
     'Plano atual:\n' + planoDias.join('\n') +
     regrasBloco + '\n\n' +
@@ -5232,7 +5468,7 @@ loadPersistedState(function() {
   // Request persistent storage to prevent Android Chrome from clearing localStorage
   if (navigator.storage && navigator.storage.persist) {
     navigator.storage.persist().then(function(granted) {
-      console.log('Persistent storage:', granted ? 'granted' : 'not granted');
+
     });
   }
 
@@ -5252,7 +5488,7 @@ loadPersistedState(function() {
           });
         });
       }).catch(function(err) {
-        console.log('Service Worker falhou:', err);
+        console.warn('Service Worker falhou:', err);
       });
       // Reload when SW controller changes
       navigator.serviceWorker.addEventListener('controllerchange', function() {
