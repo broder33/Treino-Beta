@@ -1200,7 +1200,7 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
     <button class="btn" onclick="resetData()" title="Limpar todos os dados e voltar ao padrão">RESET</button>
     <button class="btn" onclick="exportData()">EXPORTAR</button>
     <button class="btn" onclick="importData()">IMPORTAR</button>
-    <span style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted);margin-left:4px">v0.8.5.50</span>
+    <span style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted);margin-left:4px">v0.8.5.57</span>
     <div id="auth-status" style="display:flex;align-items:center;margin-left:8px"></div>
     <div id="sync-status" style="display:none;align-items:center;margin-left:4px"></div>
   </div>
@@ -1379,11 +1379,12 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
 
       <!-- Quick actions -->
       <div style="display:flex;gap:6px;padding:8px 16px 0;flex-wrap:wrap">
-        <button onclick="gerarPlanoCompleto()" style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;padding:5px 14px;border-radius:8px;border:1px solid var(--accent);color:var(--accent);background:rgba(232,255,60,.07);cursor:pointer">✦ GERAR PLANO MACRO</button>
-        <button onclick="reorganizarPlanoAPartirDeHoje()" style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;padding:5px 14px;border-radius:8px;border:1px solid var(--done);color:var(--done);background:transparent;cursor:pointer" title="Redistribui os dias futuros seguindo a fila estática, sem alterar o passado">↺ REORGANIZAR A PARTIR DE HOJE</button>
-        <button onclick="desfazerRelocamento()" style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;padding:5px 14px;border-radius:8px;border:1px solid var(--muted);color:var(--muted);background:transparent;cursor:pointer" title="Desfaz a última reorganização ou relocamento">↩ DESFAZER</button>
-        <button onclick="enviarPlanoAtual()" style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;padding:5px 14px;border-radius:8px;border:1px solid var(--accent3);color:var(--accent3);background:transparent;cursor:pointer" title="Envia o plano macro atual para a IA">⬡ ENVIAR PLANO ATUAL</button>
-        <button onclick="limparChatPlano()" style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;padding:5px 14px;border-radius:8px;border:1px solid var(--border);color:var(--muted);background:transparent;cursor:pointer">↺ NOVA CONVERSA</button>
+        <button onclick="gerarPlanoCompleto()" style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;padding:5px 14px;border-radius:8px;border:1px solid var(--accent);color:var(--accent);background:rgba(232,255,60,.07);cursor:pointer" title="Cria um plano macro completo do zero com base no seu perfil. Use apenas quando não há plano ativo ou quer recomeçar.">✦ GERAR PLANO MACRO</button>
+        <button onclick="reorganizarPlanoAPartirDeHoje()" style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;padding:5px 14px;border-radius:8px;border:1px solid var(--done);color:var(--done);background:transparent;cursor:pointer" title="Redistribui os dias futuros seguindo a fila estática de séries, sem alterar treinos já concluídos ou passados.">↺ REORGANIZAR A PARTIR DE HOJE</button>
+        <button onclick="gerarOrientacoesDiasFuturos()" style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;padding:5px 14px;border-radius:8px;border:1px solid var(--accent);color:var(--accent);background:transparent;cursor:pointer" title="Pede à IA para gerar orientações de periodização para todos os dias futuros do plano reorganizado. Use após reorganizar.">✦ GERAR ORIENTAÇÕES</button>
+        <button onclick="desfazerRelocamento()" style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;padding:5px 14px;border-radius:8px;border:1px solid var(--muted);color:var(--muted);background:transparent;cursor:pointer" title="Desfaz a última ação de relocamento ou reorganização. Suporta até 5 níveis.">↩ DESFAZER</button>
+        <button onclick="enviarPlanoAtual()" style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;padding:5px 14px;border-radius:8px;border:1px solid var(--accent3);color:var(--accent3);background:transparent;cursor:pointer" title="Envia o plano atual completo para o chat da IA para análise ou modificações manuais.">⬡ ENVIAR PLANO ATUAL</button>
+        <button onclick="limparChatPlano()" style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;padding:5px 14px;border-radius:8px;border:1px solid var(--border);color:var(--muted);background:transparent;cursor:pointer" title="Limpa o histórico do chat com a IA. Use quando o chat estiver longo ou com erros de contexto.">↺ NOVA CONVERSA</button>
       </div>
 
       <!-- Input row -->
@@ -2450,14 +2451,10 @@ function desfazerRelocamento() {
   }
   var snapshot = state.plano._historico.pop();
   var historico = state.plano._historico;
-  console.log('DESFAZER snapshot.diasStatus:', snapshot.diasStatus);
-  console.log('DESFAZER current diasStatus:', state.plano.diasStatus);
   state.plano.semanas = JSON.parse(JSON.stringify(snapshot.semanas));
   state.plano.diasStatus = JSON.parse(JSON.stringify(snapshot.diasStatus));
   state.plano.diasExpandidos = JSON.parse(JSON.stringify(snapshot.diasExpandidos));
   state.plano._historico = historico;
-  console.log('DESFAZER diasExpandidos keys:', Object.keys(state.plano.diasExpandidos || {}));
-  console.log('DESFAZER snapshot diasExpandidos keys:', Object.keys(snapshot.diasExpandidos || {}));
   saveState();
   renderAgendaLinear();
   toast('Ação desfeita ✓');
@@ -2500,6 +2497,11 @@ function aplicarRelocamento(dayKey, diaNome, semana, tipo) {
 
   var seriePerdida = todosDias[perdidoIdx].diaObj.serie;
 
+  // Save expanded treino before deleting — will carry forward in shift
+  var expandidoPerdido = (state.plano.diasExpandidos && state.plano.diasExpandidos[dayKey])
+    ? JSON.parse(JSON.stringify(state.plano.diasExpandidos[dayKey]))
+    : null;
+
   // Mark the day as descanso
   diasStatus[dayKey] = tipo === 'ausente' ? 'ausente' : 'perdido';
   todosDias[perdidoIdx].diaObj.serie = 'descanso';
@@ -2541,7 +2543,7 @@ function aplicarRelocamento(dayKey, diaNome, semana, tipo) {
     var serieAtual = seriePerdida;
     var tipoAtual = 'treino';
     var orientacaoAtual = 'Treino ' + seriePerdida + ' realocado de ' + diaNome;
-    var expandidoAtual = null; // carry expanded treino along with series
+    var expandidoAtual = expandidoPerdido; // carry the lost day's expanded treino forward
     var serieOverflow = null;
     var tipoOverflow = null;
     var absorbed = false;
@@ -2909,6 +2911,61 @@ function reorganizarPlanoAPartirDeHoje() {
   saveState();
   renderAgendaLinear();
   toast('Plano reorganizado a partir de hoje ✓');
+}
+
+function gerarOrientacoesDiasFuturos() {
+  if (!state.plano || !state.plano.semanas) {
+    toast('Nenhum plano ativo.');
+    return;
+  }
+
+  var diasStatus = state.plano.diasStatus || {};
+  var hoje = new Date(); hoje.setHours(0,0,0,0);
+  var ordemDias = ['Segunda','Terça','Quarta','Quinta','Sexta','Sábado','Domingo'];
+  var dataInicio = state.plano.dataInicio ? new Date(state.plano.dataInicio) : null;
+  if (dataInicio) dataInicio.setHours(0,0,0,0);
+
+  // Build list of future pending training days
+  var diasFuturos = [];
+  state.plano.semanas.forEach(function(sem) {
+    (sem.dias || sem.agenda || []).forEach(function(d) {
+      var key = 'sem' + sem.semana + '_' + d.dia;
+      var status = diasStatus[key] || 'pendente';
+      if (status === 'concluido' || status === 'perdido' || status === 'ausente') return;
+      if (d.serie === 'descanso' || !d.serie) return;
+      // Check if future
+      if (dataInicio) {
+        var diaIdx = ordemDias.indexOf(d.dia);
+        if (diaIdx !== -1) {
+          var diaDate = new Date(dataInicio);
+          diaDate.setDate(dataInicio.getDate() + (sem.semana - 1) * 7 + diaIdx);
+          if (diaDate < hoje) return;
+        }
+      }
+      diasFuturos.push('Semana ' + sem.semana + ', ' + d.dia + ': Série ' + d.serie);
+    });
+  });
+
+  if (diasFuturos.length === 0) {
+    toast('Nenhum dia futuro pendente encontrado.');
+    return;
+  }
+
+  var msg = 'Gere orientações de periodização para os seguintes dias futuros do plano:\n\n' +
+    diasFuturos.join('\n') + '\n\n' +
+    'Para cada dia, defina: foco do treino, intensidade, orientações específicas de execução e exercícios de core recomendados. ' +
+    'Considere a progressão entre semanas e as restrições do perfil. ' +
+    'Retorne no formato JSON de modificacoes.';
+
+  switchTab('ia');
+  setTimeout(function() {
+    var input = document.getElementById('plano-input');
+    if (input) {
+      input.value = msg;
+      autoResizePlanoInput(input);
+      enviarMensagemPlano();
+    }
+  }, 300);
 }
 
 function gerarPlanoCompleto() {
@@ -5478,7 +5535,6 @@ loadPersistedState(function() {
   // Request persistent storage to prevent Android Chrome from clearing localStorage
   if (navigator.storage && navigator.storage.persist) {
     navigator.storage.persist().then(function(granted) {
-
     });
   }
 
