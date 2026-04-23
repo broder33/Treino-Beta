@@ -1200,7 +1200,7 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
     <button class="btn" onclick="resetData()" title="Limpar todos os dados e voltar ao padrão">RESET</button>
     <button class="btn" onclick="exportData()">EXPORTAR</button>
     <button class="btn" onclick="importData()">IMPORTAR</button>
-    <span style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted);margin-left:4px">v0.8.5.47</span>
+    <span style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted);margin-left:4px">v0.8.5.50</span>
     <div id="auth-status" style="display:flex;align-items:center;margin-left:8px"></div>
     <div id="sync-status" style="display:none;align-items:center;margin-left:4px"></div>
   </div>
@@ -2456,7 +2456,8 @@ function desfazerRelocamento() {
   state.plano.diasStatus = JSON.parse(JSON.stringify(snapshot.diasStatus));
   state.plano.diasExpandidos = JSON.parse(JSON.stringify(snapshot.diasExpandidos));
   state.plano._historico = historico;
-  console.log('DESFAZER restored diasStatus:', state.plano.diasStatus);
+  console.log('DESFAZER diasExpandidos keys:', Object.keys(state.plano.diasExpandidos || {}));
+  console.log('DESFAZER snapshot diasExpandidos keys:', Object.keys(snapshot.diasExpandidos || {}));
   saveState();
   renderAgendaLinear();
   toast('Ação desfeita ✓');
@@ -2540,6 +2541,7 @@ function aplicarRelocamento(dayKey, diaNome, semana, tipo) {
     var serieAtual = seriePerdida;
     var tipoAtual = 'treino';
     var orientacaoAtual = 'Treino ' + seriePerdida + ' realocado de ' + diaNome;
+    var expandidoAtual = null; // carry expanded treino along with series
     var serieOverflow = null;
     var tipoOverflow = null;
     var absorbed = false;
@@ -2550,14 +2552,22 @@ function aplicarRelocamento(dayKey, diaNome, semana, tipo) {
       var proxSerie = dia.diaObj.serie;
       var proxTipo = dia.diaObj.tipo;
       var proxOrientacao = dia.diaObj.orientacao;
+      var proxExpandido = state.plano.diasExpandidos ? (state.plano.diasExpandidos[dia.key] || null) : null;
       dia.diaObj.serie = serieAtual;
       dia.diaObj.tipo = tipoAtual;
       dia.diaObj.orientacao = orientacaoAtual;
-      if (state.plano.diasExpandidos) delete state.plano.diasExpandidos[dia.key];
+      // Move expanded treino to this slot
+      if (!state.plano.diasExpandidos) state.plano.diasExpandidos = {};
+      if (expandidoAtual) {
+        state.plano.diasExpandidos[dia.key] = Object.assign({}, expandidoAtual, { _dayKey: dia.key });
+      } else {
+        delete state.plano.diasExpandidos[dia.key];
+      }
       if (!proxSerie || proxSerie === 'descanso') { absorbed = true; break; } // absorbed into empty slot
       serieAtual = proxSerie;
       tipoAtual = proxTipo;
       orientacaoAtual = proxOrientacao;
+      expandidoAtual = proxExpandido;
     }
     // If loop ended without being absorbed, the last series fell off the end
     if (!absorbed) {
@@ -4310,7 +4320,7 @@ function renderAgendaLinear() {
             actionsHTML += '<button class="agenda-action-btn" style="border-color:var(--accent3);color:var(--accent3)" onclick="marcarSabadoDisponivel(\'' + dayKey + '\',\'' + d.dia + '\',' + semana.semana + ')">✦ VOU TREINAR NESTE DIA</button>';
           }
         } else {
-          actionsHTML += '<button class="agenda-action-btn" onclick="marcarDia(\'' + dayKey + '\',\'perdido\')">↺ DESFAZER AUSÊNCIA</button>';
+          actionsHTML += '<button class="agenda-action-btn" onclick="desfazerRelocamento()">↺ DESFAZER AUSÊNCIA</button>';
         }
       } else if (status === 'perdido') {
         // Past lost day — allow changing to ausente or descanso
