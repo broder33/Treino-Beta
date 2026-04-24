@@ -196,7 +196,7 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
   .exercise-list {
     padding: 0 24px;
     display: grid;
-    grid-template-columns: 32px 1fr auto auto auto;
+    grid-template-columns: 32px 1fr auto auto auto auto;
     row-gap: 6px;
   }
 
@@ -208,6 +208,7 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
   .ex-col-name,
   .ex-col-sets,
   .ex-col-weight,
+  .ex-col-rest,
   .ex-chevron-wrap {
     background: var(--surface);
     border-top: 1px solid var(--border);
@@ -225,6 +226,7 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
   .ex-card.status-done   .ex-col-name,
   .ex-card.status-done   .ex-col-sets,
   .ex-card.status-done   .ex-col-weight,
+  .ex-card.status-done   .ex-col-rest,
   .ex-card.status-done   .ex-chevron-wrap {
     border-color: rgba(57,255,133,.4); background: rgba(57,255,133,.03);
   }
@@ -232,6 +234,7 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
   .ex-card.status-partial .ex-col-name,
   .ex-card.status-partial .ex-col-sets,
   .ex-card.status-partial .ex-col-weight,
+  .ex-card.status-partial .ex-col-rest,
   .ex-card.status-partial .ex-chevron-wrap {
     border-color: rgba(255,204,0,.4); background: rgba(255,204,0,.03);
   }
@@ -239,6 +242,7 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
   .ex-card.status-skipped .ex-col-name,
   .ex-card.status-skipped .ex-col-sets,
   .ex-card.status-skipped .ex-col-weight,
+  .ex-card.status-skipped .ex-col-rest,
   .ex-card.status-skipped .ex-chevron-wrap {
     border-color: rgba(255,107,255,.4); background: rgba(255,107,255,.03);
   }
@@ -382,6 +386,18 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
     gap: 1px;
     border-left: 1px solid var(--border);
     cursor: pointer;
+  }
+
+  .ex-col-rest {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 6px 12px;
+    gap: 1px;
+    border-left: 1px solid var(--border);
+    cursor: pointer;
+    min-width: 80px;
   }
 
   .ex-col-label {
@@ -1200,7 +1216,7 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
     <button class="btn" onclick="resetData()" title="Limpar todos os dados e voltar ao padrão">RESET</button>
     <button class="btn" onclick="exportData()">EXPORTAR</button>
     <button class="btn" onclick="importData()">IMPORTAR</button>
-    <span style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted);margin-left:4px">v0.8.5.57</span>
+    <span style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted);margin-left:4px">v0.8.5.98</span>
     <div id="auth-status" style="display:flex;align-items:center;margin-left:8px"></div>
     <div id="sync-status" style="display:none;align-items:center;margin-left:4px"></div>
   </div>
@@ -1379,7 +1395,7 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
 
       <!-- Quick actions -->
       <div style="display:flex;gap:6px;padding:8px 16px 0;flex-wrap:wrap">
-        <button onclick="gerarPlanoCompleto()" style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;padding:5px 14px;border-radius:8px;border:1px solid var(--accent);color:var(--accent);background:rgba(232,255,60,.07);cursor:pointer" title="Cria um plano macro completo do zero com base no seu perfil. Use apenas quando não há plano ativo ou quer recomeçar.">✦ GERAR PLANO MACRO</button>
+        <button onclick="gerarPlanoCompleto()" style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;padding:5px 14px;border-radius:8px;border:1px solid var(--accent);color:var(--accent);background:rgba(232,255,60,.07);cursor:pointer" title="Cria um plano macro completo do zero com base no seu perfil. Use apenas quando não há plano ativo ou quer recomeçar.">✦ GERAR NOVO PLANO</button>
         <button onclick="reorganizarPlanoAPartirDeHoje()" style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;padding:5px 14px;border-radius:8px;border:1px solid var(--done);color:var(--done);background:transparent;cursor:pointer" title="Redistribui os dias futuros seguindo a fila estática de séries, sem alterar treinos já concluídos ou passados.">↺ REORGANIZAR A PARTIR DE HOJE</button>
         <button onclick="gerarOrientacoesDiasFuturos()" style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;padding:5px 14px;border-radius:8px;border:1px solid var(--accent);color:var(--accent);background:transparent;cursor:pointer" title="Pede à IA para gerar orientações de periodização para todos os dias futuros do plano reorganizado. Use após reorganizar.">✦ GERAR ORIENTAÇÕES</button>
         <button onclick="desfazerRelocamento()" style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;padding:5px 14px;border-radius:8px;border:1px solid var(--muted);color:var(--muted);background:transparent;cursor:pointer" title="Desfaz a última ação de relocamento ou reorganização. Suporta até 5 níveis.">↩ DESFAZER</button>
@@ -1608,56 +1624,33 @@ function renderWorkoutViews() {
 }
 
 function buildSerieHTML(s) {
-  const planMode = s.planMode === true;
-  const planSerie = planMode && state.plano ? getPlanSerie(s.id) : null;
-  const exercises = planMode && planSerie ? planSerie.exercises : s.exercises;
+  // Always use Manual mode — planMode toggle removed
+  const allExercises = s.exercises;
+  // Hide core exercises from main series — they appear in Core tab
+  const exercises = allExercises.filter(function(e) { return !e.isCore; });
 
   const done = exercises.filter(e => e.status === 'done').length;
   const total = exercises.length;
   const pct = total ? Math.round(done/total*100) : 0;
   const lastDate = s.lastDone ? new Date(s.lastDone).toLocaleDateString('pt-BR', {day:'2-digit',month:'2-digit',year:'2-digit'}) : 'nunca';
 
-  let variantsHTML = s.variants.map((v, i) =>
-    `<button class="variant-btn ${s.activeVariant===i?'active':''}" onclick="setVariant('${s.id}',${i})">${v}</button>`
-  ).join('');
-
-  const exHTML = exercises.map((ex, idx) => buildExHTML(s.id, ex, idx, planMode)).join('');
-
-  const planBanner = planMode && planSerie ? `
-    <div class="plan-mode-banner">
-      ⬡ MODO PLANO
-      <strong>${escHtml(planSerie.semana || '')}</strong>
-      <span style="color:var(--muted)">—</span>
-      <span>${escHtml(planSerie.foco || '')}</span>
-      <button class="btn" style="margin-left:auto;font-size:9px;padding:3px 10px" onclick="addPlanExercise('${s.id}')">+ EXERCÍCIO</button>
-    </div>` : '';
+  const exHTML = exercises.map((ex, idx) => buildExHTML(s.id, ex, idx, false)).join('');
 
   return `
     <div class="serie-header">
       <span class="serie-label">SÉRIE</span>
       <input class="serie-name-edit" value="${escHtml(s.name)}" oninput="updateSerieName('${s.id}',this.value)" />
-      <div class="mode-toggle">
-        <button class="mode-btn ${!planMode?'active':''}" onclick="setSerieMode('${s.id}',false)">MANUAL</button>
-        <button class="mode-btn plan ${planMode?'active':''}" onclick="setSerieMode('${s.id}',true)" ${!state.plano?'disabled title="Gere um plano primeiro"':''}>PLANO</button>
-      </div>
     </div>
-    ${planBanner}
     <div class="serie-meta">
       <div class="last-done">ÚLTIMO TREINO: <span>${lastDate}</span></div>
       <div class="progress-bar-wrap"><div class="progress-bar-fill" style="width:${pct}%"></div></div>
       <span style="font-family:DM Mono,monospace;font-size:11px;color:var(--muted)">${done}/${total}</span>
     </div>
-    ${!planMode ? `
-    <div class="variant-row">
-      <span class="variant-label">VARIANTE:</span>
-      ${variantsHTML}
-      <button class="add-variant-btn" onclick="addVariant('${s.id}')">+ nova</button>
-    </div>` : ''}
     <div class="serie-actions">
       <button class="btn mark-all" onclick="markAll('${s.id}','done')">✓ MARCAR TODOS</button>
       <button class="btn reset-all" onclick="markAll('${s.id}','undone')">↺ RESETAR</button>
       <button class="btn primary" onclick="finishSerie('${s.id}')">⬤ REGISTRAR NO HISTÓRICO</button>
-      ${!planMode ? `<button class="btn" onclick="addExercise('${s.id}')">+ EXERCÍCIO</button>` : ''}
+      <button class="btn" onclick="addExercise('${s.id}')">+ EXERCÍCIO</button>
     </div>
     <div class="exercise-list" id="exlist-${s.id}">
       ${exHTML}
@@ -1686,6 +1679,10 @@ function buildExHTML(serieId, ex, idx, planMode) {
     <div class="ex-col-weight" onclick="toggleExCard('${ex.id}')">
       <span class="ex-col-label">CARGA</span>
       <input class="ex-col-input" type="text" onclick="event.stopPropagation()" oninput="updateExField('${serieId}','${ex.id}','weight',this.value)" value="${escHtml(ex.weight)}" placeholder="—" />
+    </div>
+    <div class="ex-col-rest" onclick="toggleExCard('${ex.id}')">
+      <span class="ex-col-label">DESCANSO</span>
+      <input class="ex-col-input" type="text" onclick="event.stopPropagation()" oninput="updateExField('${serieId}','${ex.id}','rest',this.value)" value="${escHtml(ex.rest||'')}" placeholder="—" style="color:var(--muted)" />
     </div>
     <div class="ex-chevron-wrap" onclick="toggleExCard('${ex.id}')">
       <span class="ex-chevron">▾</span>
@@ -2059,6 +2056,7 @@ function renderHistory() {
           '<span style="flex:1;font-size:12px;color:var(--text)">' + escHtml(ex.name || '') + '</span>' +
           '<span style="font-family:DM Mono,monospace;font-size:11px;color:var(--accent)">' + escHtml(ex.sets || '') + '</span>' +
           '<span style="font-family:DM Mono,monospace;font-size:11px;color:var(--accent2);min-width:80px;text-align:right">' + escHtml(ex.weight || '') + '</span>' +
+          (ex.rest ? '<span style="font-family:DM Mono,monospace;font-size:11px;color:var(--muted);min-width:60px;text-align:right">' + escHtml(ex.rest) + '</span>' : '') +
           '</div>';
       }).join('');
       exHTML = '<div id="hist-ex-' + h.id + '" style="display:none;margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">' + rows + '</div>';
@@ -2117,36 +2115,46 @@ function renderBiblioteca(activeId) {
 
   // Default to first serie if no active workout tab
   if (!activeId || !activeId.startsWith('workout-')) {
-    activeId = 'workout-' + state.series[0].id;
+    var firstNonCore = state.series.find(function(s) { return s.label !== 'Core'; });
+    activeId = 'workout-' + (firstNonCore ? firstNonCore.id : state.series[0].id);
     currentTab = activeId;
   }
-
   // Render sub-tabs + actions
   bibTabs.innerHTML = '';
   state.series.forEach(function(s) {
+    if (s.label === 'Core') return; // Core has its own dedicated tab
     var done = s.exercises.filter(function(e) { return e.status === 'done'; }).length;
     var total = s.exercises.length;
     var pct = total ? Math.round(done/total*100) : 0;
     var btn = document.createElement('button');
     btn.className = 'bib-tab' + (activeId === 'workout-'+s.id ? ' active' : '');
-    btn.innerHTML = s.label + ' — ' + s.name + ' <span class="tab-badge">' + pct + '%</span>';
+    btn.innerHTML = s.label + ' — ' + s.name;
     btn.onclick = (function(sid) { return function() { switchTab('workout-'+sid); }; })(s.id);
     bibTabs.appendChild(btn);
   });
+
+  // Core tab
+  var coreBtn = document.createElement('button');
+  coreBtn.className = 'bib-tab' + (activeId === 'workout-core' ? ' active' : '');
+  coreBtn.innerHTML = 'CORE';
+  coreBtn.onclick = function() { switchTab('workout-core'); };
+  bibTabs.appendChild(coreBtn);
 
   // Spacer
   var spacer = document.createElement('div');
   spacer.style.flex = '1';
   bibTabs.appendChild(spacer);
 
-  // Remove série button
-  var activeSerieId = activeId.replace('workout-', '');
-  var btnRemove = document.createElement('button');
-  btnRemove.className = 'bib-tab';
-  btnRemove.style.color = 'var(--danger)';
-  btnRemove.textContent = '✕ REMOVER';
-  btnRemove.onclick = (function(sid) { return function() { removeSerie(sid); }; })(activeSerieId);
-  bibTabs.appendChild(btnRemove);
+  // Remove série button — only for regular series, not core
+  if (activeId !== 'workout-core') {
+    var activeSerieId = activeId.replace('workout-', '');
+    var btnRemove = document.createElement('button');
+    btnRemove.className = 'bib-tab';
+    btnRemove.style.color = 'var(--danger)';
+    btnRemove.textContent = '✕ REMOVER';
+    btnRemove.onclick = (function(sid) { return function() { removeSerie(sid); }; })(activeSerieId);
+    bibTabs.appendChild(btnRemove);
+  }
 
   // Add série button
   var btnAdd = document.createElement('button');
@@ -2156,10 +2164,52 @@ function renderBiblioteca(activeId) {
   btnAdd.onclick = openAddSerie;
   bibTabs.appendChild(btnAdd);
 
-  // Render active serie
-  var s = state.series.find(function(s) { return s.id === activeSerieId; });
-  if (s) bibContent.innerHTML = buildSerieHTML(s);
+  // Verificar duplicatas button
+  var btnDup = document.createElement('button');
+  btnDup.className = 'bib-tab';
+  btnDup.style.color = 'var(--accent3)';
+  btnDup.title = 'Verifica se há exercícios no Histórico com nomes diferentes mas que são o mesmo exercício da Biblioteca';
+  btnDup.textContent = '⟳ VERIFICAR DUPLICATAS';
+  btnDup.onclick = function() { verificarDuplicatasHistoricoCompleto(); };
+  bibTabs.appendChild(btnDup);
+
+  // Render active serie or Core view
+  if (activeId === 'workout-core') {
+    bibContent.innerHTML = buildCoreHTML();
+  } else {
+    var s = state.series.find(function(s) { return s.id === activeId.replace('workout-', ''); });
+    if (s) bibContent.innerHTML = buildSerieHTML(s);
+  }
   setTimeout(autoResizeAll, 50);
+}
+
+function buildCoreHTML() {
+  // Find dedicated Core serie
+  var coreSerie = state.series.find(function(s) { return s.label === 'Core'; });
+
+  if (!coreSerie || coreSerie.exercises.length === 0) {
+    return '<div style="padding:24px;font-family:DM Mono,monospace;font-size:12px;color:var(--muted)">Nenhum exercício de core cadastrado.</div>';
+  }
+
+  var exHTML = coreSerie.exercises.map(function(ex, idx) {
+    return buildExHTML(coreSerie.id, ex, idx, false);
+  }).join('');
+
+  return `
+    <div class="serie-header">
+      <span class="serie-label">SÉRIE</span>
+      <input class="serie-name-edit" value="CORE" readonly style="cursor:default;pointer-events:none" />
+    </div>
+    <div class="serie-meta">
+      <div class="last-done">Exercícios distribuídos entre os treinos A, B, C, D</div>
+    </div>
+    <div class="serie-actions">
+      <button class="btn" onclick="addExercise('${coreSerie.id}')">+ EXERCÍCIO</button>
+    </div>
+    <div class="exercise-list" id="exlist-core">
+      ${exHTML}
+    </div>
+  `;
 }
 
 
@@ -2712,7 +2762,7 @@ ${temPlano ?
 {"planoMacro":{"objetivo":"descrição do ciclo","semanas":[{"semana":1,"foco":"Adaptação","intensidade":"60-70%","progressao":"semana de referência","dias":[{"dia":"Segunda","serie":"A","tipo":"treino","intensidade":"moderada","orientacao":"instrução específica"},{"dia":"Terça","serie":"D","tipo":"treino","intensidade":"moderada","orientacao":"instrução"},{"dia":"Quarta","serie":"descanso","tipo":"aerobico","orientacao":"instrução concreta"},{"dia":"Quinta","serie":"B","tipo":"treino","intensidade":"moderada","orientacao":"instrução"},{"dia":"Sexta","serie":"C","tipo":"treino","intensidade":"moderada","orientacao":"instrução"},{"dia":"Sábado","serie":"D","tipo":"treino","intensidade":"leve","orientacao":"instrução"},{"dia":"Domingo","serie":"descanso","tipo":"recuperacao","orientacao":"instrução"}]},{"semana":2,"foco":"...","intensidade":"...","progressao":"...","dias":[...]},{"semana":3,"foco":"...","intensidade":"...","progressao":"...","dias":[...]},{"semana":4,"foco":"Deload","intensidade":"50-60%","progressao":"recuperação","dias":[...]}],"observacoes":"orientações gerais"}}`}
 
 2. EXPANDIR DIA (exercícios completos com sets e cargas)
-{"diaExpandido":{"semana":1,"dia":"Segunda","serie":"A","foco":"foco do dia","exercicios":[{"id":"e1","nome":"Overhead Press Sentado","sets":"3x5","weight":"24kg cada lado","notes":""}]}}
+{"diaExpandido":{"semana":1,"dia":"Segunda","serie":"A","foco":"foco do dia","exercicios":[{"id":"e1","nome":"Overhead Press Sentado","sets":"3x5","weight":"24kg cada lado","rest":"90-120s","notes":""}]}}
 
 3. MODIFICAR EXERCÍCIOS DE UMA SÉRIE
 {"modificacoes":{"serieLabel":"A","acoes":[{"tipo":"substituir","de":"nome","por":"novo","sets":"3x8","weight":"20kg","notes":""},{"tipo":"alterar","nome":"nome","sets":"4x6","weight":"25kg"},{"tipo":"remover","nome":"nome"},{"tipo":"adicionar","nome":"novo","sets":"3x10","weight":"15kg","posicao":2}]}}
@@ -3057,6 +3107,35 @@ function autoResizePlanoInput(el) {
   el.style.height = Math.min(el.scrollHeight, 120) + 'px';
 }
 
+async function enviarMensagemPlanoSilencioso(prompt) {
+  // Send message to plan chat without displaying user message
+  const btn = document.getElementById('plano-send-btn');
+  if (btn) btn.disabled = true;
+  addPlanoChatTyping();
+
+  var messages = [{ role: 'user', content: prompt }];
+
+  try {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': getApiKey(), 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+      body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 1000, system: getPLANO_SYSTEM(), messages: messages })
+    });
+    const data = await response.json();
+    removePlanoChatTyping();
+    if (btn) btn.disabled = false;
+    const text = data.content && data.content[0] && data.content[0].text || '';
+    // Process as duplicata response
+    processarRespostaDuplicatas(text);
+    _pendingDuplicataCheck = false;
+  } catch(e) {
+    removePlanoChatTyping();
+    if (btn) btn.disabled = false;
+    addPlanoChatMsg('system', 'Erro ao verificar duplicatas. Tente novamente.');
+    _pendingDuplicataCheck = false;
+  }
+}
+
 async function enviarMensagemPlano() {
   const input = document.getElementById('plano-input');
   const btn = document.getElementById('plano-send-btn');
@@ -3137,15 +3216,30 @@ async function enviarMensagemPlano() {
     } else if (parsed && (parsed.diaExpandido || parsed.exercicios || parsed.exercises || parsed.blocos || parsed.session || parsed.workout || parsed.treino)) {
       var d = normalizarDiaExpandido(parsed, parsed.semana || (parsed.session && parsed.session.week) || 1, parsed.diaSemana || parsed.dia || (parsed.session && parsed.session.day) || '');
       aplicarDiaExpandido(d);
+      state.planoRascunho = null; // clear draft — no new plan to apply
       addPlanoChatMsg('ai', '✓ Treino de ' + d.dia + ' (semana ' + d.semana + ') expandido com ' + d.exercicios.length + ' exercícios. Abrindo a Agenda...');
+      renderPlanoMacro(state.plano);
       setTimeout(function() { switchTab('agenda'); }, 1000);
     } else if (parsed && parsed.semanas) {
       state.planoRascunho = parsed;
       saveState();
       addPlanoChatMsg('ai', '✓ Plano gerado! Veja no painel à direita. Clique em "Aplicar" para ativar.');
       renderPlanoMacro(parsed);
+    } else if (parsed && parsed.pares !== undefined) {
+      // Response to duplicate check
+      _pendingDuplicataCheck = false;
+      if (parsed.pares && parsed.pares.length > 0) {
+        state._duplicatasPendentes = parsed.pares; // replace, not concat
+        saveState();
+        _duplicatasPagina = 0;
+        addPlanoChatMsg('system', parsed.pares.length + ' possível(is) duplicata(s) encontrada(s). Verifique as sugestões.');
+        mostrarModalDuplicatas();
+      } else {
+        addPlanoChatMsg('system', 'Nenhuma duplicata encontrada ✓');
+      }
     } else if (parsed && parsed.modificacoes) {
       renderModificacoesProposta(parsed.modificacoes);
+      addPlanoChatMsg('ai', '✓ Modificações geradas. Veja a prévia no painel à direita e clique em "✓ APLICAR" para confirmar.');
     } else if (parsed && parsed.replanejamento) {
       renderReplanejamento(parsed.replanejamento);
     } else {
@@ -3154,6 +3248,11 @@ async function enviarMensagemPlano() {
         addPlanoChatMsg('system', 'Não consegui parsear o JSON: ' + parseError);
       } else {
         addPlanoChatMsg('ai', text);
+      }
+      // Clear draft if no new plan was generated
+      if (!state.planoRascunho || (state.plano && state.planoRascunho === state.plano)) {
+        state.planoRascunho = null;
+        renderPlanoMacro(state.plano);
       }
     }
 
@@ -3282,6 +3381,9 @@ function aplicarModificacoesPendentes() {
   if (el) el.remove();
   aplicarModificacoes(_pendingMod);
   _pendingMod = null;
+  state.planoRascunho = null;
+  renderPlanoMacro(state.plano);
+  addPlanoChatMsg('system', '✓ Modificações aplicadas ao plano.');
 }
 
 function descartarModificacoesPendentes() {
@@ -3457,11 +3559,37 @@ function renderPlanoMacro(plano) {
     html += '</div>';
   });
 
-  html += '<button class="plan-apply-btn" onclick="aplicarPlano()">⬤ APLICAR ESTE PLANO</button>';
+  // Only show APLICAR button if planoRascunho has semanas genuinely different from active plan
+  var temRascunhoNovo = state.planoRascunho &&
+    state.planoRascunho.semanas &&
+    (!state.plano || !state.plano.semanas ||
+     JSON.stringify(state.planoRascunho.semanas) !== JSON.stringify(state.plano.semanas));
+  if (temRascunhoNovo) {
+    html += '<button class="plan-apply-btn" onclick="aplicarPlano()">⬤ APLICAR ESTE PLANO</button>';
+  }
   resultado.innerHTML = html;
 }
 
 function aplicarPlano() {
+  if (!state.planoRascunho) return;
+
+  // Check if there's an existing plan with concluded days or expanded treinos
+  var temDadosAnteriores = false;
+  if (state.plano && state.plano.semanas && state.plano.semanas.length > 0) {
+    var diasStatus = state.plano.diasStatus || {};
+    var temConcluidos = Object.keys(diasStatus).some(function(k) { return diasStatus[k] === 'concluido'; });
+    var temExpandidos = state.plano.diasExpandidos && Object.keys(state.plano.diasExpandidos).length > 0;
+    temDadosAnteriores = temConcluidos || temExpandidos;
+  }
+
+  if (temDadosAnteriores) {
+    if (!confirm('Você tem treinos concluídos e/ou expandidos no plano atual.\n\nAo aplicar o novo plano, esses dados serão perdidos a partir do primeiro dia modificado.\n\nDeseja continuar?')) return;
+  }
+
+  _doAplicarPlano();
+}
+
+function _doAplicarPlano() {
   if (!state.planoRascunho) return;
   var macro = state.planoRascunho;
 
@@ -3521,6 +3649,7 @@ function aplicarPlano() {
   state.planoInicio = state.planoInicio || new Date().toISOString();
   state.planoSemana = 0;
   state.planoDia = 0;
+  state.planoRascunho = null; // clear draft after applying
 
   state.series.forEach(function(s) {
     if (!state.plano.seriesData[s.id]) {
@@ -3806,7 +3935,14 @@ async function enviarChatInline(dayKey, serieLabel) {
       }
       addChatInlineMsg(dayKey, 'ai', '✓ Treino atualizado com ' + parsed.diaExpandido.exercicios.length + ' exercícios.');
     } else {
-      addChatInlineMsg(dayKey, 'ai', text);
+      // Strip any JSON from the text before showing to user
+      var displayText = text.replace(/```json[\s\S]*?```/g, '').replace(/```[\s\S]*?```/g, '').trim();
+      // Also strip raw JSON objects
+      displayText = displayText.replace(/\{[\s\S]*\}/g, function(match) {
+        try { JSON.parse(match); return ''; } catch(e) { return match; }
+      }).trim();
+      if (!displayText) displayText = text; // fallback if everything was stripped
+      addChatInlineMsg(dayKey, 'ai', displayText);
       // If response looks like a proposal (contains exercise names and →), offer apply button
       if (text.includes('→') || text.toLowerCase().includes('confirma') || text.toLowerCase().includes('gero o json') || text.toLowerCase().includes('quer que eu')) {
         var msgs2 = document.getElementById('chat-inline-msgs-' + dayKey);
@@ -3913,7 +4049,7 @@ function expandirDia(semana, dia, serieLabel, knownDayKey) {
     'Crie o treino mais eficaz para esta fase considerando o perfil do atleta. ' +
     'Escolha exercícios, ordem, volume e cargas ideais. ' +
     'Retorne JSON com esta estrutura:\n' +
-    '{"treino":{"dia":"' + dia + '","serie":"' + serieLabel + '","semana":' + semana + ',"exercicios":[{"nome":"Nome","musculo":"grupo muscular","sets":"NxM","weight":"carga","notes":"instrução"}]}}';
+    '{"treino":{"dia":"' + dia + '","serie":"' + serieLabel + '","semana":' + semana + ',"exercicios":[{"nome":"Nome","musculo":"grupo muscular","sets":"NxM","weight":"carga","rest":"intervalo entre séries (ex: 60-90s)","notes":"instrução"}]}}';
 
   fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
@@ -4167,7 +4303,7 @@ function aplicarDiaExpandido(diaExp) {
       exercises: diaExp.exercicios.map(function(ex) {
         var nome = ex.nome || ex.name || '';
         var status = ex.status || prevStatusMap[nome] || 'undone';
-        return { id: ex.id || uid(), name: ex.nome, sets: ex.sets, weight: ex.weight, notes: ex.notes||'', status: status, skippedLast: false };
+        return { id: ex.id || uid(), name: ex.nome, sets: ex.sets, weight: ex.weight, rest: ex.rest || '', notes: ex.notes||'', status: status, skippedLast: false };
       })
     };
     serieObj.planMode = true;
@@ -4376,6 +4512,10 @@ function renderAgendaLinear() {
           if (d.dia === 'Sábado' && status !== 'disponivel' && !isDiaPast) {
             actionsHTML += '<button class="agenda-action-btn" style="border-color:var(--accent3);color:var(--accent3)" onclick="marcarSabadoDisponivel(\'' + dayKey + '\',\'' + d.dia + '\',' + semana.semana + ')">✦ VOU TREINAR NESTE DIA</button>';
           }
+          if (status === 'disponivel') {
+            // Try undo via snapshot, or simply reset to descanso
+            actionsHTML += '<button class="agenda-action-btn" onclick="cancelarSabadoDisponivel(\'' + dayKey + '\')">↺ CANCELAR DISPONIBILIDADE</button>';
+          }
         } else {
           actionsHTML += '<button class="agenda-action-btn" onclick="desfazerRelocamento()">↺ DESFAZER AUSÊNCIA</button>';
         }
@@ -4486,7 +4626,7 @@ function irParaTreino(dayKey, serieLabel) {
     ? expanded.exercicios.map(function(ex) {
         var pd = state.plano.seriesData && state.plano.seriesData[s.id];
         var pdEx = pd && pd.exercises.find(function(e) { return e.id === ex.id || e.name === ex.nome; });
-        return { id: ex.id || uid(), name: ex.nome, sets: ex.sets, weight: ex.weight, notes: ex.notes||'', status: pdEx ? pdEx.status : 'undone' };
+        return { id: ex.id || uid(), name: ex.nome, sets: ex.sets, weight: ex.weight, rest: ex.rest || '', notes: ex.notes||'', status: pdEx ? pdEx.status : 'undone' };
       })
     : s.exercises;
 
@@ -4507,6 +4647,7 @@ function irParaTreino(dayKey, serieLabel) {
       if (stored) {
         stored.weight = ex.weight;
         stored.sets = ex.sets;
+        stored.rest = ex.rest || stored.rest || '';
       }
     });
   }
@@ -4574,6 +4715,10 @@ function renderInlineEx(ex, dayKey, serieLabel) {
         '<input type="text" value="' + escHtml(ex.weight) + '" ' +
         'onchange="updateInlineEx(\'' + dayKey + '\',\'' + serieLabel + '\',\'' + ex.id + '\',\'weight\',this.value)" ' +
         'style="font-family:DM Mono,monospace;font-size:11px;color:var(--accent2);background:transparent;border:none;border-bottom:1px solid var(--border);flex:1;text-align:right;outline:none;padding:2px;min-width:0">' +
+        '<input type="text" value="' + escHtml(ex.rest || '') + '" ' +
+        'placeholder="descanso" ' +
+        'onchange="updateInlineEx(\'' + dayKey + '\',\'' + serieLabel + '\',\'' + ex.id + '\',\'rest\',this.value)" ' +
+        'style="font-family:DM Mono,monospace;font-size:11px;color:var(--muted);background:transparent;border:none;border-bottom:1px solid var(--border);width:70px;text-align:right;outline:none;padding:2px;flex-shrink:0">' +
       '</div>' +
     '</td>' +
   '</tr>';
@@ -4617,7 +4762,7 @@ function updateInlineEx(dayKey, serieLabel, exId, field, value) {
   var expanded = state.plano.diasExpandidos && state.plano.diasExpandidos[dayKey];
   if (expanded && expanded.exercicios) {
     var dex = expanded.exercicios.find(function(e) { return e.id === exId; });
-    if (dex) dex[field === 'sets' ? 'sets' : 'weight'] = value;
+    if (dex) dex[field] = value;
   }
 
   // Also update the base library exercise as reference for future plans
@@ -4649,10 +4794,11 @@ function finishSerieFromAgenda(dayKey, serieId) {
       name: e.nome || e.name,
       sets: e.sets,
       weight: e.weight,
+      rest: e.rest || '',
       status: statusMap[e.id] || e.status || 'undone'
     };
   }) : (pd ? pd.exercises.map(function(e) {
-    return { name: e.name, sets: e.sets, weight: e.weight, status: e.status || 'undone' };
+    return { name: e.name, sets: e.sets, weight: e.weight, rest: e.rest || '', status: e.status || 'undone' };
   }) : []);
 
   var done = exercises.filter(function(e) { return e.status === 'done'; }).length;
@@ -4700,6 +4846,430 @@ function finishSerieFromAgenda(dayKey, serieId) {
   saveState();
   renderHistory();
   toast('Registrado no histórico ✓');
+
+  // Check for potential duplicates with library
+  verificarDuplicatasComIA(exercises);
+}
+
+function verificarDuplicatasHistoricoCompleto() {
+  var apiKey = getApiKey();
+
+  // Collect all unique exercise names from history
+  var historicoNomes = new Set();
+  state.history.forEach(function(h) {
+    (h.exercises || []).forEach(function(ex) {
+      if (ex.name) historicoNomes.add(ex.name);
+    });
+  });
+
+  // Library names
+  var bibliotecaNames = [];
+  state.series.forEach(function(s) {
+    s.exercises.forEach(function(ex) {
+      bibliotecaNames.push({ name: ex.name, serie: s.label, id: ex.id, serieId: s.id });
+    });
+  });
+
+  // Find history exercises not exactly in library
+  var bibliotecaNomesLower = bibliotecaNames.map(function(e) { return e.name.toLowerCase(); });
+  var candidatos = Array.from(historicoNomes).filter(function(n) {
+    return !bibliotecaNomesLower.includes(n.toLowerCase());
+  });
+
+  if (candidatos.length === 0) {
+    toast('Nenhuma duplicata potencial encontrada ✓');
+    return;
+  }
+
+  toast('Verificando ' + candidatos.length + ' exercícios com a IA...');
+
+  var prompt = buildDuplicatasPrompt(candidatos, bibliotecaNames);
+  var apiKey = getApiKey();
+
+  if (apiKey) {
+    fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    }).then(function(r) { return r.json(); }).then(function(data) {
+      var text = data.content && data.content[0] && data.content[0].text;
+      if (!text) { toast('Erro ao verificar duplicatas.'); return; }
+      try {
+        var parsed = JSON.parse(text.replace(/```json|```/g, '').trim());
+        if (parsed.pares && parsed.pares.length > 0) {
+          state._duplicatasPendentes = parsed.pares;
+          saveState();
+          toast(parsed.pares.length + ' possível(is) duplicata(s) encontrada(s).');
+          mostrarProximaDuplicata();
+        } else {
+          toast('Nenhuma duplicata encontrada ✓');
+        }
+      } catch(e) { toast('Erro ao processar resposta da IA.'); }
+    }).catch(function() { toast('Erro de conexão ao verificar duplicatas.'); });
+  } else {
+    // Via plan chat silencioso
+    _pendingDuplicataCheck = true;
+    switchTab('ia');
+    addPlanoChatMsg('system', '🔍 Verificando duplicatas entre Histórico e Biblioteca...');
+    setTimeout(function() {
+      var input = document.getElementById('plano-input');
+      if (input) input.value = '';
+      enviarMensagemPlanoSilencioso(prompt);
+    }, 300);
+  }
+}
+
+var _pendingDuplicataCheck = null;
+
+function processarRespostaDuplicatas(text) {
+  try {
+    var jsonStr = text.replace(/```json|```/g, '').trim();
+    var parsed = JSON.parse(jsonStr);
+    if (parsed.pares && parsed.pares.length > 0) {
+      // Replace, not concat — avoid duplicates accumulating across multiple calls
+      state._duplicatasPendentes = parsed.pares;
+      saveState();
+      _duplicatasPagina = 0;
+      mostrarModalDuplicatas();
+    } else {
+      addPlanoChatMsg('system', 'Nenhuma duplicata encontrada ✓');
+    }
+  } catch(e) {}
+}
+
+function buildDuplicatasPrompt(candidatos, bibliotecaNames) {
+  return 'Analise se algum destes exercícios do treino é o mesmo que algum exercício da biblioteca, mesmo com nomes diferentes.\n\n' +
+    'EXERCÍCIOS DO TREINO:\n' + candidatos.join('\n') + '\n\n' +
+    'BIBLIOTECA:\n' + bibliotecaNames.map(function(e) { return e.name + ' (' + e.serie + ')'; }).join('\n') + '\n\n' +
+    'Para o nomeOficial de cada par: escolha o nome como um personal trainer brasileiro experiente escolheria — o nome que ele usaria naturalmente ao falar com um aluno. ' +
+    'Alguns exercícios são mais conhecidos pelo nome em inglês no Brasil (mesmo havendo tradução), outros pelo nome em português. Não priorize nenhum dos dois nomes fornecidos — avalie de forma independente qual é o mais usado na prática.\n' +
+    'Retorne APENAS JSON sem texto adicional:\n' +
+    '{"pares":[{"treino":"nome no treino","biblioteca":"nome na biblioteca","serie":"letra","motivo":"1 frase","nomeOficial":"nome natural usado por personal trainers brasileiros"}]}' +
+    '\nSe não houver pares suspeitos, retorne {"pares":[]}';
+}
+
+function verificarDuplicatasComIA(exerciciosNovos) {
+  // Get all library exercise names
+  var bibliotecaNames = [];
+  state.series.forEach(function(s) {
+    s.exercises.forEach(function(ex) {
+      bibliotecaNames.push({ name: ex.name, serie: s.label, id: ex.id, serieId: s.id });
+    });
+  });
+
+  // Find exercises not in library (by exact name match)
+  var novosNomes = exerciciosNovos.map(function(e) { return e.name; });
+  var bibliotecaNomesLower = bibliotecaNames.map(function(e) { return e.name.toLowerCase(); });
+  var candidatos = novosNomes.filter(function(n) {
+    return !bibliotecaNomesLower.includes(n.toLowerCase());
+  });
+
+  if (candidatos.length === 0) return;
+
+  var prompt = buildDuplicatasPrompt(candidatos, bibliotecaNames);
+  var apiKey = getApiKey();
+
+  if (apiKey) {
+    // Direct API call — silent, no chat pollution
+    fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 500,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    }).then(function(r) { return r.json(); }).then(function(data) {
+      var text = data.content && data.content[0] && data.content[0].text;
+      if (text) processarRespostaDuplicatas(text);
+    }).catch(function() {});
+  } else {
+    // Via plan chat silencioso — works in Claude.ai without API key
+    _pendingDuplicataCheck = true;
+    switchTab('ia');
+    addPlanoChatMsg('system', '🔍 Verificando duplicatas entre Histórico e Biblioteca...');
+    setTimeout(function() {
+      var input = document.getElementById('plano-input');
+      if (input) input.value = ''; // clear input to avoid accidental send
+      enviarMensagemPlanoSilencioso(prompt);
+    }, 300);
+  }
+}
+
+var _duplicatasPagina = 0;
+var _DUPLICATAS_POR_PAGINA = 5;
+
+function mostrarProximaDuplicata() {
+  mostrarModalDuplicatas();
+}
+
+function mostrarModalDuplicatas() {
+  var pares = state._duplicatasPendentes || [];
+  if (pares.length === 0) return;
+
+  var existing = document.getElementById('duplicata-modal');
+  if (existing) existing.remove();
+
+  var totalPaginas = Math.ceil(pares.length / _DUPLICATAS_POR_PAGINA);
+  var pagina = Math.min(_duplicatasPagina, totalPaginas - 1);
+  var inicio = pagina * _DUPLICATAS_POR_PAGINA;
+  var paresPagina = pares.slice(inicio, inicio + _DUPLICATAS_POR_PAGINA);
+
+  var linhasHTML = paresPagina.map(function(par, idx) {
+    var globalIdx = inicio + idx;
+    var nomeSugerido = escHtml(par.nomeOficial || par.biblioteca);
+    return '<div style="border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:10px;background:var(--surface2)">' +
+      '<div style="display:flex;align-items:flex-start;gap:10px">' +
+      '<input type="checkbox" id="dup-check-' + globalIdx + '" style="margin-top:4px;flex-shrink:0">' +
+      '<div style="flex:1;min-width:0">' +
+      // Names row
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">' +
+      '<div><div style="font-size:9px;letter-spacing:1px;color:var(--muted);margin-bottom:2px">HISTÓRICO</div>' +
+      '<div style="font-size:12px;color:var(--text)">' + escHtml(par.treino) + '</div></div>' +
+      '<div><div style="font-size:9px;letter-spacing:1px;color:var(--muted);margin-bottom:2px">BIBLIOTECA (' + escHtml(par.serie) + ')</div>' +
+      '<div style="font-size:12px;color:var(--text)">' + escHtml(par.biblioteca) + '</div></div>' +
+      '</div>' +
+      // Motivo
+      '<div style="font-size:11px;color:var(--muted);margin-bottom:8px;font-style:italic">' + escHtml(par.motivo) + '</div>' +
+      // Nome final (editable)
+      '<div style="margin-bottom:8px">' +
+      '<div style="font-size:9px;letter-spacing:1px;color:var(--accent);margin-bottom:4px">NOME FINAL (edite se necessário)</div>' +
+      '<input type="text" id="dup-nome-' + globalIdx + '" value="' + nomeSugerido + '" ' +
+      'style="width:100%;font-family:DM Mono,monospace;font-size:12px;background:var(--bg);border:1px solid var(--accent);border-radius:6px;padding:6px 10px;color:var(--accent);outline:none;box-sizing:border-box">' +
+      '</div>' +
+      // Context field + Consultar IA button
+      '<div>' +
+      '<div style="font-size:9px;letter-spacing:1px;color:var(--muted);margin-bottom:4px">CONTEXTO ADICIONAL (opcional — clique ↩ para IA reavaliar)</div>' +
+      '<div style="display:flex;gap:6px">' +
+      '<input type="text" id="dup-ctx-' + globalIdx + '" placeholder="ex: meu chin-up usa pegada supinada..." ' +
+      'style="flex:1;font-family:DM Mono,monospace;font-size:11px;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:6px 10px;color:var(--text);outline:none;min-width:0">' +
+      '<button onclick="consultarIAParaDuplicata(' + globalIdx + ')" ' +
+      'title="Enviar contexto para a IA reavaliar o nome" ' +
+      'style="font-family:DM Mono,monospace;font-size:11px;padding:6px 12px;border-radius:6px;border:1px solid var(--accent3);background:transparent;color:var(--accent3);cursor:pointer;flex-shrink:0">↩ IA</button>' +
+      '</div>' +
+      '</div>' +
+      '</div></div></div>';
+  }).join('');
+
+  var paginacaoHTML = totalPaginas > 1 ?
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:16px;padding-top:12px;border-top:1px solid var(--border)">' +
+    '<button onclick="navegarDuplicatas(-1)" ' + (pagina === 0 ? 'disabled' : '') +
+    ' style="font-family:DM Mono,monospace;font-size:11px;padding:6px 16px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--text);cursor:pointer;opacity:' + (pagina === 0 ? '.3' : '1') + '">← ANTERIOR</button>' +
+    '<span style="font-family:DM Mono,monospace;font-size:11px;color:var(--muted)">' + (pagina+1) + ' / ' + totalPaginas + ' &nbsp;·&nbsp; ' + pares.length + ' pares</span>' +
+    '<button onclick="navegarDuplicatas(1)" ' + (pagina >= totalPaginas-1 ? 'disabled' : '') +
+    ' style="font-family:DM Mono,monospace;font-size:11px;padding:6px 16px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--text);cursor:pointer;opacity:' + (pagina >= totalPaginas-1 ? '.3' : '1') + '">PRÓXIMA →</button>' +
+    '</div>' : '';
+
+  var modal = document.createElement('div');
+  modal.id = 'duplicata-modal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px';
+  modal.innerHTML = '<div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:24px;max-width:680px;width:100%;max-height:88vh;overflow-y:auto;font-family:DM Mono,monospace">' +
+    '<div style="font-size:11px;letter-spacing:2px;color:var(--accent);margin-bottom:4px">POSSÍVEIS DUPLICATAS ENCONTRADAS</div>' +
+    '<div style="font-size:11px;color:var(--muted);margin-bottom:16px">Marque os exercícios que deseja unificar. O nome final é pré-preenchido com a sugestão da IA — edite se necessário. Adicione contexto para a IA reavaliar.</div>' +
+    linhasHTML +
+    paginacaoHTML +
+    '<div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap">' +
+    '<button onclick="aplicarDuplicatasSelecionadas(' + inicio + ',' + (inicio + _DUPLICATAS_POR_PAGINA) + ')" style="font-family:DM Mono,monospace;font-size:11px;padding:8px 18px;border-radius:8px;border:none;background:var(--accent3);color:#000;cursor:pointer">✓ APLICAR SELECIONADOS</button>' +
+    '<button onclick="fecharModalDuplicatas()" style="font-family:DM Mono,monospace;font-size:11px;padding:8px 18px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer">✕ FECHAR</button>' +
+    '</div></div>';
+
+  document.body.appendChild(modal);
+}
+
+function consultarIAParaDuplicata(globalIdx) {
+  var pares = state._duplicatasPendentes || [];
+  var par = pares[globalIdx];
+  if (!par) return;
+
+  var ctxEl = document.getElementById('dup-ctx-' + globalIdx);
+  var nomeEl = document.getElementById('dup-nome-' + globalIdx);
+  var ctx = ctxEl ? ctxEl.value.trim() : '';
+
+  if (!ctx) { toast('Adicione contexto antes de consultar a IA.'); return; }
+
+  var btn = document.querySelector('[onclick="consultarIAParaDuplicata(' + globalIdx + ')"]');
+  if (btn) { btn.textContent = '⏳'; btn.disabled = true; }
+
+  var prompt = 'Exercício no histórico: "' + par.treino + '"\n' +
+    'Exercício na biblioteca: "' + par.biblioteca + '"\n' +
+    'Contexto do usuário: ' + ctx + '\n\n' +
+    'São o mesmo exercício? Se sim, qual é o nome oficial mais popular?\n' +
+    'Use o nome como um personal trainer brasileiro experiente usaria naturalmente — o nome mais comum na prática, independente de ser português ou inglês.\n' +
+    'Retorne APENAS JSON: {"mesmo":true,"nomeOficial":"nome oficial"} ou {"mesmo":false,"motivo":"explicação"}';
+
+  var apiKey = getApiKey();
+
+  var handleResponse = function(text) {
+    try {
+      var parsed = JSON.parse(text.replace(/```json|```/g, '').trim());
+      if (parsed.mesmo && parsed.nomeOficial) {
+        if (nomeEl) nomeEl.value = parsed.nomeOficial;
+        toast('Nome atualizado: "' + parsed.nomeOficial + '"');
+      } else {
+        toast('IA indica que são exercícios distintos: ' + (parsed.motivo || ''));
+      }
+    } catch(e) { toast('Erro ao processar resposta da IA.'); }
+    if (btn) { btn.textContent = '↩ IA'; btn.disabled = false; }
+  };
+
+  if (apiKey) {
+    fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+      body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 150, messages: [{ role: 'user', content: prompt }] })
+    }).then(function(r) { return r.json(); }).then(function(data) {
+      var text = data.content && data.content[0] && data.content[0].text || '';
+      handleResponse(text);
+    }).catch(function() {
+      toast('Erro de conexão.'); if (btn) { btn.textContent = '↩ IA'; btn.disabled = false; }
+    });
+  } else {
+    // Via plan chat silencioso
+    _pendingDuplicataConsulta = { globalIdx: globalIdx, handleResponse: handleResponse };
+    enviarMensagemPlanoSilenciosoComCallback(prompt, function(text) {
+      handleResponse(text);
+    });
+  }
+}
+
+var _pendingDuplicataConsulta = null;
+
+function enviarMensagemPlanoSilenciosoComCallback(prompt, callback) {
+  addPlanoChatTyping();
+  fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-api-key': getApiKey(), 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+    body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 150, system: getPLANO_SYSTEM(), messages: [{ role: 'user', content: prompt }] })
+  }).then(function(r) { return r.json(); }).then(function(data) {
+    removePlanoChatTyping();
+    var text = data.content && data.content[0] && data.content[0].text || '';
+    callback(text);
+  }).catch(function() {
+    removePlanoChatTyping();
+    callback('');
+  });
+}
+
+function navegarDuplicatas(dir) {
+  _duplicatasPagina += dir;
+  mostrarModalDuplicatas();
+}
+
+function fecharModalDuplicatas() {
+  var modal = document.getElementById('duplicata-modal');
+  if (modal) modal.remove();
+}
+
+function aplicarDuplicatasSelecionadas(inicio, fim) {
+  var pares = state._duplicatasPendentes || [];
+  var apiKey = getApiKey();
+  var selecionados = [];
+
+  for (var i = inicio; i < Math.min(fim, pares.length); i++) {
+    var checkbox = document.getElementById('dup-check-' + i);
+    var ctx = document.getElementById('dup-ctx-' + i);
+    var nomeField = document.getElementById('dup-nome-' + i);
+    if (checkbox && checkbox.checked) {
+      selecionados.push({
+        idx: i,
+        par: pares[i],
+        contexto: ctx ? ctx.value.trim() : '',
+        nomeEscolhido: nomeField ? nomeField.value.trim() : (pares[i].nomeOficial || pares[i].biblioteca)
+      });
+    }
+  }
+
+  if (selecionados.length === 0) {
+    fecharModalDuplicatas();
+    return;
+  }
+
+  // For each selected, determine final name via AI if context provided
+  var processados = 0;
+  function processarProximo() {
+    if (processados >= selecionados.length) {
+      // Remove processed pairs (in reverse order to preserve indices)
+      var idxParaRemover = selecionados.map(function(s) { return s.idx; }).sort(function(a,b) { return b-a; });
+      idxParaRemover.forEach(function(idx) {
+        state._duplicatasPendentes.splice(idx, 1);
+      });
+      saveState();
+      renderHistory();
+      fecharModalDuplicatas();
+      toast(selecionados.length + ' exercício(s) unificado(s) ✓');
+      return;
+    }
+
+    var item = selecionados[processados];
+    var par = item.par;
+
+    function aplicarUnificacao(nomeEscolhido) {
+      var oldTreino = par.treino.toLowerCase();
+      var oldBiblioteca = par.biblioteca.toLowerCase();
+      // Update history — rename old treino name
+      state.history.forEach(function(h) {
+        (h.exercises || []).forEach(function(ex) {
+          if (ex.name && ex.name.toLowerCase() === oldTreino) {
+            ex.name = nomeEscolhido;
+          }
+        });
+      });
+      // Update library — rename both old names to the chosen name
+      state.series.forEach(function(s) {
+        s.exercises.forEach(function(ex) {
+          if (ex.name && (ex.name.toLowerCase() === oldTreino || ex.name.toLowerCase() === oldBiblioteca)) {
+            ex.name = nomeEscolhido;
+          }
+        });
+      });
+      processados++;
+      processarProximo();
+    }
+
+    if (item.contexto && apiKey) {
+      // Ask AI for final name with context
+      var prompt = 'Exercício no histórico: "' + par.treino + '"\n' +
+        'Exercício na biblioteca: "' + par.biblioteca + '"\n' +
+        'Nome sugerido pelo usuário: "' + item.nomeEscolhido + '"\n' +
+        'Contexto do usuário: ' + item.contexto + '\n\n' +
+        'São o mesmo exercício? Se sim, qual é o nome técnico/oficial mais adequado considerando o contexto?\n' +
+        'Retorne APENAS JSON: {"mesmo":true,"nomeOficial":"nome escolhido"} ou {"mesmo":false}';
+
+      fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+        body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 100, messages: [{ role: 'user', content: prompt }] })
+      }).then(function(r) { return r.json(); }).then(function(data) {
+        var text = data.content && data.content[0] && data.content[0].text;
+        try {
+          var parsed = JSON.parse(text.replace(/```json|```/g, '').trim());
+          if (parsed.mesmo && parsed.nomeOficial) {
+            aplicarUnificacao(parsed.nomeOficial);
+          } else {
+            processados++; processarProximo();
+          }
+        } catch(e) { aplicarUnificacao(item.nomeEscolhido); }
+      }).catch(function() { aplicarUnificacao(item.nomeEscolhido); });
+    } else {
+      aplicarUnificacao(item.nomeEscolhido);
+    }
+  }
+
+  processarProximo();
 }
 
 function setPlanoInicio(dateStr) {
@@ -4758,12 +5328,146 @@ function marcarDiaDescansoNeutro(dayKey) {
   toast('Dia marcado como descanso ✓');
 }
 
-function marcarSabadoDisponivel(dayKey, diaNome, semana) {
-  if (!state.plano.diasStatus) state.plano.diasStatus = {};
-  state.plano.diasStatus[dayKey] = 'disponivel';
+function cancelarSabadoDisponivel(dayKey) {
+  // Try full undo via snapshot first
+  if (state.plano._historico && state.plano._historico.length > 0) {
+    desfazerRelocamento();
+    return;
+  }
+  // Fallback: simply reset status and serie to descanso
+  if (state.plano.diasStatus) delete state.plano.diasStatus[dayKey];
+  // Find the day and reset its serie
+  state.plano.semanas.forEach(function(sem) {
+    (sem.dias || sem.agenda || []).forEach(function(d) {
+      var key = 'sem' + sem.semana + '_' + d.dia;
+      if (key === dayKey) {
+        d.serie = 'descanso';
+        d.tipo = 'recuperacao';
+        d.orientacao = '';
+      }
+    });
+  });
+  if (state.plano.diasExpandidos) delete state.plano.diasExpandidos[dayKey];
   saveState();
   renderAgendaLinear();
-  toast('Sábado marcado como disponível para treino ✓');
+  toast('Sábado voltou ao estado de descanso ✓');
+}
+
+function marcarSabadoDisponivel(dayKey, diaNome, semana) {
+  if (!state.plano || !state.plano.semanas) return;
+  if (!state.plano.diasStatus) state.plano.diasStatus = {};
+
+  // Save snapshot for undo
+  if (!state.plano._historico) state.plano._historico = [];
+  var snapshot = JSON.parse(JSON.stringify({
+    semanas: state.plano.semanas,
+    diasStatus: state.plano.diasStatus,
+    diasExpandidos: state.plano.diasExpandidos || {}
+  }));
+  state.plano._historico.push(snapshot);
+  if (state.plano._historico.length > 5) state.plano._historico.shift();
+
+  // Mark Saturday as disponivel
+  state.plano.diasStatus[dayKey] = 'disponivel';
+
+  // Build flat list of all days
+  var ordemDias = ['Segunda','Terça','Quarta','Quinta','Sexta','Sábado','Domingo'];
+  var todosDias = [];
+  state.plano.semanas.forEach(function(sem) {
+    (sem.dias || sem.agenda || []).forEach(function(d) {
+      var key = 'sem' + sem.semana + '_' + d.dia;
+      todosDias.push({ key: key, diaObj: d, semana: sem.semana, diaNome: d.dia });
+    });
+  });
+
+  // Find index of this Saturday
+  var sabIdx = todosDias.findIndex(function(d) { return d.key === dayKey; });
+  if (sabIdx === -1) { saveState(); renderAgendaLinear(); return; }
+
+  // Find next pending training day after Saturday
+  var diasStatus = state.plano.diasStatus;
+  var slotIdx = -1;
+  for (var i = sabIdx + 1; i < todosDias.length; i++) {
+    var dia = todosDias[i];
+    if (dia.diaNome === 'Domingo') continue;
+    var status = diasStatus[dia.key] || 'pendente';
+    if (dia.diaObj.serie && dia.diaObj.serie !== 'descanso' && status === 'pendente') {
+      slotIdx = i;
+      break;
+    }
+  }
+
+  if (slotIdx === -1) {
+    // No future training day found — just mark as disponivel
+    saveState();
+    renderAgendaLinear();
+    toast('Sábado marcado como disponível ✓');
+    return;
+  }
+
+  if (!state.plano.diasExpandidos) state.plano.diasExpandidos = {};
+
+  // Build list of valid training slots AFTER Saturday (skip Domingo and locked Sábados)
+  var slotsValidos = [];
+  for (var sv = sabIdx + 1; sv < todosDias.length; sv++) {
+    var dv = todosDias[sv];
+    if (dv.diaNome === 'Domingo') continue;
+    if (dv.diaNome === 'Sábado' && diasStatus[dv.key] !== 'disponivel') continue;
+    slotsValidos.push(sv);
+  }
+
+  // Saturday gets the first valid slot's content
+  if (slotsValidos.length === 0) {
+    saveState(); renderAgendaLinear();
+    toast('Nenhum dia de treino futuro encontrado.');
+    return;
+  }
+
+  var primeiroSlot = todosDias[slotsValidos[0]];
+  var serieTrazida = primeiroSlot.diaObj.serie;
+  var proxExp0 = state.plano.diasExpandidos[primeiroSlot.key] || null;
+
+  todosDias[sabIdx].diaObj.serie = primeiroSlot.diaObj.serie;
+  todosDias[sabIdx].diaObj.tipo = primeiroSlot.diaObj.tipo;
+  todosDias[sabIdx].diaObj.orientacao = 'Treino antecipado de ' + primeiroSlot.diaNome;
+  if (proxExp0) {
+    state.plano.diasExpandidos[dayKey] = Object.assign({}, proxExp0, { _dayKey: dayKey });
+  } else {
+    delete state.plano.diasExpandidos[dayKey];
+  }
+
+  // Now shift remaining valid slots: each gets content of the next valid slot
+  // Stop when we absorb a descanso slot
+  for (var si = 0; si < slotsValidos.length - 1; si++) {
+    var currSlot = todosDias[slotsValidos[si]];
+    var nextSlot = todosDias[slotsValidos[si + 1]];
+    var proxSerie3 = nextSlot.diaObj.serie;
+    var proxTipo3 = nextSlot.diaObj.tipo;
+    var proxOrientacao3 = nextSlot.diaObj.orientacao;
+    var proxExp3 = state.plano.diasExpandidos[nextSlot.key] || null;
+
+    currSlot.diaObj.serie = proxSerie3;
+    currSlot.diaObj.tipo = proxTipo3;
+    currSlot.diaObj.orientacao = proxOrientacao3;
+    if (proxExp3) {
+      state.plano.diasExpandidos[currSlot.key] = Object.assign({}, proxExp3, { _dayKey: currSlot.key });
+    } else {
+      delete state.plano.diasExpandidos[currSlot.key];
+    }
+
+    // If next slot was descanso, absorbed — clear it and stop
+    if (!proxSerie3 || proxSerie3 === 'descanso') {
+      nextSlot.diaObj.serie = 'descanso';
+      nextSlot.diaObj.tipo = 'recuperacao';
+      nextSlot.diaObj.orientacao = '';
+      delete state.plano.diasExpandidos[nextSlot.key];
+      break;
+    }
+  }
+
+  saveState();
+  renderAgendaLinear();
+  toast('Treino ' + serieTrazida + ' antecipado para ' + diaNome + ' ✓');
 }
 
 function solicitarReplanejamento(dayKey, diaNome, semana, tipo) {
@@ -5508,6 +6212,18 @@ loadPersistedState(function() {
   // Restore chat messages visually
   if (state.planoChatMessages && state.planoChatMessages.length) {
     renderPlanoChatMessages();
+  }
+  // Clear stale planoRascunho if plan is already active
+  // (planoRascunho should only exist when a new plan is pending application)
+  if (state.planoRascunho && state.plano && state.plano.semanas && state.plano.semanas.length > 0) {
+    // Check if rascunho semanas match active plan semanas count — if so it was already applied
+    var rascunhoSemanas = state.planoRascunho.semanas || [];
+    var planoSemanas = state.plano.semanas || [];
+    if (rascunhoSemanas.length === planoSemanas.length) {
+      // Likely already applied — clear it
+      state.planoRascunho = null;
+      saveState();
+    }
   }
   // Restore planoRascunho panel on init
   if (state.planoRascunho || state.plano) {
