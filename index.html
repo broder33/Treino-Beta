@@ -1178,7 +1178,7 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
     <button class="btn" onclick="resetData()" title="Limpar todos os dados e voltar ao padrão">RESET</button>
     <button class="btn" onclick="exportData()">EXPORTAR</button>
     <button class="btn" onclick="importData()">IMPORTAR</button>
-    <span style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted);margin-left:4px">v0.8.6.08</span>
+    <span style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted);margin-left:4px">v0.8.6.20</span>
     <div id="auth-status" style="display:flex;align-items:center;margin-left:8px"></div>
     <div id="sync-status" style="display:none;align-items:center;margin-left:4px"></div>
   </div>
@@ -1597,7 +1597,8 @@ function buildSerieHTML(s) {
   const done = exercises.filter(e => e.status === 'done').length;
   const total = exercises.length;
   const pct = total ? Math.round(done/total*100) : 0;
-  const lastDate = s.lastDone ? new Date(s.lastDone).toLocaleDateString('pt-BR', {day:'2-digit',month:'2-digit',year:'2-digit'}) : 'nunca';
+  var lastHistory = state.history.find(function(h) { return h.serieLabel === s.label; });
+  const lastDate = lastHistory ? new Date(lastHistory.date).toLocaleDateString('pt-BR', {day:'2-digit',month:'2-digit',year:'2-digit'}) : 'nunca';
 
   const exHTML = exercises.map((ex, idx) => buildExHTML(s.id, ex, idx, false)).join('');
 
@@ -3293,6 +3294,10 @@ function renderModificacoesProposta(mod) {
   }
 
   semanas.forEach(function(semana) {
+    // Skip weeks with no training days
+    var diasSem = semana.dias || semana.agenda || [];
+    if (!diasSem.some(function(d) { return d.serie && d.serie !== 'descanso'; })) return;
+
     html += '<div class="plan-week"><div class="plan-week-title">SEMANA ' + semana.semana;
     if (semana.foco) html += ' <span style="font-size:12px;font-family:\'DM Sans\',sans-serif;font-weight:400;letter-spacing:0;color:var(--muted)">— ' + escHtml(semana.foco) + '</span>';
     if (semana.intensidade) html += ' <span style="font-size:10px;font-family:DM Mono,monospace;color:var(--accent2)"> ' + escHtml(semana.intensidade) + '</span>';
@@ -3482,6 +3487,10 @@ function renderPlanoMacro(plano) {
   }
 
   semanas.forEach(function(semana) {
+    // Skip weeks with no training days
+    var diasSem = semana.dias || semana.agenda || [];
+    if (!diasSem.some(function(d) { return d.serie && d.serie !== 'descanso'; })) return;
+
     html += '<div class="plan-week"><div class="plan-week-title">SEMANA ' + semana.semana;
     if (semana.foco) html += ' <span style="font-size:12px;font-family:\'DM Sans\',sans-serif;font-weight:400;letter-spacing:0;color:var(--muted)">— ' + escHtml(semana.foco) + '</span>';
     if (semana.intensidade) html += ' <span style="font-size:10px;font-family:DM Mono,monospace;color:var(--accent2)"> ' + escHtml(semana.intensidade) + '</span>';
@@ -3797,6 +3806,12 @@ async function enviarChatInlineDia(dayKey, diaNome, semana) {
   }
 }
 
+function _msgNeedsBiblioteca(msg) {
+  var lower = msg.toLowerCase();
+  var keywords = ['substitu', 'troc', 'carga', 'peso', 'kg', 'aumenta', 'diminui', 'adiciona', 'remove', 'inclui', 'coloca', 'outro exerc', 'diferente', 'altern', 'biblioteca'];
+  return keywords.some(function(k) { return lower.includes(k); });
+}
+
 async function enviarChatInline(dayKey, serieLabel) {
   var input = document.getElementById('chat-inline-input-' + dayKey);
   if (!input || !input.value.trim()) return;
@@ -3826,12 +3841,15 @@ async function enviarChatInline(dayKey, serieLabel) {
     'Foco da semana: ' + (semanaObj ? semanaObj.foco : '') + '\n' +
     'Intensidade: ' + (semanaObj ? semanaObj.intensidade : '') + '\n\n' +
     'TREINO ATUAL DO DIA:\n' + exAtual + '\n\n' +
+    (bibList && _msgNeedsBiblioteca(msg) ? 'BIBLIOTECA DA SÉRIE ' + serieLabel + ' (nomes e cargas de referência):\n' + bibList + '\n\n' : '') +
     'REFERÊNCIA DE NÍVEL (para calibrar cargas — não como lista de exercícios):\n' +
     'Overhead Press 24kg/lado, Pull-up assistido 66kg máquina, Supino halteres 28kg/lado, Leg Press 120kg/lado.\n\n' +
     'O usuário está aberto a qualquer exercício que você considere ideal. Use seu conhecimento livremente.\n' +
     'Responda perguntas e explique escolhas em português.\n' +
     'REGRA: Quando o usuário aprovar (disser "sim", "confirma", "aplica" ou similar), ' +
-    'retorne APENAS o JSON diaExpandido completo, sem texto adicional.';
+    'retorne APENAS o JSON diaExpandido completo, sem texto adicional.\n' +
+    'Quando você tiver uma proposta pronta e precisar de confirmação antes de aplicar, termine sua mensagem com exatamente: [PRONTO PARA APLICAR]\n' +
+    'Quando estiver fazendo perguntas para entender melhor o pedido, NÃO use [PRONTO PARA APLICAR].';
 
   if (!chatInlineHistory[dayKey]) getChatInlineHistory(dayKey);
   chatInlineHistory[dayKey].push({ role: 'user', content: msg });
@@ -3883,6 +3901,10 @@ async function enviarChatInline(dayKey, serieLabel) {
         var inline = container.querySelector('.agenda-treino-inline');
         if (inline) { inline.remove(); irParaTreino(dayKey, serieLabel); }
       }
+      // Strip JSON from history entry so it doesn't leak into future context display
+      var cleanText = text.replace(/```json[\s\S]*?```/g, '').replace(/\{[\s\S]*\}/g, '').trim();
+      chatInlineHistory[dayKey][chatInlineHistory[dayKey].length - 1].content = cleanText || '✓ Treino atualizado.';
+      saveChatInlineHistory(dayKey);
       addChatInlineMsg(dayKey, 'ai', '✓ Treino atualizado com ' + parsed.diaExpandido.exercicios.length + ' exercícios.');
     } else {
       // Strip any JSON from the text before showing to user
@@ -3891,10 +3913,13 @@ async function enviarChatInline(dayKey, serieLabel) {
       displayText = displayText.replace(/\{[\s\S]*\}/g, function(match) {
         try { JSON.parse(match); return ''; } catch(e) { return match; }
       }).trim();
-      if (!displayText) displayText = text; // fallback if everything was stripped
+      if (!displayText) displayText = '✓ Treino atualizado.';
+      displayText = displayText.replace('[PRONTO PARA APLICAR]', '').trim();
       addChatInlineMsg(dayKey, 'ai', displayText);
-      // If response looks like a proposal (contains exercise names and →), offer apply button
-      if (text.includes('→') || text.toLowerCase().includes('confirma') || text.toLowerCase().includes('gero o json') || text.toLowerCase().includes('quer que eu')) {
+      // If response looks like a proposal ready to apply, offer apply button
+      // Only show when AI is ready to generate — not when asking questions
+      var prontoParaAplicar = text.includes('[PRONTO PARA APLICAR]');
+      if (prontoParaAplicar) {
         var msgs2 = document.getElementById('chat-inline-msgs-' + dayKey);
         if (msgs2) {
           var applyDiv = document.createElement('div');
@@ -4038,11 +4063,12 @@ function expandirDia(semana, dia, serieLabel, knownDayKey) {
     // STEP 2: Compare with library and substitute equivalent exercises
     var treinoGerado = JSON.stringify(parsed1, null, 2);
     var prompt2 = 'Tenho este treino gerado:\n' + treinoGerado + '\n\n' +
-      'E esta é minha biblioteca de exercícios com cargas e sets que já executo:\n' + bibliotecaCompleta + '\n\n' +
-      'Para cada exercício do treino gerado, verifique se existe um exercício na biblioteca que seja suficientemente similar (mesmo músculo-alvo, padrão de movimento equivalente). ' +
-      'Se sim, substitua pelo exercício da biblioteca — mas mantenha os sets, cargas e ordem do treino gerado. ' +
-      'Se não houver equivalente na biblioteca, mantenha o exercício original. ' +
-      'Retorne o treino final no mesmo formato JSON, com as substituições aplicadas.';
+      'MINHA BIBLIOTECA (nomes exatos que uso):\n' + bibliotecaCompleta + '\n\n' +
+      'REGRA: Para cada exercício do treino gerado, verifique se ele é essencialmente o MESMO exercício que já existe na biblioteca (mesmo nome, mesmo equipamento, mesmo padrão de movimento). ' +
+      'Se for o mesmo exercício, use EXATAMENTE o nome da biblioteca — não crie variações como "(corda)", "(inclinado)", "(halteres)" se o exercício já existe sem esse sufixo. ' +
+      'Se for um exercício genuinamente diferente e complementar ao que já existe na biblioteca, mantenha o nome original — exercícios novos são bem-vindos. ' +
+      'Mantenha sets, cargas, rest e ordem do treino gerado. ' +
+      'Retorne o treino final no mesmo formato JSON, com TODOS os campos: nome, musculo, sets, weight, rest e notes.';
 
     fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -4184,11 +4210,15 @@ function normalizarDiaExpandido(parsed, semana, dia) {
         ex._notes_merged = extraNote + (notes2 ? '\n' + notes2 : '');
       }
       var notes = ex._notes_merged || ex.notes || ex.notas || ex.notas_execucao || ex.execucao || ex.tecnica || ex.description || ex.instructions || '';
+      var rest = ex.rest || ex.intervalo || ex.descanso || ex.rest_period || ex.tempo_descanso || '';
+      if (typeof rest === 'number') rest = rest + 's';
+      rest = String(rest).trim();
       return {
         id: ex.id || uid(),
         nome: ex.nome || ex.name || ex.exercise || '',
         sets: setsStr,
         weight: w,
+        rest: rest,
         notes: notes
       };
     })
@@ -4371,6 +4401,11 @@ function renderAgendaLinear() {
   let html = headerHTML;
 
   state.plano.semanas.forEach(function(semana) {
+    // Skip weeks with no training days (all rest or empty)
+    var diasSemana = semana.dias || semana.agenda || [];
+    var temTreino = diasSemana.some(function(d) { return d.serie && d.serie !== 'descanso'; });
+    if (!temTreino) return;
+
     var semKey = 'sem' + semana.semana;
     var semOpen = state.plano.semanaOpen && state.plano.semanaOpen[semKey] !== false;
 
@@ -4393,7 +4428,7 @@ function renderAgendaLinear() {
       const tipo = isRest ? (d.tipo || 'recuperacao') : 'treino';
 
       let cardClass = 'agenda-dia';
-      if (isDiaHoje && status === 'pendente') cardClass += ' hoje';
+      if (isDiaHoje && (status === 'pendente' || status === 'disponivel')) cardClass += ' hoje';
       if (status === 'perdido') cardClass += ' perdido';
       if (status === 'concluido') cardClass += ' concluido';
       if (status === 'ausente') cardClass += ' ausente-planejada';
@@ -5412,9 +5447,36 @@ function marcarDiaDescansoNeutro(dayKey) {
 }
 
 function cancelarSabadoDisponivel(dayKey) {
+  // Preserve any expanded workout generated for this Saturday
+  var expandidoSabado = (state.plano.diasExpandidos && state.plano.diasExpandidos[dayKey])
+    ? JSON.parse(JSON.stringify(state.plano.diasExpandidos[dayKey]))
+    : null;
+  var serieSabado = expandidoSabado ? expandidoSabado.serie : null;
+
   // Try full undo via snapshot first
   if (state.plano._historico && state.plano._historico.length > 0) {
     desfazerRelocamento();
+    // After undo, find the day that now has the same serie and move the expanded there
+    if (expandidoSabado && serieSabado && state.plano.diasStatus) {
+      // Find the first pending day with the same serie (likely the Monday it was relocated to)
+      var ordemDias = ['Segunda','Terça','Quarta','Quinta','Sexta','Sábado','Domingo'];
+      var todosDias = [];
+      state.plano.semanas.forEach(function(sem) {
+        (sem.dias || sem.agenda || []).forEach(function(d) {
+          todosDias.push({ key: 'sem' + sem.semana + '_' + d.dia, serie: d.serie });
+        });
+      });
+      var destino = todosDias.find(function(d) {
+        return d.serie === serieSabado && (state.plano.diasStatus[d.key] || 'pendente') === 'pendente';
+      });
+      if (destino) {
+        if (!state.plano.diasExpandidos) state.plano.diasExpandidos = {};
+        expandidoSabado._dayKey = destino.key;
+        state.plano.diasExpandidos[destino.key] = expandidoSabado;
+      }
+    }
+    saveState();
+    renderAgendaLinear();
     return;
   }
   // Fallback: simply reset status and serie to descanso
