@@ -130,33 +130,13 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
   }
   .serie-name-edit:focus { border-bottom-color: var(--accent); }
 
-  .serie-meta {
-    display: flex;
-    gap: 16px;
-    align-items: center;
-    padding: 0 24px 16px;
-    flex-wrap: wrap;
-  }
-  .last-done {
+  .serie-last-done {
     font-family: 'DM Mono', monospace;
     font-size: 11px;
     color: var(--muted);
+    white-space: nowrap;
   }
-  .last-done span { color: var(--accent3); }
-
-  .progress-bar-wrap {
-    flex: 1; min-width: 120px;
-    height: 4px;
-    background: var(--border);
-    border-radius: 99px;
-    overflow: hidden;
-  }
-  .progress-bar-fill {
-    height: 100%;
-    background: var(--accent);
-    transition: width .4s ease;
-    border-radius: 99px;
-  }
+  .serie-last-done span { color: var(--accent3); }
 
   /* variant selector */
   .variant-row {
@@ -196,7 +176,7 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
   .exercise-list {
     padding: 0 24px;
     display: grid;
-    grid-template-columns: 32px 1fr auto auto auto auto;
+    grid-template-columns: auto 1fr auto auto auto;
     row-gap: 6px;
   }
 
@@ -204,7 +184,6 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
   .ex-card { display: contents; }
 
   /* every cell shares the same visual treatment */
-  .ex-dot-wrap,
   .ex-col-name,
   .ex-col-sets,
   .ex-col-weight,
@@ -222,7 +201,6 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
   .ex-card.status-partial > * { border-color: rgba(255,204,0,.4);  background: rgba(255,204,0,.03);  }
 
   /* Because display:contents, we target children directly */
-  .ex-card.status-done   .ex-dot-wrap,
   .ex-card.status-done   .ex-col-name,
   .ex-card.status-done   .ex-col-sets,
   .ex-card.status-done   .ex-col-weight,
@@ -230,7 +208,6 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
   .ex-card.status-done   .ex-chevron-wrap {
     border-color: rgba(57,255,133,.4); background: rgba(57,255,133,.03);
   }
-  .ex-card.status-partial .ex-dot-wrap,
   .ex-card.status-partial .ex-col-name,
   .ex-card.status-partial .ex-col-sets,
   .ex-card.status-partial .ex-col-weight,
@@ -238,7 +215,6 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
   .ex-card.status-partial .ex-chevron-wrap {
     border-color: rgba(255,204,0,.4); background: rgba(255,204,0,.03);
   }
-  .ex-card.status-skipped .ex-dot-wrap,
   .ex-card.status-skipped .ex-col-name,
   .ex-card.status-skipped .ex-col-sets,
   .ex-card.status-skipped .ex-col-weight,
@@ -260,26 +236,7 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
   }
 
   /* col 1 — dot: left border + left rounded corners */
-  .ex-dot-wrap {
-    border-left: 1px solid var(--border);
-    border-radius: 10px 0 0 10px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-  }
-  .status-dot {
-    width: 9px; height: 9px;
-    border-radius: 50%;
-    transition: background .2s, box-shadow .2s;
-    cursor: pointer;
-    border: 1px solid var(--border);
-    flex-shrink: 0;
-  }
-  .status-dot.done    { background: var(--done);    border-color: var(--done);    box-shadow: 0 0 6px rgba(57,255,133,.5); }
-  .status-dot.partial { background: var(--partial); border-color: var(--partial); box-shadow: 0 0 6px rgba(255,204,0,.4); }
-  .status-dot.skipped { background: var(--skipped); border-color: var(--skipped); box-shadow: 0 0 6px rgba(255,107,255,.5); }
-  .status-dot.undone  { background: var(--undone); }
+
 
   /* col 2 — name */
   .ex-col-name {
@@ -288,7 +245,6 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
     border-left: 1px solid var(--border);
     display: flex;
     align-items: center;
-    cursor: pointer;
     overflow: hidden;
   }
   .ex-name-input {
@@ -396,7 +352,8 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
     padding: 6px 12px;
     gap: 1px;
     border-left: 1px solid var(--border);
-    cursor: pointer;
+    border-right: 1px solid var(--border);
+    border-radius: 0 10px 10px 0;
     min-width: 80px;
   }
 
@@ -435,19 +392,24 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
   .ex-chevron-wrap {
     border-right: 1px solid var(--border);
     border-left: 1px solid var(--border);
-    border-radius: 0 10px 10px 0;
+    border-radius: 10px 0 0 10px;
     display: flex;
     align-items: center;
-    padding: 0 12px;
+    justify-content: center;
+    padding: 0 16px;
     cursor: pointer;
+    user-select: none;
+    transition: background .15s;
   }
+  .ex-chevron-wrap:hover { background: rgba(255,255,255,.04); }
   .ex-chevron {
-    color: var(--muted);
-    font-size: 11px;
+    color: var(--accent3);
+    font-size: 14px;
     transition: transform .2s;
     flex-shrink: 0;
   }
   .ex-card.open .ex-chevron { transform: rotate(180deg); }
+  .ex-card.open .ex-chevron-wrap { background: rgba(255,255,255,.03); }
 
   /* body row spans all 5 columns */
   .ex-body {
@@ -1216,7 +1178,7 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
     <button class="btn" onclick="resetData()" title="Limpar todos os dados e voltar ao padrão">RESET</button>
     <button class="btn" onclick="exportData()">EXPORTAR</button>
     <button class="btn" onclick="importData()">IMPORTAR</button>
-    <span style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted);margin-left:4px">v0.8.5.99</span>
+    <span style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted);margin-left:4px">v0.8.6.08</span>
     <div id="auth-status" style="display:flex;align-items:center;margin-left:8px"></div>
     <div id="sync-status" style="display:none;align-items:center;margin-left:4px"></div>
   </div>
@@ -1234,6 +1196,9 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
 
 <!-- AGENDA -->
 <div class="view" id="view-agenda">
+  <div style="padding:8px 16px 0;display:flex;justify-content:flex-end">
+    <button onclick="sincronizarNomesAgenda()" style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;padding:4px 12px;border-radius:8px;border:1px solid var(--muted);color:var(--muted);background:transparent;cursor:pointer" title="Atualiza nomes dos exercícios na Agenda para corresponder ao Histórico">⟳ SINCRONIZAR NOMES</button>
+  </div>
   <div class="agenda-linear" id="agenda-linear-list">
     <div style="color:var(--muted);font-family:DM Mono,monospace;font-size:12px;padding:20px 0">Nenhum plano ativo. Gere um plano na aba PLANO.</div>
   </div>
@@ -1640,16 +1605,10 @@ function buildSerieHTML(s) {
     <div class="serie-header">
       <span class="serie-label">SÉRIE</span>
       <input class="serie-name-edit" value="${escHtml(s.name)}" oninput="updateSerieName('${s.id}',this.value)" />
+      <span class="serie-last-done">ÚLTIMO TREINO: <span>${lastDate}</span></span>
     </div>
-    <div class="serie-meta">
-      <div class="last-done">ÚLTIMO TREINO: <span>${lastDate}</span></div>
-      <div class="progress-bar-wrap"><div class="progress-bar-fill" style="width:${pct}%"></div></div>
-      <span style="font-family:DM Mono,monospace;font-size:11px;color:var(--muted)">${done}/${total}</span>
-    </div>
+
     <div class="serie-actions">
-      <button class="btn mark-all" onclick="markAll('${s.id}','done')">✓ MARCAR TODOS</button>
-      <button class="btn reset-all" onclick="markAll('${s.id}','undone')">↺ RESETAR</button>
-      <button class="btn primary" onclick="finishSerie('${s.id}')">⬤ REGISTRAR NO HISTÓRICO</button>
       <button class="btn" onclick="addExercise('${s.id}')">+ EXERCÍCIO</button>
     </div>
     <div class="exercise-list" id="exlist-${s.id}">
@@ -1664,28 +1623,25 @@ function buildExHTML(serieId, ex, idx, planMode) {
   const cardClass = (ex.status !== 'undone' ? 'status-'+ex.status : '') + (planMode ? ' plan-ex-card' : '');
   return `
   <div class="ex-card ${cardClass}" id="excard-${ex.id}">
-    <div class="ex-dot-wrap" onclick="cycleStatus('${serieId}','${ex.id}')">
-      <div class="status-dot ${statusClass}"></div>
+    <div class="ex-chevron-wrap" onclick="toggleExCard('${ex.id}')">
+      <span class="ex-chevron">▾</span>
     </div>
-    <div class="ex-col-name" onclick="toggleExCard('${ex.id}')">
-      <input class="ex-name-input" value="${escHtml(ex.name)}" onclick="event.stopPropagation()" oninput="updateExField('${serieId}','${ex.id}','name',this.value)" />
+    <div class="ex-col-name">
+      <input class="ex-name-input" value="${escHtml(ex.name)}" oninput="updateExField('${serieId}','${ex.id}','name',this.value)" />
       ${wasSkippedLast ? '<span class="priority-badge">PRIORIDADE</span>' : ''}
       <button class="ex-rename-btn" id="rename-btn-${ex.id}" onclick="event.stopPropagation();renameWithAI('${serieId}','${ex.id}')" title="Sugerir nome oficial">✦</button>
     </div>
-    <div class="ex-col-sets" onclick="toggleExCard('${ex.id}')">
+    <div class="ex-col-sets">
       <span class="ex-col-label">SÉRIES</span>
-      <input class="ex-col-input" type="text" onclick="event.stopPropagation()" oninput="updateExField('${serieId}','${ex.id}','sets',this.value)" value="${escHtml(ex.sets)}" placeholder="3x10" />
+      <input class="ex-col-input" type="text" oninput="updateExField('${serieId}','${ex.id}','sets',this.value)" value="${escHtml(ex.sets)}" placeholder="3x10" />
     </div>
-    <div class="ex-col-weight" onclick="toggleExCard('${ex.id}')">
+    <div class="ex-col-weight">
       <span class="ex-col-label">CARGA</span>
-      <input class="ex-col-input" type="text" onclick="event.stopPropagation()" oninput="updateExField('${serieId}','${ex.id}','weight',this.value)" value="${escHtml(ex.weight)}" placeholder="—" />
+      <input class="ex-col-input" type="text" oninput="updateExField('${serieId}','${ex.id}','weight',this.value)" value="${escHtml(ex.weight)}" placeholder="—" />
     </div>
-    <div class="ex-col-rest" onclick="toggleExCard('${ex.id}')">
+    <div class="ex-col-rest">
       <span class="ex-col-label">DESCANSO</span>
-      <input class="ex-col-input" type="text" onclick="event.stopPropagation()" oninput="updateExField('${serieId}','${ex.id}','rest',this.value)" value="${escHtml(ex.rest||'')}" placeholder="—" style="color:var(--muted)" />
-    </div>
-    <div class="ex-chevron-wrap" onclick="toggleExCard('${ex.id}')">
-      <span class="ex-chevron">▾</span>
+      <input class="ex-col-input" type="text" oninput="updateExField('${serieId}','${ex.id}','rest',this.value)" value="${escHtml(ex.rest||'')}" placeholder="—" style="color:var(--muted)" />
     </div>
     <div class="ex-body">
       <div class="ex-fields">
@@ -1694,12 +1650,7 @@ function buildExHTML(serieId, ex, idx, planMode) {
           <textarea class="field-input" oninput="updateExField('${serieId}','${ex.id}','notes',this.value)">${escHtml(ex.notes)}</textarea>
         </div>
       </div>
-      <div class="ex-status-row">
-        <button class="status-btn ${ex.status==='undone'?'undone':''}" onclick="setExStatus('${serieId}','${ex.id}','undone')">NÃO FEITO</button>
-        <button class="status-btn ${ex.status==='partial'?'partial':''}" onclick="setExStatus('${serieId}','${ex.id}','partial')">PARCIAL</button>
-        <button class="status-btn ${ex.status==='done'?'done':''}" onclick="setExStatus('${serieId}','${ex.id}','done')">CONCLUÍDO</button>
-        <button class="status-btn ${ex.status==='skipped'?'skipped':''}" onclick="setExStatus('${serieId}','${ex.id}','skipped')">PULADO</button>
-      </div>
+
       <div class="ex-actions">
         <button class="ex-action-btn move" onclick="moveEx('${serieId}','${ex.id}',-1)">↑</button>
         <button class="ex-action-btn move" onclick="moveEx('${serieId}','${ex.id}',1)">↓</button>
@@ -2173,6 +2124,7 @@ function renderBiblioteca(activeId) {
   btnDup.onclick = function() { verificarDuplicatasHistoricoCompleto(); };
   bibTabs.appendChild(btnDup);
 
+
   // Render active serie or Core view
   if (activeId === 'workout-core') {
     bibContent.innerHTML = buildCoreHTML();
@@ -2199,9 +2151,7 @@ function buildCoreHTML() {
     <div class="serie-header">
       <span class="serie-label">SÉRIE</span>
       <input class="serie-name-edit" value="CORE" readonly style="cursor:default;pointer-events:none" />
-    </div>
-    <div class="serie-meta">
-      <div class="last-done">Exercícios distribuídos entre os treinos A, B, C, D</div>
+      <span class="serie-last-done">Exercícios distribuídos entre os treinos A, B, C, D</span>
     </div>
     <div class="serie-actions">
       <button class="btn" onclick="addExercise('${coreSerie.id}')">+ EXERCÍCIO</button>
@@ -4462,18 +4412,42 @@ function renderAgendaLinear() {
       // Exercise list — show expanded if available, else show placeholder
       var exHTML = '';
       if (!isRest) {
-        if (expanded && expanded.exercicios) {
+        // For concluded days, use History as source of truth (has updated names)
+        var exSource = null;
+        if (status === 'concluido') {
+          // Match by serieLabel + date
+          var ordemFallback = ['Segunda','Terça','Quarta','Quinta','Sexta','Sábado','Domingo'];
+          var inicioFallback = state.plano.dataInicio ? new Date(state.plano.dataInicio) : null;
+          var hEntry = null;
+          if (inicioFallback) {
+            inicioFallback.setHours(0,0,0,0);
+            var diaIdxFallback = ordemFallback.indexOf(d.dia);
+            if (diaIdxFallback !== -1) {
+              var diaDateFallback = new Date(inicioFallback);
+              diaDateFallback.setDate(inicioFallback.getDate() + (semana.semana - 1) * 7 + diaIdxFallback);
+              var diaStr = diaDateFallback.toISOString().slice(0, 10);
+              hEntry = state.history.find(function(h) {
+                return h.serieLabel === d.serie && h.date && h.date.slice(0, 10) === diaStr;
+              });
+            }
+          }
+          if (hEntry && hEntry.exercises) {
+            exSource = hEntry.exercises.map(function(ex) {
+              return { nome: ex.name, sets: ex.sets, weight: ex.weight };
+            });
+          }
+        }
+        var exList = exSource || (expanded && expanded.exercicios);
+        if (exList) {
           exHTML = '<div class="agenda-ex-list">' +
-            expanded.exercicios.map(function(ex, i) {
+            exList.map(function(ex, i) {
               return '<div class="agenda-ex-item">' +
                 '<span class="agenda-ex-num">' + (i+1) + '</span>' +
-                '<span class="agenda-ex-name">' + escHtml(ex.nome) + '</span>' +
+                '<span class="agenda-ex-name">' + escHtml(ex.nome || ex.name) + '</span>' +
                 '<span class="agenda-ex-sets">' + escHtml(ex.sets) + '</span>' +
                 '<span class="agenda-ex-weight">' + escHtml(ex.weight) + '</span>' +
                 '</div>';
             }).join('') + '</div>';
-        } else {
-          exHTML = '';
         }
       }
       // Determine if this day is in the past
@@ -4851,6 +4825,66 @@ function finishSerieFromAgenda(dayKey, serieId) {
   verificarDuplicatasComIA(exercises);
 }
 
+function sincronizarNomesAgenda() {
+  if (!state.plano || !state.plano.diasExpandidos) {
+    toast('Nenhum treino na Agenda para sincronizar.');
+    return;
+  }
+
+  var ordemSemana = ['Segunda','Terça','Quarta','Quinta','Sexta','Sábado','Domingo'];
+  var inicio = state.plano.dataInicio ? new Date(state.plano.dataInicio) : null;
+  if (!inicio) { toast('Plano sem data de início definida.'); return; }
+  inicio.setHours(0,0,0,0);
+
+  // Build map: "serieLabel|YYYY-MM-DD" → [exercise names from history]
+  // After unification, history has the canonical names
+  var historicoMap = {};
+  state.history.forEach(function(h) {
+    if (!h.serieLabel || !h.date || !h.exercises) return;
+    var dateStr = h.date.slice(0, 10);
+    var key = h.serieLabel + '|' + dateStr;
+    historicoMap[key] = h.exercises.map(function(ex) { return ex.name; });
+  });
+
+  var alterados = 0;
+  Object.keys(state.plano.diasExpandidos).forEach(function(dayKey) {
+    var dia = state.plano.diasExpandidos[dayKey];
+    if (!dia || !dia.exercicios || !dia.serie) return;
+
+    // Compute calendar date for this dayKey
+    var parts = dayKey.match(/^sem(\d+)_(.+)$/);
+    if (!parts) return;
+    var semNum = parseInt(parts[1]);
+    var diaNome = parts[2];
+    var diaIdx = ordemSemana.indexOf(diaNome);
+    if (diaIdx === -1) return;
+    var diaDate = new Date(inicio);
+    diaDate.setDate(inicio.getDate() + (semNum - 1) * 7 + diaIdx);
+    var dateStr = diaDate.toISOString().slice(0, 10);
+
+    var hKey = dia.serie + '|' + dateStr;
+    var hNames = historicoMap[hKey];
+    if (!hNames || hNames.length !== dia.exercicios.length) return;
+
+    // Replace names position-by-position
+    dia.exercicios.forEach(function(ex, i) {
+      if (hNames[i] && hNames[i] !== ex.nome) {
+        ex.nome = hNames[i];
+        alterados++;
+      }
+    });
+  });
+
+  if (alterados === 0) {
+    toast('Agenda já está sincronizada com o Histórico ✓');
+    return;
+  }
+
+  saveState();
+  renderAgendaLinear();
+  toast(alterados + ' nome(s) sincronizado(s) na Agenda ✓');
+}
+
 function verificarDuplicatasHistoricoCompleto() {
   var apiKey = getApiKey();
 
@@ -5200,8 +5234,21 @@ function aplicarDuplicatasSelecionadas(inicio, fim) {
 
   // For each selected, determine final name via AI if context provided
   var processados = 0;
+  var renameMap = {}; // acumula {nomeAntigo.toLowerCase() → nomeNovo} para reconciliação retroativa
   function processarProximo() {
     if (processados >= selecionados.length) {
+      // Reconciliar diasExpandidos retroativamente com todos os renomes acumulados
+      if (state.plano && state.plano.diasExpandidos && Object.keys(renameMap).length > 0) {
+        Object.values(state.plano.diasExpandidos).forEach(function(dia) {
+          if (!dia || !dia.exercicios) return;
+          dia.exercicios.forEach(function(ex) {
+            if (ex.nome) {
+              var novoNome = renameMap[ex.nome.toLowerCase()];
+              if (novoNome) ex.nome = novoNome;
+            }
+          });
+        });
+      }
       // Remove processed pairs (in reverse order to preserve indices)
       var idxParaRemover = selecionados.map(function(s) { return s.idx; }).sort(function(a,b) { return b-a; });
       idxParaRemover.forEach(function(idx) {
@@ -5220,6 +5267,8 @@ function aplicarDuplicatasSelecionadas(inicio, fim) {
     function aplicarUnificacao(nomeEscolhido) {
       var oldTreino = par.treino.toLowerCase();
       var oldBiblioteca = par.biblioteca.toLowerCase();
+      var oldNames = [oldTreino, oldBiblioteca];
+
       // Update history — rename old treino name
       state.history.forEach(function(h) {
         (h.exercises || []).forEach(function(ex) {
@@ -5228,6 +5277,7 @@ function aplicarDuplicatasSelecionadas(inicio, fim) {
           }
         });
       });
+
       // Update library — rename both old names to the chosen name
       state.series.forEach(function(s) {
         s.exercises.forEach(function(ex) {
@@ -5235,6 +5285,39 @@ function aplicarDuplicatasSelecionadas(inicio, fim) {
             ex.name = nomeEscolhido;
           }
         });
+      });
+
+      // Update agenda (diasExpandidos) — rename exercises in expanded days
+      if (state.plano && state.plano.diasExpandidos) {
+        Object.values(state.plano.diasExpandidos).forEach(function(dia) {
+          if (!dia || !dia.exercicios) return;
+          dia.exercicios.forEach(function(ex) {
+            if (ex.nome && oldNames.indexOf(ex.nome.toLowerCase()) !== -1) {
+              ex.nome = nomeEscolhido;
+            }
+          });
+        });
+      }
+
+      // Migrate exExplanations cache — transfer explanation to new name, remove old keys
+      if (state.exExplanations) {
+        oldNames.forEach(function(oldName) {
+          // Find original-case key
+          var keys = Object.keys(state.exExplanations);
+          keys.forEach(function(k) {
+            if (k.toLowerCase() === oldName && k !== nomeEscolhido) {
+              state.exExplanations[nomeEscolhido] = state.exExplanations[k];
+              delete state.exExplanations[k];
+            }
+          });
+        });
+      }
+
+      // Registrar renomes no mapa para reconciliação retroativa
+      [par.treino, par.biblioteca].forEach(function(oldName) {
+        if (oldName && oldName.toLowerCase() !== nomeEscolhido.toLowerCase()) {
+          renameMap[oldName.toLowerCase()] = nomeEscolhido;
+        }
       });
       processados++;
       processarProximo();
@@ -5664,6 +5747,8 @@ function rerenderSerie(serieId) {
   // Re-render inside biblioteca if currently viewing this serie
   if (currentTab === 'workout-'+serieId) {
     renderBiblioteca('workout-'+serieId);
+  } else if (currentTab === 'workout-core' && serieId === (state.series.find(function(s){return s.label==='Core';}) || {}).id) {
+    renderBiblioteca('workout-core');
   } else if (currentTab === 'biblioteca') {
     renderBiblioteca(currentTab);
   }
