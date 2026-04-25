@@ -1216,7 +1216,7 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
     <button class="btn" onclick="resetData()" title="Limpar todos os dados e voltar ao padrão">RESET</button>
     <button class="btn" onclick="exportData()">EXPORTAR</button>
     <button class="btn" onclick="importData()">IMPORTAR</button>
-    <span style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted);margin-left:4px">v0.8.5.98</span>
+    <span style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted);margin-left:4px">v0.8.5.99</span>
     <div id="auth-status" style="display:flex;align-items:center;margin-left:8px"></div>
     <div id="sync-status" style="display:none;align-items:center;margin-left:4px"></div>
   </div>
@@ -4711,7 +4711,7 @@ function renderInlineEx(ex, dayKey, serieLabel) {
       '<div style="display:flex;gap:8px;align-items:center">' +
         '<input type="text" value="' + escHtml(ex.sets) + '" ' +
         'onchange="updateInlineEx(\'' + dayKey + '\',\'' + serieLabel + '\',\'' + ex.id + '\',\'sets\',this.value)" ' +
-        'style="font-family:DM Mono,monospace;font-size:11px;color:var(--accent);background:transparent;border:none;border-bottom:1px solid var(--border);width:80px;text-align:center;outline:none;padding:2px;flex-shrink:0">' +
+        'style="font-family:DM Mono,monospace;font-size:11px;color:var(--accent);background:transparent;border:none;border-bottom:1px solid var(--border);min-width:60px;max-width:140px;text-align:center;outline:none;padding:2px;flex-shrink:0">' +
         '<input type="text" value="' + escHtml(ex.weight) + '" ' +
         'onchange="updateInlineEx(\'' + dayKey + '\',\'' + serieLabel + '\',\'' + ex.id + '\',\'weight\',this.value)" ' +
         'style="font-family:DM Mono,monospace;font-size:11px;color:var(--accent2);background:transparent;border:none;border-bottom:1px solid var(--border);flex:1;text-align:right;outline:none;padding:2px;min-width:0">' +
