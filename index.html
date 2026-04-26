@@ -1285,7 +1285,7 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
     <button class="btn" onclick="resetData()" title="Limpar todos os dados e voltar ao padrão">RESET</button>
     <button class="btn" onclick="exportData()">EXPORTAR</button>
     <button class="btn" onclick="importData()">IMPORTAR</button>
-    <span style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted);margin-left:4px">v0.8.6.61</span>
+    <span style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted);margin-left:4px">v0.8.6.92</span>
     <div id="auth-status" style="display:flex;align-items:center;margin-left:8px"></div>
     <div id="sync-status" style="display:none;align-items:center;margin-left:4px"></div>
   </div>
@@ -1363,6 +1363,11 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
       <div class="perfil-field full" style="margin-bottom:16px">
         <label>Séries intercaladas <span style="font-family:DM Mono,monospace;font-size:10px;color:var(--muted)">(inseridas a cada N treinos da fila principal)</span></label>
         <div id="config-intercaladas" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px"></div>
+      </div>
+
+      <div class="perfil-field full" style="margin-bottom:16px">
+        <label>Séries complementares <span style="font-family:DM Mono,monospace;font-size:10px;color:var(--muted)">(mescladas com outros treinos, sem dia fixo — ex: Core)</span></label>
+        <div id="config-complementares" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px"></div>
       </div>
 
       <div class="perfil-field full" style="margin-bottom:16px">
@@ -2366,6 +2371,10 @@ function getDefaultConfigTreino() {
   return {
     filaPrincipal: filaPrincipal,
     intercaladas: intercaladas,
+    complementares: (function() {
+      var coreS = (state.series || []).find(function(s) { return s.id === 'score'; });
+      return coreS ? [{ label: coreS.label, freqApos: 'todos' }] : [];
+    })(),
     entradaFila: filaPrincipal[0] || 'A',
     posicaoFila: 0, // current position in the static queue
     diasTreino: ['Segunda','Terça','Quarta','Quinta','Sexta'],
@@ -2413,17 +2422,32 @@ function loadConfigTreino() {
   var cfg = (state.perfil && state.perfil.configTreino) || getDefaultConfigTreino();
   var series = state.series || [];
 
+  // Migração: se complementares nunca foi definido, inicializar com Core
+  if (!cfg.complementares) {
+    cfg.complementares = [];
+    var coreS = series.find(function(s) { return s.id === 'score'; });
+    if (coreS) cfg.complementares.push({ label: coreS.label, freqApos: 'todos' });
+    if (state.perfil) state.perfil.configTreino = cfg;
+    saveState();
+  }
+
   // Render fila principal
   var container = document.getElementById('config-fila-principal');
   if (container) {
     container.innerHTML = '';
-    series.forEach(function(s, idx) {
+    series.filter(function(s) { return s.id !== 'score'; }).forEach(function(s, idx) {
       var isInFila = cfg.filaPrincipal && cfg.filaPrincipal.indexOf(s.label) !== -1;
       var div = document.createElement('div');
       div.style.cssText = 'display:flex;align-items:center;gap:6px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:6px 10px;cursor:pointer;transition:border-color .15s';
+      var orderIdx = cfg.filaPrincipal ? cfg.filaPrincipal.indexOf(s.label) : -1;
       div.innerHTML = '<input type="checkbox" id="cfg-fila-' + s.label + '" ' + (isInFila ? 'checked' : '') + ' onchange="saveConfigTreino()">' +
+        (isInFila ? '<span style="font-family:DM Mono,monospace;font-size:11px;color:var(--muted);min-width:18px;text-align:center">' + (orderIdx + 1) + 'º</span>' : '<span style="min-width:18px"></span>') +
         '<span style="font-family:DM Mono,monospace;font-size:12px;color:var(--accent)">' + s.label + '</span>' +
-        '<span style="font-family:DM Mono,monospace;font-size:11px;color:var(--muted)">' + s.name + '</span>';
+        '<span style="font-family:DM Mono,monospace;font-size:11px;color:var(--muted)">' + s.name + '</span>' +
+        (isInFila ? '<span style="margin-left:auto;display:flex;gap:2px">' +
+          '<button onclick="event.stopPropagation();moverFilaPrincipal(\'' + s.label + '\', -1)" style="font-size:11px;padding:2px 8px;background:transparent;border:1px solid var(--accent);border-radius:4px;cursor:pointer;color:var(--accent);line-height:1" title="Mover para antes na fila">↑</button>' +
+          '<button onclick="event.stopPropagation();moverFilaPrincipal(\'' + s.label + '\', 1)" style="font-size:11px;padding:2px 8px;background:transparent;border:1px solid var(--accent);border-radius:4px;cursor:pointer;color:var(--accent);line-height:1" title="Mover para depois na fila">↓</button>' +
+          '</span>' : '');
       container.appendChild(div);
     });
   }
@@ -2432,7 +2456,7 @@ function loadConfigTreino() {
   var container2 = document.getElementById('config-intercaladas');
   if (container2) {
     container2.innerHTML = '';
-    series.forEach(function(s) {
+    series.filter(function(s) { return s.id !== 'score'; }).forEach(function(s) {
       var icCfg = cfg.intercaladas && cfg.intercaladas.find(function(ic) { return ic.label === s.label; });
       var isIntercalada = !!icCfg;
       var div = document.createElement('div');
@@ -2442,10 +2466,40 @@ function loadConfigTreino() {
         '<span style="font-family:DM Mono,monospace;font-size:11px;color:var(--muted)">a cada</span>' +
         '<input type="number" min="1" max="10" value="' + (icCfg ? icCfg.freqApos : 2) + '" id="cfg-ic-freq-' + s.label + '" oninput="saveConfigTreino()"' +
         ' style="width:44px;font-family:DM Mono,monospace;font-size:13px;background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:2px 6px;color:var(--text);outline:none;text-align:center">' +
-        '<span style="font-family:DM Mono,monospace;font-size:11px;color:var(--muted)">superiores | prioridade</span>' +
+        '<span style="font-family:DM Mono,monospace;font-size:11px;color:var(--muted)">principais | prioridade</span>' +
         '<input type="number" min="1" max="10" value="' + (icCfg ? icCfg.prioridade : 1) + '" id="cfg-ic-prio-' + s.label + '" oninput="saveConfigTreino()"' +
         ' style="width:44px;font-family:DM Mono,monospace;font-size:13px;background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:2px 6px;color:var(--text);outline:none;text-align:center">';
       container2.appendChild(div);
+    });
+  }
+
+  // Render complementares (ex: Core)
+  var container3 = document.getElementById('config-complementares');
+  if (container3) {
+    container3.innerHTML = '';
+    var freqOpcoes = [
+      { value: 'todos', label: 'Com todos os treinos' },
+      { value: 'principais', label: 'Com treinos principais' },
+      { value: 'intercaladas', label: 'Com treinos intercalados' },
+    ];
+    series.forEach(function(s) {
+      var compCfg = cfg.complementares && cfg.complementares.find(function(c) { return c.label === s.label; });
+      var isComp = !!compCfg;
+      var div = document.createElement('div');
+      div.style.cssText = 'display:flex;align-items:center;gap:8px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:6px 10px';
+      var compFreq = compCfg ? compCfg.freqApos : 'todos';
+      var compCadaX = compCfg ? (compCfg.cadaX || 1) : 1;
+      var selectOpts = freqOpcoes.map(function(o) {
+        return '<option value="' + o.value + '"' + (compFreq === o.value ? ' selected' : '') + '>' + o.label + '</option>';
+      }).join('');
+      div.innerHTML = '<input type="checkbox" id="cfg-comp-' + s.label + '" ' + (isComp ? 'checked' : '') + ' onchange="saveConfigTreino()">' +
+        '<span style="font-family:DM Mono,monospace;font-size:12px;color:var(--accent)">' + s.label + '</span>' +
+        '<span style="font-family:DM Mono,monospace;font-size:11px;color:var(--muted)">' + s.name + '</span>' +
+        '<select id="cfg-comp-freq-' + s.label + '" onchange="saveConfigTreino()" style="font-family:DM Mono,monospace;font-size:11px;background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:2px 6px;color:var(--text);outline:none">' + selectOpts + '</select>' +
+        '<span style="font-family:DM Mono,monospace;font-size:11px;color:var(--muted)"> | frequência: a cada</span>' +
+        '<input type="number" min="1" max="10" id="cfg-comp-cadax-' + s.label + '" value="' + compCadaX + '" oninput="(function(el){var lbl=document.getElementById(\'cfg-comp-cadax-label-' + s.label + '\');if(lbl)lbl.textContent=parseInt(el.value)===1?\'treino (todos)\':\'treinos\'})(this);saveConfigTreino()" style="width:44px;font-family:DM Mono,monospace;font-size:13px;background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:2px 6px;color:var(--text);outline:none;text-align:center" title="1 = todos os treinos do tipo selecionado">' +
+        '<span style="font-family:DM Mono,monospace;font-size:11px;color:var(--muted)" id="cfg-comp-cadax-label-' + s.label + '">' + (compCadaX === 1 ? 'treino (todos)' : 'treinos') + '</span>';
+      container3.appendChild(div);
     });
   }
 
@@ -2476,6 +2530,22 @@ function loadConfigTreino() {
   if (intEl) intEl.value = cfg.intervaloMinimo || 2;
 }
 
+function moverFilaPrincipal(label, dir) {
+  var cfg = (state.perfil && state.perfil.configTreino) || getDefaultConfigTreino();
+  var fila = cfg.filaPrincipal ? cfg.filaPrincipal.slice() : [];
+  var idx = fila.indexOf(label);
+  if (idx === -1) return;
+  var newIdx = idx + dir;
+  if (newIdx < 0 || newIdx >= fila.length) return;
+  fila.splice(idx, 1);
+  fila.splice(newIdx, 0, label);
+  cfg.filaPrincipal = fila;
+  if (!state.perfil) state.perfil = {};
+  state.perfil.configTreino = cfg;
+  saveState();
+  loadConfigTreino();
+}
+
 function saveConfigTreino() {
   var series = state.series || [];
 
@@ -2497,6 +2567,21 @@ function saveConfigTreino() {
         label: s.label,
         freqApos: freqEl ? (parseInt(freqEl.value) || 2) : 2,
         prioridade: prioEl ? (parseInt(prioEl.value) || 1) : 1
+      });
+    }
+  });
+
+  // Complementares
+  var complementares = [];
+  series.forEach(function(s) {
+    var el = document.getElementById('cfg-comp-' + s.label);
+    if (el && el.checked) {
+      var freqEl = document.getElementById('cfg-comp-freq-' + s.label);
+      var cadaXEl = document.getElementById('cfg-comp-cadax-' + s.label);
+      complementares.push({
+        label: s.label,
+        freqApos: freqEl ? freqEl.value : 'todos',
+        cadaX: cadaXEl ? (parseInt(cadaXEl.value) || 1) : 1
       });
     }
   });
@@ -3543,6 +3628,53 @@ function aplicarModificacoes(mod) {
   toast('Modificações aplicadas ✓');
 }
 
+function aplicarModificacoesInline(mod, dayKey, serieLabel) {
+  var expanded = state.plano.diasExpandidos && state.plano.diasExpandidos[dayKey];
+  if (!expanded || !expanded.exercicios) {
+    toast('Treino do dia não encontrado'); return;
+  }
+  var exs = expanded.exercicios;
+
+  (mod.acoes || []).forEach(function(a) {
+    if (a.tipo === 'substituir') {
+      var idx = exs.findIndex(function(e) { return e.nome.toLowerCase().includes(a.de.toLowerCase()); });
+      if (idx >= 0) {
+        exs[idx] = Object.assign({}, exs[idx], {
+          nome: a.por,
+          sets: a.sets || exs[idx].sets,
+          weight: a.weight || exs[idx].weight,
+          rest: a.rest || exs[idx].rest,
+          notes: a.notes !== undefined ? a.notes : exs[idx].notes
+        });
+      }
+    } else if (a.tipo === 'alterar') {
+      var ex = exs.find(function(e) { return e.nome.toLowerCase().includes(a.nome.toLowerCase()); });
+      if (ex) {
+        if (a.sets) ex.sets = a.sets;
+        if (a.weight) ex.weight = a.weight;
+        if (a.rest) ex.rest = a.rest;
+        if (a.notes !== undefined) ex.notes = a.notes;
+        if (a.por) ex.nome = a.por; // renomear
+      }
+    } else if (a.tipo === 'remover') {
+      expanded.exercicios = exs.filter(function(e) {
+        return !e.nome.toLowerCase().includes(a.nome.toLowerCase());
+      });
+      exs = expanded.exercicios;
+    } else if (a.tipo === 'adicionar') {
+      var novo = {
+        id: uid(), nome: a.nome || a.por,
+        sets: a.sets || '3x10', weight: a.weight || '—',
+        rest: a.rest || '', notes: a.notes || ''
+      };
+      if (a.posicao !== undefined && a.posicao >= 0) exs.splice(a.posicao, 0, novo);
+      else exs.push(novo);
+    }
+  });
+
+  saveState();
+}
+
 function aplicarModificacoesMacro(mod) {
   if (!state.plano || !state.plano.semanas) {
     toast('Nenhum plano ativo'); return;
@@ -3829,7 +3961,9 @@ function toggleChatInline(dayKey, serieLabel) {
       var history = getChatInlineHistory(dayKey);
       if (history.length > 0 && msgs.children.length === 0) {
         history.forEach(function(m) {
-          addChatInlineMsg(dayKey, m.role === 'user' ? 'user' : 'ai', m.content);
+          var c = m.content || '';
+          if (m.role !== 'user') c = c.replace(/\{[\s\S]*\}$/m,'').replace(/^\{[\s\S]*\}/m,'').trim();
+          if (c) addChatInlineMsg(dayKey, m.role === 'user' ? 'user' : 'ai', c);
         });
       } else if (msgs.children.length === 0) {
         var s = state.series.find(function(s) { return s.label === serieLabel; });
@@ -3956,9 +4090,15 @@ async function enviarChatInlineDia(dayKey, diaNome, semana) {
     var text = data.content ? data.content.map(function(c) { return c.text||''; }).join('') : '';
     var typing = document.getElementById('typing-inline-' + dayKey);
     if (typing) typing.remove();
-    chatInlineHistory[dayKey].push({ role: 'assistant', content: text });
+    // Save to history with JSON stripped to avoid leaking on reopen
+    var textParaHistorico = text
+      .replace(/```json[\s\S]*?```/g, '')
+      .replace(/```[\s\S]*?```/g, '')
+      .replace(/\{[\s\S]*\}\s*$/m, '') // strip trailing JSON block
+      .replace(/^\s*\{[\s\S]*\}/m, '') // strip leading JSON block
+      .trim() || '';
+    chatInlineHistory[dayKey].push({ role: 'assistant', content: textParaHistorico });
     saveChatInlineHistory(dayKey);
-    addChatInlineMsg(dayKey, 'ai', text);
   } catch(e) {
     var typing2 = document.getElementById('typing-inline-' + dayKey);
     if (typing2) typing2.remove();
@@ -4006,8 +4146,14 @@ async function enviarChatInline(dayKey, serieLabel) {
     'Overhead Press 24kg/lado, Pull-up assistido 66kg máquina, Supino halteres 28kg/lado, Leg Press 120kg/lado.\n\n' +
     'O usuário está aberto a qualquer exercício que você considere ideal. Use seu conhecimento livremente.\n' +
     'Responda perguntas e explique escolhas em português.\n' +
-    'REGRA: Quando o usuário aprovar (disser "sim", "confirma", "aplica" ou similar), ' +
-    'retorne APENAS o JSON diaExpandido completo, sem texto adicional.\n' +
+    'REGRA: Quando o usuário aprovar uma mudança, retorne JSON em um destes formatos:\n' +
+    '- Para mudanças pontuais use {"modificacoes":{"serieLabel":"' + serieLabel + '","acoes":[...]}} com tipos:\n' +
+    '  substituir: {"tipo":"substituir","de":"nome atual","por":"novo nome","sets":"3x10","weight":"20kg","rest":"60s"}\n' +
+    '  alterar: {"tipo":"alterar","nome":"nome exato do exercício","weight":"20kg"} (só inclua os campos que mudam)\n' +
+    '  remover: {"tipo":"remover","nome":"nome exato"}\n' +
+    '  adicionar: {"tipo":"adicionar","nome":"novo exercício","sets":"3x10","weight":"15kg","posicao":5}\n' +
+    '- Para reescrever o treino completo: {"diaExpandido":{...treino completo...}}\n' +
+    'Use modificacoes quando alterar exercícios específicos (preserva edições manuais nos demais). Use diaExpandido apenas quando reorganizar o treino inteiro.\n' +
     'Quando você tiver uma proposta pronta e precisar de confirmação antes de aplicar, termine sua mensagem com exatamente: [PRONTO PARA APLICAR]\n' +
     'Quando estiver fazendo perguntas para entender melhor o pedido, NÃO use [PRONTO PARA APLICAR].';
 
@@ -4051,28 +4197,27 @@ async function enviarChatInline(dayKey, serieLabel) {
       if (clean.startsWith('{')) parsed = JSON.parse(clean);
       else { var m2 = clean.match(/\{[\s\S]*\}/); if (m2) parsed = JSON.parse(m2[0]); }
     } catch(e) {}
-
-    if (parsed && (parsed.diaExpandido || parsed.exercicios)) {
+    if (parsed && parsed.modificacoes) {
+      // Pontual: apply only specified changes, preserving manual edits
+      var confirmMsg = '✓ ' + (parsed.modificacoes.acoes || []).length + ' modificação(ões) aplicada(s) ao treino.';
+      aplicarModificacoesInline(parsed.modificacoes, dayKey, serieLabel);
+      atualizarListaExerciciosInline(dayKey, serieLabel);
+      addChatInlineMsg(dayKey, 'ai', confirmMsg);
+    } else if (parsed && (parsed.diaExpandido || parsed.exercicios)) {
       parsed = {diaExpandido: normalizarDiaExpandido(parsed, semana, dia)};
-      aplicarDiaExpandido(parsed.diaExpandido);
-      // Refresh the inline view
-      var container = document.getElementById('agendadia-' + dayKey);
-      if (container) {
-        var inline = container.querySelector('.agenda-treino-inline');
-        if (inline) { inline.remove(); irParaTreino(dayKey, serieLabel); }
-      }
-      // Strip JSON from history entry so it doesn't leak into future context display
-      var cleanText = text.replace(/```json[\s\S]*?```/g, '').replace(/\{[\s\S]*\}/g, '').trim();
-      chatInlineHistory[dayKey][chatInlineHistory[dayKey].length - 1].content = cleanText || '✓ Treino atualizado.';
-      saveChatInlineHistory(dayKey);
-      addChatInlineMsg(dayKey, 'ai', '✓ Treino atualizado com ' + parsed.diaExpandido.exercicios.length + ' exercícios.');
+      aplicarDiaExpandido(parsed.diaExpandido, true);
+      var nExs = parsed.diaExpandido.exercicios.length;
+      var confirmMsgDia = '✓ Treino atualizado com ' + nExs + ' exercícios.';
+      // Update exercise list without closing chat
+      atualizarListaExerciciosInline(dayKey, serieLabel);
+      addChatInlineMsg(dayKey, 'ai', confirmMsgDia);
     } else {
       // Strip any JSON from the text before showing to user
       var displayText = text.replace(/```json[\s\S]*?```/g, '').replace(/```[\s\S]*?```/g, '').trim();
-      // Also strip raw JSON objects
-      displayText = displayText.replace(/\{[\s\S]*\}/g, function(match) {
-        try { JSON.parse(match); return ''; } catch(e) { return match; }
-      }).trim();
+      // Strip JSON blocks — remove from first { to matching }
+      displayText = displayText.replace(/\{[\s\S]*\}$/m, '').trim(); // trailing JSON
+      displayText = displayText.replace(/^\{[\s\S]*\}/m, '').trim(); // leading JSON
+      displayText = displayText.replace(/\n\{[\s\S]*\}$/m, '').trim(); // JSON after newline
       if (!displayText) displayText = '✓ Treino atualizado.';
       displayText = displayText.replace('[PRONTO PARA APLICAR]', '').trim();
       addChatInlineMsg(dayKey, 'ai', displayText);
@@ -4179,6 +4324,30 @@ function expandirDia(semana, dia, serieLabel, knownDayKey) {
   if (btn) { btn.textContent = '⏳ Gerando...'; btn.disabled = true; }
 
   // STEP 1: Generate ideal workout from scratch based on profile and phase
+  // Build Core instruction based on complementares config
+  var cfgTreino = getConfigTreino();
+  var coreComp = cfgTreino.complementares && cfgTreino.complementares.find(function(c) {
+    var coreS = state.series.find(function(s) { return s.id === 'score'; });
+    return coreS && c.label === coreS.label;
+  });
+  var coreInstruction = '';
+  if (coreComp) {
+    var isIntercalada = cfgTreino.intercaladas && cfgTreino.intercaladas.find(function(ic) { return ic.label === serieLabel; });
+    var isPrincipal = cfgTreino.filaPrincipal && cfgTreino.filaPrincipal.indexOf(serieLabel) !== -1;
+    var incluirCore = false;
+    if (coreComp.freqApos === 'todos') incluirCore = true;
+    else if (coreComp.freqApos === 'principais' && isPrincipal) incluirCore = true;
+    else if (coreComp.freqApos === 'intercaladas' && isIntercalada) incluirCore = true;
+    if (incluirCore) {
+      var cadaX = coreComp.cadaX || 1;
+      var coreS = state.series.find(function(s) { return s.id === 'score'; });
+      coreInstruction = 'CORE: Inclua 2-3 exercícios de Core ao final do treino.' +
+        (cadaX > 1 ? ' (frequência configurada: a cada ' + cadaX + ' treinos)' : '') + '\n\n';
+    } else {
+      coreInstruction = 'CORE: NÃO incluir exercícios de Core neste dia.\n\n';
+    }
+  }
+
   var prompt1 = 'Gere o treino ideal de ' + serieLabel + ' para ' + dia + ' (semana ' + semana + ').\n\n' +
     'FASE:\n' +
     '- Foco: ' + (semanaObj ? semanaObj.foco : '') + '\n' +
@@ -4186,6 +4355,7 @@ function expandirDia(semana, dia, serieLabel, knownDayKey) {
     '- Progressão: ' + progressao + '\n' +
     '- Orientação: ' + orientacao + '\n\n' +
     'Histórico: ' + histSummary + '\n\n' +
+    coreInstruction +
     'Crie o treino mais eficaz para esta fase considerando o perfil do atleta. ' +
     'Escolha exercícios, ordem, volume e cargas ideais. ' +
     'Retorne JSON com esta estrutura:\n' +
@@ -4392,7 +4562,7 @@ function normalizarDiaExpandido(parsed, semana, dia) {
   };
 }
 
-function aplicarDiaExpandido(diaExp) {
+function aplicarDiaExpandido(diaExp, fromChat) {
   if (!state.plano) { toast('Aplique um plano primeiro'); return; }
   var key = diaExp._dayKey || ('sem' + diaExp.semana + '_' + diaExp.dia);
 
@@ -4458,6 +4628,7 @@ function aplicarDiaExpandido(diaExp) {
   }
 
   saveState();
+  if (fromChat) return; // skip re-render when called from inline chat
   addPlanoChatMsg('system', '✓ ' + diaExp.dia + ' semana ' + diaExp.semana + ' expandido com ' + diaExp.exercicios.length + ' exercícios.');
 
   var dayKey2 = diaExp._dayKey || ('sem' + diaExp.semana + '_' + diaExp.dia);
@@ -4712,6 +4883,7 @@ function renderAgendaLinear() {
             actionsHTML += '<button class="agenda-action-btn" onclick="marcarDiaDescansoNeutro(\'' + dayKey + '\')">○ MARCAR COMO DESCANSO</button>';
           } else {
             actionsHTML += '<button class="agenda-action-btn warning" onclick="marcarAusente(\'' + dayKey + '\',\'' + d.dia + '\',' + semana.semana + ')">⚑ NÃO PODEREI TREINAR NESTE DIA</button>';
+            if (isRest) actionsHTML += '<button class="agenda-action-btn" onclick="marcarDiaDescansoNeutro(\'' + dayKey + '\')">○ MARCAR COMO DESCANSO</button>';
           }
           // Sábado: show "VOU TREINAR NESTE DIA" button if not already confirmed
           if (d.dia === 'Sábado' && status !== 'disponivel' && !isDiaPast) {
@@ -4822,6 +4994,37 @@ function toggleAgendaDia(dayKey) {
   }
 }
 
+function atualizarListaExerciciosInline(dayKey, serieLabel) {
+  var container = document.getElementById('agendadia-' + dayKey);
+  if (!container) return;
+  var inline = container.querySelector('.agenda-treino-inline');
+  if (!inline) {
+    irParaTreino(dayKey, serieLabel);
+    setTimeout(function() {
+      var chatDiv = document.getElementById('chat-inline-' + dayKey);
+      if (chatDiv) chatDiv.style.display = 'block';
+    }, 50);
+    return;
+  }
+
+  var s = state.series.find(function(s) { return s.label === serieLabel; });
+  var expanded = state.plano.diasExpandidos && state.plano.diasExpandidos[dayKey];
+  if (!expanded || !expanded.exercicios || !s) return;
+
+  var tableEl = document.getElementById('inline-ex-table-' + dayKey);
+  if (!tableEl) return; // Don't recreate — chat is open, just skip update
+
+  var exercises = expanded.exercicios.map(function(ex) {
+    var pd = state.plano.seriesData && state.plano.seriesData[s.id];
+    var pdEx = pd && pd.exercises.find(function(e) { return e.id === ex.id || e.name === ex.nome; });
+    return { id: ex.id || uid(), name: ex.nome, sets: ex.sets, weight: ex.weight, rest: ex.rest || '', notes: ex.notes || '', status: pdEx ? pdEx.status : 'undone' };
+  });
+
+  tableEl.innerHTML = exercises.map(function(ex) {
+    return renderInlineEx(ex, dayKey, serieLabel);
+  }).join('');
+}
+
 function irParaTreino(dayKey, serieLabel) {
   var s = state.series.find(function(s) { return s.label === serieLabel; });
   if (!s) return;
@@ -4869,7 +5072,7 @@ function irParaTreino(dayKey, serieLabel) {
     '<span style="color:var(--muted)">○</span> não feito' +
     '</span>' +
     '</div>' +
-    '<table style="width:100%;border-collapse:collapse">' +
+    '<table id="inline-ex-table-' + dayKey + '" style="width:100%;border-collapse:collapse">' +
     exercises.map(function(ex) { return renderInlineEx(ex, dayKey, serieLabel); }).join('') +
     '</table>' +
     '<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">' +
