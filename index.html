@@ -1281,13 +1281,9 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
     /* Email: só ícone em mobile */
     .auth-email-text { display: none !important; }
     .auth-dot-mobile { display: inline !important; }
-    /* Tabs: reduzir padding para caber todas */
-    .tab { font-size: 14px; letter-spacing: 0.5px; padding: 8px 9px; }
-
-    /* Tabs */
-    .tabs { padding: 0 8px; }
-    .tab { font-size: 14px; letter-spacing: 0.5px; padding: 8px 9px; }
-    .tabs { padding: 10px 8px 0; }
+    /* Tabs: distribuir igualmente pela largura total */
+    .tabs { padding: 10px 0 0; }
+    .tab { flex: 1; font-size: 13px; letter-spacing: 0; padding: 8px 4px; text-align: center; }
     .serie-header, .serie-meta, .variant-row, .serie-actions, .exercise-list { padding-left: 16px; padding-right: 16px; }
     .history-list, .ai-view { padding-left: 16px; padding-right: 16px; }
     .history-clear-wrap { justify-content:flex-start; padding:0 16px; }
@@ -1303,7 +1299,7 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
     <button class="btn btn-desktop-only" onclick="resetData()" title="Limpar todos os dados e voltar ao padrão">RESET</button>
     <button class="btn btn-desktop-only" onclick="exportData()">EXPORTAR</button>
     <button class="btn btn-desktop-only" onclick="importData()">IMPORTAR</button>
-    <span style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted);margin-left:4px">v0.8.6.95</span>
+    <span style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted);margin-left:4px">v0.8.6.98</span>
     <div id="auth-status" style="display:flex;align-items:center;margin-left:4px"></div>
 
     <div class="mobile-menu-wrap" id="mobile-menu-wrap">
@@ -1888,9 +1884,6 @@ function toggleExCard(exId) {
 
 function getEx(serieId, exId) {
   const s = state.series.find(s => s.id === serieId);
-  if (s.planMode && state.plano && state.plano.seriesData && state.plano.seriesData[serieId]) {
-    return state.plano.seriesData[serieId].exercises.find(e => e.id === exId);
-  }
   return s.exercises.find(e => e.id === exId);
 }
 
@@ -1976,11 +1969,7 @@ function updatePlanExField(serieId, exId, field, value) {
 
 function markAll(serieId, status) {
   const s = state.series.find(s => s.id === serieId);
-  if (s.planMode && state.plano && state.plano.seriesData && state.plano.seriesData[serieId]) {
-    state.plano.seriesData[serieId].exercises.forEach(e => e.status = status);
-  } else {
-    s.exercises.forEach(e => e.status = status);
-  }
+  s.exercises.forEach(e => e.status = status);
   saveState();
   rerenderSerie(serieId);
 }
@@ -3647,8 +3636,6 @@ function aplicarModificacoes(mod) {
   });
 
   saveState();
-  serieObj.planMode = true;
-  saveState();
   rerenderSerie(serieObj.id);
   addPlanoChatMsg('system', 'Modificações aplicadas na série ' + mod.serieLabel + '.');
   toast('Modificações aplicadas ✓');
@@ -4650,7 +4637,7 @@ function aplicarDiaExpandido(diaExp, fromChat) {
         return { id: ex.id || uid(), name: ex.nome, sets: ex.sets, weight: ex.weight, rest: ex.rest || '', notes: ex.notes||'', status: status, skippedLast: false };
       })
     };
-    serieObj.planMode = true;
+    serieObj.planMode = false;
   }
 
   saveState();
@@ -6861,6 +6848,8 @@ document.addEventListener('keydown', e => {
 // ─────────────────────────── INIT ───────────────────────────
 loadPersistedState(function() {
   if (!state.perfil) state.perfil = DEFAULT_PERFIL;
+  // Migração: planMode removido — zerar em todas as séries
+  state.series.forEach(function(s) { if (s.planMode) { s.planMode = false; } });
   render();
   if (state.plano) {
     switchTab('agenda');
