@@ -63,6 +63,8 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
     color: var(--accent);
   }
   .header-actions { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+  .mobile-menu-wrap { display: none; }
+  .auth-dot-mobile { display: none; }
 
   /* ── TABS ── */
   .tabs {
@@ -1261,15 +1263,31 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
     /* Header compacto — logo + ações numa linha só */
     header { padding: 8px 12px; gap: 6px; flex-wrap: nowrap; align-items: center; }
     .logo { font-size: 22px; letter-spacing: 2px; flex-shrink: 0; }
-    .header-actions { flex-wrap: nowrap; gap: 4px; overflow-x: auto; scrollbar-width: none; justify-content: flex-end; flex: 1; }
-    .header-actions::-webkit-scrollbar { display: none; }
+    .header-actions { flex-wrap: nowrap; gap: 4px; overflow-x: visible; justify-content: flex-end; flex: 1; min-width: 0; }
     .header-actions .btn { font-size: 9px; padding: 3px 7px; letter-spacing: 0.5px; white-space: nowrap; }
     #auth-status button { font-size: 9px !important; padding: 3px 8px !important; }
+    /* Botões desktop ocultos em mobile — substituídos pelo dropdown */
+    .btn-desktop-only { display: none !important; }
+    /* Dropdown mobile */
+    .mobile-menu-wrap { position: relative; display: inline-block; flex-shrink: 0; }
+    .mobile-menu-btn { font-family: 'DM Mono', monospace; font-size: 16px; background: none; border: 1px solid var(--border); color: var(--muted); border-radius: 4px; padding: 2px 8px; cursor: pointer; line-height: 1.2; }
+    .mobile-menu-btn:hover { color: var(--text); border-color: var(--text); }
+    .mobile-menu-dropdown { display: none; position: absolute; right: 0; top: calc(100% + 6px); background: var(--surface); border: 1px solid var(--border); border-radius: 6px; z-index: 200; min-width: 140px; box-shadow: 0 4px 16px rgba(0,0,0,.4); }
+    .mobile-menu-dropdown.open { display: block; }
+    .mobile-menu-item { display: block; width: 100%; text-align: left; font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 0.5px; background: none; border: none; color: var(--muted); padding: 10px 14px; cursor: pointer; white-space: nowrap; }
+    .mobile-menu-item:hover { color: var(--text); background: var(--surface2); }
+    .mobile-menu-item:first-child { border-radius: 6px 6px 0 0; }
+    .mobile-menu-item:last-child { border-radius: 0 0 6px 6px; }
+    /* Email: só ícone em mobile */
+    .auth-email-text { display: none !important; }
+    .auth-dot-mobile { display: inline !important; }
+    /* Tabs: reduzir padding para caber todas */
+    .tab { font-size: 14px; letter-spacing: 0.5px; padding: 8px 9px; }
 
     /* Tabs */
     .tabs { padding: 0 8px; }
-    .tab { font-size: 15px; letter-spacing: 1px; padding: 8px 12px; }
-    .tabs { padding: 10px 16px 0; }
+    .tab { font-size: 14px; letter-spacing: 0.5px; padding: 8px 9px; }
+    .tabs { padding: 10px 8px 0; }
     .serie-header, .serie-meta, .variant-row, .serie-actions, .exercise-list { padding-left: 16px; padding-right: 16px; }
     .history-list, .ai-view { padding-left: 16px; padding-right: 16px; }
     .history-clear-wrap { justify-content:flex-start; padding:0 16px; }
@@ -1282,12 +1300,20 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
 <header>
   <div class="logo">TREINO</div>
   <div class="header-actions">
-    <button class="btn" onclick="resetData()" title="Limpar todos os dados e voltar ao padrão">RESET</button>
-    <button class="btn" onclick="exportData()">EXPORTAR</button>
-    <button class="btn" onclick="importData()">IMPORTAR</button>
-    <span style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted);margin-left:4px">v0.8.6.92</span>
-    <div id="auth-status" style="display:flex;align-items:center;margin-left:8px"></div>
+    <button class="btn btn-desktop-only" onclick="resetData()" title="Limpar todos os dados e voltar ao padrão">RESET</button>
+    <button class="btn btn-desktop-only" onclick="exportData()">EXPORTAR</button>
+    <button class="btn btn-desktop-only" onclick="importData()">IMPORTAR</button>
+    <span style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted);margin-left:4px">v0.8.6.93</span>
+    <div id="auth-status" style="display:flex;align-items:center;margin-left:4px"></div>
     <div id="sync-status" style="display:none;align-items:center;margin-left:4px"></div>
+    <div class="mobile-menu-wrap" id="mobile-menu-wrap">
+      <button class="mobile-menu-btn" onclick="toggleMobileMenu()" title="Menu">⋮</button>
+      <div class="mobile-menu-dropdown" id="mobile-menu-dropdown">
+        <button class="mobile-menu-item" onclick="resetData();closeMobileMenu()">RESET</button>
+        <button class="mobile-menu-item" onclick="exportData();closeMobileMenu()">EXPORTAR</button>
+        <button class="mobile-menu-item" onclick="importData();closeMobileMenu()">IMPORTAR</button>
+      </div>
+    </div>
   </div>
 </header>
 
@@ -6663,6 +6689,19 @@ async function syncFromCloud() {
   }
 }
 
+function toggleMobileMenu() {
+  var d = document.getElementById('mobile-menu-dropdown');
+  if (d) d.classList.toggle('open');
+}
+function closeMobileMenu() {
+  var d = document.getElementById('mobile-menu-dropdown');
+  if (d) d.classList.remove('open');
+}
+document.addEventListener('click', function(e) {
+  var wrap = document.getElementById('mobile-menu-wrap');
+  if (wrap && !wrap.contains(e.target)) closeMobileMenu();
+});
+
 function renderAuthUI() {
   var el = document.getElementById('auth-status');
   var syncEl = document.getElementById('sync-status');
@@ -6673,7 +6712,13 @@ function renderAuthUI() {
     if (isPWA() && emailDisplay.includes('@')) emailDisplay = emailDisplay.split('@')[0];
     var span = document.createElement('span');
     span.style.cssText = "font-family:DM Mono,monospace;font-size:10px;color:var(--done)";
+    span.className = 'auth-email-text';
     span.textContent = '\u25cf ' + emailDisplay;
+    // Indicador mobile (só ●, sem email)
+    var dotMobile = document.createElement('span');
+    dotMobile.style.cssText = "font-size:10px;color:var(--done)";
+    dotMobile.className = 'auth-dot-mobile';
+    dotMobile.textContent = '\u25cf';
     var btn = document.createElement('button');
     btn.style.cssText = "font-family:DM Mono,monospace;font-size:10px;background:none;border:1px solid var(--border);color:var(--muted);border-radius:4px;padding:2px 10px;cursor:pointer;margin-left:8px;transition:color .15s,border-color .15s";
     btn.textContent = 'SAIR';
@@ -6681,6 +6726,7 @@ function renderAuthUI() {
     btn.addEventListener('mouseleave', function() { this.style.color='var(--muted)'; this.style.borderColor='var(--border)'; });
     btn.addEventListener('click', function() { supabaseLogout(); });
     el.appendChild(span);
+    el.appendChild(dotMobile);
     el.appendChild(btn);
     // Show sync button
     if (syncEl) {
