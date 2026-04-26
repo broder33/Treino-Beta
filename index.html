@@ -49,6 +49,8 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
     display: flex;
     align-items: center;
     justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
     padding: 18px 24px 14px;
     border-bottom: 1px solid var(--border);
     position: sticky; top: 0; z-index: 100;
@@ -60,7 +62,7 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
     letter-spacing: 4px;
     color: var(--accent);
   }
-  .header-actions { display: flex; gap: 8px; align-items: center; }
+  .header-actions { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
 
   /* ── TABS ── */
   .tabs {
@@ -951,6 +953,8 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
   .bib-tab:hover { color: var(--text); }
   .bib-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
 
+  .history-clear-wrap { display:flex; justify-content:flex-end; margin-bottom:12px; padding:0 24px; }
+
   /* ── PERFIL ── */
   .perfil-wrap { padding: 20px 0 80px; }
   .perfil-section {
@@ -1017,7 +1021,7 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
   .agenda-semana-body { padding-top: 6px; display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
 
   /* ── AGENDA LINEAR ── */
-  .agenda-linear { padding: 16px 24px 80px; display: flex; flex-direction: column; gap: 10px; }
+  .agenda-linear { padding: 16px 16px 80px; display: flex; flex-direction: column; gap: 10px; overflow-x: hidden; }
 
   .agenda-dia {
     background: var(--surface);
@@ -1088,15 +1092,18 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
   .agenda-ex-item {
     display: flex;
     gap: 8px;
-    align-items: baseline;
+    align-items: flex-start;
     font-size: 13px;
-    padding: 4px 0;
+    padding: 6px 0;
     border-bottom: 1px solid rgba(255,255,255,.04);
   }
-  .agenda-ex-num { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--muted); min-width: 18px; }
-  .agenda-ex-name { flex: 1; }
-  .agenda-ex-sets { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--accent); }
-  .agenda-ex-weight { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--accent2); min-width: 90px; text-align: right; }
+  .agenda-ex-num { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--muted); min-width: 18px; padding-top: 2px; }
+  .agenda-ex-main { display: flex; flex-direction: column; gap: 3px; flex: 1; min-width: 0; }
+  .agenda-ex-name { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .agenda-ex-meta { display: flex; gap: 6px; align-items: center; }
+  .agenda-ex-sets { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--accent); white-space: nowrap; flex-shrink: 0; }
+  .agenda-ex-weight { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--accent2); white-space: nowrap; flex: 1; }
+  .agenda-ex-rest { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--muted); white-space: nowrap; flex-shrink: 0; }
 
   .agenda-dia-actions { display: flex; gap: 8px; flex-wrap: wrap; }
   .agenda-action-btn {
@@ -1163,10 +1170,110 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
 
   @media (max-width: 480px) {
     .ex-fields { grid-template-columns: 1fr; }
-    header { padding: 14px 16px; }
+
+    /* Biblioteca — tabs em mobile: quebrar em múltiplas linhas */
+    .biblioteca-tabs {
+      padding: 6px 8px 0;
+      flex-wrap: wrap;
+      overflow-x: visible;
+      gap: 0;
+    }
+    .bib-tab {
+      font-size: 12px;
+      letter-spacing: 1px;
+      padding: 5px 10px;
+    }
+
+    /* Biblioteca — layout mobile em 2 linhas por card */
+    .exercise-list {
+      padding: 0 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .ex-card {
+      display: flex;
+      flex-direction: column;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+      background: var(--surface);
+    }
+    .ex-card.status-done { border-color: rgba(57,255,133,.4); background: rgba(57,255,133,.03); }
+    .ex-card.status-partial { border-color: rgba(255,204,0,.4); background: rgba(255,204,0,.03); }
+    .ex-card.status-skipped { border-color: rgba(255,107,255,.4); background: rgba(255,107,255,.03); }
+
+    /* Linha 1: chevron + nome */
+    .ex-chevron-wrap {
+      order: 0;
+      min-height: 0;
+      height: 40px;
+      width: 36px;
+      border: none;
+      border-radius: 0;
+      position: absolute;
+      right: 0; top: 0;
+      background: transparent;
+    }
+    .ex-col-name {
+      order: 1;
+      min-height: 0;
+      border: none;
+      padding: 10px 40px 4px 12px;
+    }
+    /* Linha 2: sets + weight + rest lado a lado */
+    .ex-col-sets, .ex-col-weight, .ex-col-rest {
+      order: 2;
+      min-height: 0;
+      border: none;
+      border-top: none;
+      display: flex;
+      flex-direction: column;
+      padding: 0 12px 8px;
+    }
+    .ex-col-sets { padding-bottom: 8px; }
+    /* Container para linha 2 */
+    .ex-card::before { display: none; }
+
+    /* Agrupar sets/weight/rest numa linha horizontal */
+    .ex-col-sets { order: 2; flex: 0 0 auto; padding: 2px 0 8px 12px; }
+    .ex-col-weight { order: 3; flex: 1; padding: 2px 0 8px 16px; }
+    .ex-col-rest { order: 4; flex: 0 0 auto; padding: 2px 12px 8px 8px; }
+
+    /* Tornar ex-card um flex container com wrap */
+    .ex-card {
+      position: relative;
+      flex-direction: row;
+      flex-wrap: wrap;
+    }
+    .ex-col-name { width: 100%; }
+    .ex-col-sets, .ex-col-weight, .ex-col-rest { width: auto; }
+
+    .ex-body {
+      width: 100%;
+      order: 5;
+      padding: 8px 12px 12px;
+      border-top: 1px solid var(--border);
+      display: none;
+    }
+    .ex-card.open .ex-body { display: block; }
+
+    /* Header compacto — logo + ações numa linha só */
+    header { padding: 8px 12px; gap: 6px; flex-wrap: nowrap; align-items: center; }
+    .logo { font-size: 22px; letter-spacing: 2px; flex-shrink: 0; }
+    .header-actions { flex-wrap: nowrap; gap: 4px; overflow-x: auto; scrollbar-width: none; justify-content: flex-end; flex: 1; }
+    .header-actions::-webkit-scrollbar { display: none; }
+    .header-actions .btn { font-size: 9px; padding: 3px 7px; letter-spacing: 0.5px; white-space: nowrap; }
+    #auth-status button { font-size: 9px !important; padding: 3px 8px !important; }
+
+    /* Tabs */
+    .tabs { padding: 0 8px; }
+    .tab { font-size: 15px; letter-spacing: 1px; padding: 8px 12px; }
     .tabs { padding: 10px 16px 0; }
     .serie-header, .serie-meta, .variant-row, .serie-actions, .exercise-list { padding-left: 16px; padding-right: 16px; }
     .history-list, .ai-view { padding-left: 16px; padding-right: 16px; }
+    .history-clear-wrap { justify-content:flex-start; padding:0 16px; }
+    .history-clear-wrap .btn { font-size:9px; padding:3px 8px; }
   }
 </style>
 </head>
@@ -1178,7 +1285,7 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
     <button class="btn" onclick="resetData()" title="Limpar todos os dados e voltar ao padrão">RESET</button>
     <button class="btn" onclick="exportData()">EXPORTAR</button>
     <button class="btn" onclick="importData()">IMPORTAR</button>
-    <span style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted);margin-left:4px">v0.8.6.20</span>
+    <span style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted);margin-left:4px">v0.8.6.61</span>
     <div id="auth-status" style="display:flex;align-items:center;margin-left:8px"></div>
     <div id="sync-status" style="display:none;align-items:center;margin-left:4px"></div>
   </div>
@@ -1196,9 +1303,6 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
 
 <!-- AGENDA -->
 <div class="view" id="view-agenda">
-  <div style="padding:8px 16px 0;display:flex;justify-content:flex-end">
-    <button onclick="sincronizarNomesAgenda()" style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;padding:4px 12px;border-radius:8px;border:1px solid var(--muted);color:var(--muted);background:transparent;cursor:pointer" title="Atualiza nomes dos exercícios na Agenda para corresponder ao Histórico">⟳ SINCRONIZAR NOMES</button>
-  </div>
   <div class="agenda-linear" id="agenda-linear-list">
     <div style="color:var(--muted);font-family:DM Mono,monospace;font-size:12px;padding:20px 0">Nenhum plano ativo. Gere um plano na aba PLANO.</div>
   </div>
@@ -1987,8 +2091,8 @@ function renderHistory() {
     list.innerHTML = '<div style="color:var(--muted);font-family:DM Mono,monospace;font-size:12px;padding:20px 0">Nenhum treino registrado ainda.</div>';
     return;
   }
-  const clearBtn = `<div style="display:flex;justify-content:flex-end;margin-bottom:12px">
-    <button class="btn danger" onclick="clearHistory()">↺ LIMPAR HISTÓRICO</button>
+  const clearBtn = `<div class="history-clear-wrap">
+    <button class="btn danger" onclick="clearHistory()" title="Apaga todo o histórico de treinos registrados. Esta ação não pode ser desfeita.">↺ LIMPAR HISTÓRICO</button>
   </div>`;
   list.innerHTML = clearBtn + state.history.map(h => {
     const d = new Date(h.date);
@@ -2027,7 +2131,7 @@ function renderHistory() {
         </div>
         <div style="display:flex;align-items:center;gap:10px">
           <span class="history-badge">${h.done}/${h.total} exercícios</span>
-          <button class="ex-action-btn" onclick="removeHistoryEntry('${h.id}')" style="flex-shrink:0">✕</button>
+          <button class="ex-action-btn" onclick="removeHistoryEntry('${h.id}')" title="Remover este treino do histórico" style="flex-shrink:0">✕</button>
         </div>
       </div>
       ${exHTML}
@@ -2450,12 +2554,55 @@ function desfazerRelocamento() {
     toast('Nada para desfazer.');
     return;
   }
+  // Preserve concluded days and all expanded workouts before restoring snapshot
+  var concluidosAtuais = {};
+  var expandidosAtuais = {};
+  if (state.plano.diasStatus) {
+    Object.keys(state.plano.diasStatus).forEach(function(k) {
+      if (state.plano.diasStatus[k] === 'concluido') {
+        concluidosAtuais[k] = 'concluido';
+      }
+    });
+  }
+  // Preserve ALL diasExpandidos that exist in current state
+  if (state.plano.diasExpandidos) {
+    Object.keys(state.plano.diasExpandidos).forEach(function(k) {
+      expandidosAtuais[k] = state.plano.diasExpandidos[k];
+    });
+  }
   var snapshot = state.plano._historico.pop();
   var historico = state.plano._historico;
   state.plano.semanas = JSON.parse(JSON.stringify(snapshot.semanas));
   state.plano.diasStatus = JSON.parse(JSON.stringify(snapshot.diasStatus));
   state.plano.diasExpandidos = JSON.parse(JSON.stringify(snapshot.diasExpandidos));
   state.plano._historico = historico;
+  // Merge all diasExpandidos from current state into restored snapshot
+  Object.keys(expandidosAtuais).forEach(function(k) {
+    if (!state.plano.diasExpandidos[k]) {
+      state.plano.diasExpandidos[k] = expandidosAtuais[k];
+    }
+  });
+  // Restore concluded days that were completed after the snapshot was taken
+  Object.keys(concluidosAtuais).forEach(function(k) {
+    state.plano.diasStatus[k] = 'concluido';
+    if (expandidosAtuais[k]) state.plano.diasExpandidos[k] = expandidosAtuais[k];
+    // Also restore the serie in semanas so the day doesn't revert to descanso
+    var parts = k.match(/^sem(\d+)_(.+)$/);
+    if (parts) {
+      var semNum = parseInt(parts[1]);
+      var diaNome = parts[2];
+      var semObj = state.plano.semanas.find(function(s) { return s.semana === semNum; });
+      if (semObj) {
+        var dObj = (semObj.dias || semObj.agenda || []).find(function(d) { return d.dia === diaNome; });
+        // Find what serie this day had in the snapshot's expandidos or current expandidos
+        var exp = expandidosAtuais[k];
+        if (dObj && exp && exp.serie) {
+          dObj.serie = exp.serie;
+          dObj.tipo = 'treino';
+        }
+      }
+    }
+  });
   saveState();
   renderAgendaLinear();
   toast('Ação desfeita ✓');
@@ -2853,7 +3000,8 @@ function reorganizarPlanoAPartirDeHoje() {
     var diaIdx = ordemDias.indexOf(diaNome);
     if (diaIdx === -1) return null;
     var d = new Date(dataInicio);
-    d.setDate(dataInicio.getDate() + (semanaNum - 1) * 7 + diaIdx);
+    var _mon1 = getMondayOf(dataInicio);
+    d.setDate(_mon1.getDate() + (semanaNum - 1) * 7 + diaIdx);
     return d;
   }
 
@@ -2939,7 +3087,8 @@ function gerarOrientacoesDiasFuturos() {
         var diaIdx = ordemDias.indexOf(d.dia);
         if (diaIdx !== -1) {
           var diaDate = new Date(dataInicio);
-          diaDate.setDate(dataInicio.getDate() + (sem.semana - 1) * 7 + diaIdx);
+          var _mon2 = getMondayOf(dataInicio);
+          diaDate.setDate(_mon2.getDate() + (sem.semana - 1) * 7 + diaIdx);
           if (diaDate < hoje) return;
         }
       }
@@ -3180,6 +3329,11 @@ async function enviarMensagemPlano() {
       // Response to duplicate check
       _pendingDuplicataCheck = false;
       if (parsed.pares && parsed.pares.length > 0) {
+        var negativoPatterns2 = /não são|não é o mesmo|exercício diferente|movimento diferente|músculo diferente|distinto|bilateral.*unilateral|unilateral.*bilateral/i;
+        parsed.pares = parsed.pares.filter(function(par) {
+          return !par.motivo || !negativoPatterns2.test(par.motivo);
+        });
+        if (parsed.pares.length === 0) { addPlanoChatMsg('system', 'Nenhuma duplicata encontrada ✓'); return; }
         state._duplicatasPendentes = parsed.pares; // replace, not concat
         saveState();
         _duplicatasPagina = 0;
@@ -3681,7 +3835,13 @@ function toggleChatInline(dayKey, serieLabel) {
         var s = state.series.find(function(s) { return s.label === serieLabel; });
         var expanded = state.plano.diasExpandidos && state.plano.diasExpandidos[dayKey];
         var exCount = expanded ? expanded.exercicios.length : 0;
-        addChatInlineMsg(dayKey, 'ai', 'Treino atual: ' + exCount + ' exercícios de ' + serieLabel + (s ? ' — ' + s.name : '') + '. Pode me perguntar sobre qualquer exercício, pedir substituições, ajustar volume ou carga, ou pedir para eu explicar as escolhas.');
+        var msgInicial;
+        if (!serieLabel || serieLabel === 'descanso' || serieLabel === 'aerobico') {
+          msgInicial = 'Este é um dia de ' + (serieLabel === 'aerobico' ? 'aeróbico/cardio' : 'descanso') + '. Pode me perguntar sobre recomendações para este dia.';
+        } else {
+          msgInicial = 'Treino atual: ' + exCount + ' exercícios' + (s ? ' de ' + s.name : '') + '. Pode me perguntar sobre qualquer exercício, pedir substituições, ajustar volume ou carga, ou pedir para eu explicar as escolhas.';
+        }
+        addChatInlineMsg(dayKey, 'ai', msgInicial);
       }
     }
     setTimeout(function() {
@@ -3998,12 +4158,17 @@ function expandirDia(semana, dia, serieLabel, knownDayKey) {
 
   // Full library with sets and weights for step 2
   var bibliotecaCompleta = serieObj ? serieObj.exercises.map(function(e) {
-    return '- ' + e.name + ' | ' + e.sets + ' | ' + e.weight;
+    return '- ' + e.name + ' | sets: ' + e.sets + ' | carga: ' + e.weight;
   }).join('\n') : '';
 
-  var histSummary = state.history.filter(function(h) { return h.serieLabel === serieLabel; }).slice(0,5).map(function(h) {
-    return new Date(h.date).toLocaleDateString('pt-BR', {day:'2-digit',month:'2-digit'}) + ': ' + h.done + '/' + h.total + ' exercícios';
-  }).join('\n') || 'Sem histórico desta série.';
+  var histSummary = state.history.filter(function(h) { return h.serieLabel === serieLabel; }).slice(0, 3).map(function(h) {
+    var data = new Date(h.date).toLocaleDateString('pt-BR', {day:'2-digit', month:'2-digit'});
+    var exList = (h.exercises || []).map(function(ex) {
+      var status = ex.status === 'skipped' ? ' [PULADO]' : ex.status === 'partial' ? ' [PARCIAL]' : '';
+      return '  - ' + ex.name + ' | ' + (ex.sets || '—') + ' | ' + (ex.weight || '—') + status;
+    }).join('\n');
+    return data + ' (' + h.done + '/' + h.total + '):\n' + exList;
+  }).join('\n\n') || 'Sem histórico desta série.';
 
   var expansionSystem = 'Personal trainer especializado em periodização.\n\n' +
     buildPerfilTexto() +
@@ -4024,7 +4189,7 @@ function expandirDia(semana, dia, serieLabel, knownDayKey) {
     'Crie o treino mais eficaz para esta fase considerando o perfil do atleta. ' +
     'Escolha exercícios, ordem, volume e cargas ideais. ' +
     'Retorne JSON com esta estrutura:\n' +
-    '{"treino":{"dia":"' + dia + '","serie":"' + serieLabel + '","semana":' + semana + ',"exercicios":[{"nome":"Nome","musculo":"grupo muscular","sets":"NxM","weight":"carga","rest":"intervalo entre séries (ex: 60-90s)","notes":"instrução"}]}}';
+    '{"treino":{"dia":"' + dia + '","serie":"' + serieLabel + '","semana":' + semana + ',"exercicios":[{"nome":"Nome","musculo":"grupo muscular","sets":"NxM","weight":"valor numérico com unidade (ex: 20kg, 15-20kg, Peso corporal)","rest":"intervalo entre séries (ex: 60-90s)","notes":"instrução técnica"}]}}';
 
   fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
@@ -4064,10 +4229,12 @@ function expandirDia(semana, dia, serieLabel, knownDayKey) {
     var treinoGerado = JSON.stringify(parsed1, null, 2);
     var prompt2 = 'Tenho este treino gerado:\n' + treinoGerado + '\n\n' +
       'MINHA BIBLIOTECA (nomes exatos que uso):\n' + bibliotecaCompleta + '\n\n' +
-      'REGRA: Para cada exercício do treino gerado, verifique se ele é essencialmente o MESMO exercício que já existe na biblioteca (mesmo nome, mesmo equipamento, mesmo padrão de movimento). ' +
-      'Se for o mesmo exercício, use EXATAMENTE o nome da biblioteca — não crie variações como "(corda)", "(inclinado)", "(halteres)" se o exercício já existe sem esse sufixo. ' +
-      'Se for um exercício genuinamente diferente e complementar ao que já existe na biblioteca, mantenha o nome original — exercícios novos são bem-vindos. ' +
-      'Mantenha sets, cargas, rest e ordem do treino gerado. ' +
+      'REGRA: Para cada exercício do treino gerado, verifique se ele é o mesmo que já existe na biblioteca. ' +
+      'Se for o mesmo, use EXATAMENTE o nome da biblioteca. Mantenha a carga gerada, mas preserve o formato da biblioteca (ex: se a biblioteca usa "X kg cada lado", use o mesmo sufixo). ' +
+      'PRINCÍPIO DE NOMENCLATURA: adjetivos que descrevem a variação PADRÃO de um exercício são redundantes e devem ser omitidos — ex: "Prancha Frontal" = "Prancha" porque frontal é o padrão. ' +
+      'Adjetivos que descrevem variações NÃO-PADRÃO são essenciais e devem ser mantidos — ex: "Prancha Lateral" ≠ "Prancha" porque lateral não é o padrão. ' +
+      'Exercícios genuinamente novos são bem-vindos — mantenha o nome original. ' +
+      'Mantenha sets, rest e ordem do treino gerado. ' +
       'Retorne o treino final no mesmo formato JSON, com TODOS os campos: nome, musculo, sets, weight, rest e notes.';
 
     fetch('https://api.anthropic.com/v1/messages', {
@@ -4203,9 +4370,9 @@ function normalizarDiaExpandido(parsed, semana, dia) {
       if (!w || w === 'null' || w === 'undefined') w = '—';
       if (w.length > 20) {
         // Extract first number+unit pattern
-        var shortMatch = w.match(/[\d][\d\-–\/\.]*\s*(?:kg|pesos?|lb)[^\s,;]*/i);
+        var shortMatch = w.match(/[\d][\d\-–\/\.]*\s*(?:kg|pesos?|lb)(?:\s*(?:cada\s+\w+|por\s+\w+|cada|\/lado))?/i);
         var extraNote = w;
-        w = shortMatch ? shortMatch[0] : w.slice(0, 18) + '…';
+        w = shortMatch ? shortMatch[0] : '—';
         var notes2 = ex.notes || ex.notas || ex.notas_execucao || ex.execucao || ex.tecnica || ex.description || ex.instructions || '';
         ex._notes_merged = extraNote + (notes2 ? '\n' + notes2 : '');
       }
@@ -4262,11 +4429,12 @@ function aplicarDiaExpandido(diaExp) {
     });
   }
 
-  // Apply preserved statuses to new exercises
+  // Apply skippedLast flag (for priority badge) but always reset status to undone
   if (diaExp.exercicios) {
     diaExp.exercicios = diaExp.exercicios.map(function(ex) {
       var nome = ex.nome || ex.name || '';
-      if (prevStatusMap[nome]) ex.status = prevStatusMap[nome];
+      if (prevStatusMap[nome] === 'skipped') ex.skippedLast = true;
+      ex.status = 'undone';
       return ex;
     });
   }
@@ -4364,7 +4532,8 @@ function renderAgendaLinear() {
         if (targetOffset === -1) return;
         // Semana 1 starts at dataInicio (which should be a Monday)
         var weekStart = new Date(inicio);
-        weekStart.setDate(inicio.getDate() + (semana.semana - 1) * 7);
+        var _mon3 = getMondayOf(inicio);
+        weekStart.setDate(_mon3.getDate() + (semana.semana - 1) * 7);
         // Add day offset within the week
         var date = new Date(weekStart);
         date.setDate(weekStart.getDate() + targetOffset);
@@ -4390,12 +4559,13 @@ function renderAgendaLinear() {
 
   // Start date picker header
   var dataInicioStr = state.plano.dataInicio ? new Date(state.plano.dataInicio).toLocaleDateString('pt-BR') : 'Não definida';
-  var headerHTML = '<div style="display:flex;align-items:center;gap:12px;padding:10px 4px 14px;border-bottom:1px solid var(--border);margin-bottom:12px">' +
-    '<span style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:2px;color:var(--muted)">INÍCIO DO CICLO</span>' +
+  var headerHTML = '<div style="display:flex;align-items:center;gap:8px;padding:6px 4px 10px;border-bottom:1px solid var(--border);margin-bottom:10px">' +
+    '<span style="font-family:DM Mono,monospace;font-size:9px;letter-spacing:1.5px;color:var(--muted);flex-shrink:0">INÍCIO DO CICLO</span>' +
     '<input type="date" id="plano-inicio-input" value="' + (state.plano.dataInicio ? state.plano.dataInicio.slice(0,10) : '') + '" ' +
     'onchange="setPlanoInicio(this.value)" ' +
-    'style="font-family:DM Mono,monospace;font-size:12px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:4px 10px;color:var(--text);cursor:pointer">' +
-    '<span style="font-family:DM Mono,monospace;font-size:10px;color:var(--muted)">' + (state.plano.dataInicio ? '' : '← defina para ver as datas') + '</span>' +
+    'style="font-family:DM Mono,monospace;font-size:11px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:3px 8px;color:var(--text);cursor:pointer">' +
+    '<span style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted)">' + (state.plano.dataInicio ? '' : '← defina') + '</span>' +
+    '<button onclick="sincronizarNomesAgenda()" style="margin-left:auto;font-family:DM Mono,monospace;font-size:9px;letter-spacing:0.5px;padding:3px 8px;border-radius:6px;border:1px solid var(--muted);color:var(--muted);background:transparent;cursor:pointer;flex-shrink:0" title="Sincronizar nomes da Agenda com o Histórico">⟳ SINCRONIZAR</button>' +
     '</div>';
 
   let html = headerHTML;
@@ -4459,7 +4629,8 @@ function renderAgendaLinear() {
             var diaIdxFallback = ordemFallback.indexOf(d.dia);
             if (diaIdxFallback !== -1) {
               var diaDateFallback = new Date(inicioFallback);
-              diaDateFallback.setDate(inicioFallback.getDate() + (semana.semana - 1) * 7 + diaIdxFallback);
+              var _mon4 = getMondayOf(inicioFallback);
+              diaDateFallback.setDate(_mon4.getDate() + (semana.semana - 1) * 7 + diaIdxFallback);
               var diaStr = diaDateFallback.toISOString().slice(0, 10);
               hEntry = state.history.find(function(h) {
                 return h.serieLabel === d.serie && h.date && h.date.slice(0, 10) === diaStr;
@@ -4468,19 +4639,43 @@ function renderAgendaLinear() {
           }
           if (hEntry && hEntry.exercises) {
             exSource = hEntry.exercises.map(function(ex) {
-              return { nome: ex.name, sets: ex.sets, weight: ex.weight };
+              return { nome: ex.name, sets: ex.sets, weight: ex.weight, rest: ex.rest || '' };
             });
           }
+        }
+        // If no history entry found by date, try most recent entry for this serie
+        if (!exSource && status === 'concluido') {
+          var hFallback = state.history.find(function(h) { return h.serieLabel === d.serie; });
+          if (hFallback && hFallback.exercises) {
+            exSource = hFallback.exercises.map(function(ex) {
+              return { nome: ex.name, sets: ex.sets, weight: ex.weight, rest: ex.rest || '' };
+            });
+          }
+        }
+        // Also ensure diasExpandidos exercicios include rest when available
+        if (expanded && expanded.exercicios) {
+          expanded.exercicios.forEach(function(ex) {
+            if (!ex.rest && exSource) {
+              var match = exSource.find(function(e) { return e.nome === ex.nome; });
+              if (match) ex.rest = match.rest;
+            }
+          });
         }
         var exList = exSource || (expanded && expanded.exercicios);
         if (exList) {
           exHTML = '<div class="agenda-ex-list">' +
             exList.map(function(ex, i) {
+              var restVal = ex.rest || '';
               return '<div class="agenda-ex-item">' +
                 '<span class="agenda-ex-num">' + (i+1) + '</span>' +
-                '<span class="agenda-ex-name">' + escHtml(ex.nome || ex.name) + '</span>' +
-                '<span class="agenda-ex-sets">' + escHtml(ex.sets) + '</span>' +
-                '<span class="agenda-ex-weight">' + escHtml(ex.weight) + '</span>' +
+                '<div class="agenda-ex-main">' +
+                  '<span class="agenda-ex-name">' + escHtml(ex.nome || ex.name) + '</span>' +
+                  '<div class="agenda-ex-meta">' +
+                    '<span class="agenda-ex-sets">' + escHtml(ex.sets) + '</span>' +
+                    '<span class="agenda-ex-weight">' + escHtml(ex.weight) + '</span>' +
+                    (restVal ? '<span class="agenda-ex-rest">' + escHtml(restVal) + '</span>' : '') +
+                  '</div>' +
+                '</div>' +
                 '</div>';
             }).join('') + '</div>';
         }
@@ -4494,7 +4689,8 @@ function renderAgendaLinear() {
         var _diaIdx = _ordemDias.indexOf(d.dia);
         if (_diaIdx !== -1) {
           var _diaDate = new Date(_inicio);
-          _diaDate.setDate(_inicio.getDate() + (semana.semana - 1) * 7 + _diaIdx);
+          var _mon5 = getMondayOf(_inicio);
+          _diaDate.setDate(_mon5.getDate() + (semana.semana - 1) * 7 + _diaIdx);
           isDiaPast = _diaDate < _hoje;
         }
       }
@@ -4532,8 +4728,8 @@ function renderAgendaLinear() {
         // Past lost day — allow changing to ausente or descanso
         actionsHTML += '<button class="agenda-action-btn warning" onclick="marcarAusente(\'' + dayKey + '\',\'' + d.dia + '\',' + semana.semana + ')">⚑ PERDA PROGRAMADA</button>';
         actionsHTML += '<button class="agenda-action-btn" onclick="marcarDiaDescansoNeutro(\'' + dayKey + '\')">○ MARCAR COMO DESCANSO</button>';
-      } else {
-        actionsHTML += '<button class="agenda-action-btn" onclick="desfazerRelocamento()">↺ DESFAZER</button>';
+      } else if (status === 'concluido') {
+        actionsHTML += '<button class="agenda-action-btn" onclick="desfazerConclusao(\'' + dayKey + '\',\'' + d.serie + '\')">' + '↺ DESFAZER</button>';
       }
       actionsHTML += '</div>';
 
@@ -4717,17 +4913,17 @@ function renderInlineEx(ex, dayKey, serieLabel) {
         '</div>' +
       '</div>' +
       '<div id="notes-' + ex.id + '" style="display:none;font-size:12px;color:var(--muted);line-height:1.6;padding:6px 0 4px;border-top:1px solid var(--border);margin-bottom:4px"></div>' +
-      '<div style="display:flex;gap:8px;align-items:center">' +
+      '<div style="display:flex;gap:6px;align-items:center">' +
         '<input type="text" value="' + escHtml(ex.sets) + '" ' +
         'onchange="updateInlineEx(\'' + dayKey + '\',\'' + serieLabel + '\',\'' + ex.id + '\',\'sets\',this.value)" ' +
-        'style="font-family:DM Mono,monospace;font-size:11px;color:var(--accent);background:transparent;border:none;border-bottom:1px solid var(--border);min-width:60px;max-width:140px;text-align:center;outline:none;padding:2px;flex-shrink:0">' +
+        'style="font-family:DM Mono,monospace;font-size:11px;color:var(--accent);background:transparent;border:none;border-bottom:1px solid var(--border);width:55px;text-align:center;outline:none;padding:2px;flex-shrink:0">' +
         '<input type="text" value="' + escHtml(ex.weight) + '" ' +
         'onchange="updateInlineEx(\'' + dayKey + '\',\'' + serieLabel + '\',\'' + ex.id + '\',\'weight\',this.value)" ' +
-        'style="font-family:DM Mono,monospace;font-size:11px;color:var(--accent2);background:transparent;border:none;border-bottom:1px solid var(--border);flex:1;text-align:right;outline:none;padding:2px;min-width:0">' +
+        'style="font-family:DM Mono,monospace;font-size:11px;color:var(--accent2);background:transparent;border:none;border-bottom:1px solid var(--border);flex:1;min-width:0;text-align:right;outline:none;padding:2px">' +
         '<input type="text" value="' + escHtml(ex.rest || '') + '" ' +
-        'placeholder="descanso" ' +
+        'placeholder="—" ' +
         'onchange="updateInlineEx(\'' + dayKey + '\',\'' + serieLabel + '\',\'' + ex.id + '\',\'rest\',this.value)" ' +
-        'style="font-family:DM Mono,monospace;font-size:11px;color:var(--muted);background:transparent;border:none;border-bottom:1px solid var(--border);width:70px;text-align:right;outline:none;padding:2px;flex-shrink:0">' +
+        'style="font-family:DM Mono,monospace;font-size:11px;color:var(--muted);background:transparent;border:none;border-bottom:1px solid var(--border);width:55px;text-align:right;outline:none;padding:2px;flex-shrink:0">' +
       '</div>' +
     '</td>' +
   '</tr>';
@@ -4827,7 +5023,8 @@ function finishSerieFromAgenda(dayKey, serieId) {
           var targetOffset = ordemSemana.indexOf(d.dia);
           if (targetOffset === -1) return;
           var weekStart = new Date(inicio);
-          weekStart.setDate(inicio.getDate() + (sem.semana - 1) * 7);
+          var _mon6 = getMondayOf(inicio);
+        weekStart.setDate(_mon6.getDate() + (sem.semana - 1) * 7);
           var date = new Date(weekStart);
           date.setDate(weekStart.getDate() + targetOffset);
           map[k] = date;
@@ -4856,8 +5053,82 @@ function finishSerieFromAgenda(dayKey, serieId) {
   renderHistory();
   toast('Registrado no histórico ✓');
 
+  // Add new exercises to library automatically
+  adicionarNovosExerciciosNaBiblioteca(exercises, s);
+
   // Check for potential duplicates with library
   verificarDuplicatasComIA(exercises);
+}
+
+function desfazerConclusao(dayKey, serieLabel) {
+  // Revert status to pendente
+  if (state.plano.diasStatus) {
+    delete state.plano.diasStatus[dayKey];
+  }
+  // Remove the most recent history entry for this serie on this day
+  var ordemDias = ['Segunda','Terça','Quarta','Quinta','Sexta','Sábado','Domingo'];
+  var inicio = state.plano.dataInicio ? new Date(state.plano.dataInicio) : null;
+  var parts = dayKey.match(/^sem(\d+)_(.+)$/);
+  if (parts && inicio) {
+    inicio.setHours(0,0,0,0);
+    var semNum = parseInt(parts[1]);
+    var diaNome = parts[2];
+    var diaIdx = ordemDias.indexOf(diaNome);
+    if (diaIdx !== -1) {
+      var diaDate = new Date(inicio);
+      diaDate.setDate(inicio.getDate() + (semNum - 1) * 7 + diaIdx);
+      var dateStr = diaDate.toISOString().slice(0, 10);
+      var idx = state.history.findIndex(function(h) {
+        return h.serieLabel === serieLabel && h.date && h.date.slice(0, 10) === dateStr;
+      });
+      if (idx !== -1) state.history.splice(idx, 1);
+    }
+  }
+  saveState();
+  renderAgendaLinear();
+  renderHistory();
+  toast('Conclusão desfeita ✓');
+}
+
+function adicionarNovosExerciciosNaBiblioteca(exercises, serieObj) {
+  if (!serieObj) return;
+  var existentes = serieObj.exercises.map(function(e) { return e.name.toLowerCase(); });
+  // Build set of all names already in any series (to avoid duplicates across series)
+  var todosExistentes = [];
+  state.series.forEach(function(s) {
+    s.exercises.forEach(function(e) { todosExistentes.push(e.name.toLowerCase()); });
+  });
+  var coreObj = state.series.find(function(s) { return s.id === 'score'; });
+  var adicionados = 0;
+  exercises.forEach(function(ex) {
+    if (!ex.name) return;
+    if (todosExistentes.indexOf(ex.name.toLowerCase()) !== -1) return; // já existe em qualquer série
+    // Determinar destino: Core ou série do treino
+    // Detectar exercício de Core: campo isCore, ou músculo relacionado, ou nome típico de Core
+    var musculo = (ex.musculo || ex.muscle || ex.grupo || '').toLowerCase();
+    var nomeEx = ex.name.toLowerCase();
+    var isCoreEx = ex.isCore ||
+      /core|abdômen|abdomin|lombar|oblíquo|obliquo|prancha|plank|crunch|sit.?up|dead.?bug|bird.?dog/i.test(musculo) ||
+      /prancha|plank|crunch|sit.?up|dead.?bug|bird.?dog|abdominal|elevação de perna/i.test(nomeEx);
+    var destino = (isCoreEx && coreObj) ? coreObj : serieObj;
+    destino.exercises.push({
+      id: uid(),
+      name: ex.name,
+      sets: ex.sets || '3x10',
+      weight: ex.weight || '—',
+      rest: ex.rest || '',
+      notes: ex.notes || '',
+      status: 'undone',
+      skippedLast: false,
+      isCore: ex.isCore || false
+    });
+    todosExistentes.push(ex.name.toLowerCase());
+    adicionados++;
+  });
+  if (adicionados > 0) {
+    saveState();
+    toast(adicionados + ' exercício(s) novo(s) adicionado(s) à Biblioteca ✓');
+  }
 }
 
 function sincronizarNomesAgenda() {
@@ -4966,7 +5237,7 @@ function verificarDuplicatasHistoricoCompleto() {
       },
       body: JSON.stringify({
         model: 'claude-sonnet-4-20250514',
-        max_tokens: 1000,
+        max_tokens: 2000,
         messages: [{ role: 'user', content: prompt }]
       })
     }).then(function(r) { return r.json(); }).then(function(data) {
@@ -4975,6 +5246,11 @@ function verificarDuplicatasHistoricoCompleto() {
       try {
         var parsed = JSON.parse(text.replace(/```json|```/g, '').trim());
         if (parsed.pares && parsed.pares.length > 0) {
+          var negativoPatterns = /não são|não é o mesmo|exercício diferente|movimento diferente|músculo diferente|distinto|bilateral.*unilateral|unilateral.*bilateral/i;
+          parsed.pares = parsed.pares.filter(function(par) {
+            return !par.motivo || !negativoPatterns.test(par.motivo);
+          });
+          if (parsed.pares.length === 0) { toast('Nenhuma duplicata encontrada ✓'); return; }
           state._duplicatasPendentes = parsed.pares;
           saveState();
           toast(parsed.pares.length + ' possível(is) duplicata(s) encontrada(s).');
@@ -5004,6 +5280,15 @@ function processarRespostaDuplicatas(text) {
     var jsonStr = text.replace(/```json|```/g, '').trim();
     var parsed = JSON.parse(jsonStr);
     if (parsed.pares && parsed.pares.length > 0) {
+      // Filter out pairs where the motivo indicates they are NOT the same exercise
+      var negativoPatterns = /não são|não é o mesmo|exercício diferente|movimento diferente|músculo diferente|distinto|bilateral.*unilateral|unilateral.*bilateral/i;
+      parsed.pares = parsed.pares.filter(function(par) {
+        return !par.motivo || !negativoPatterns.test(par.motivo);
+      });
+      if (parsed.pares.length === 0) {
+        addPlanoChatMsg('system', 'Nenhuma duplicata encontrada ✓');
+        return;
+      }
       // Replace, not concat — avoid duplicates accumulating across multiple calls
       state._duplicatasPendentes = parsed.pares;
       saveState();
@@ -5059,7 +5344,7 @@ function verificarDuplicatasComIA(exerciciosNovos) {
       },
       body: JSON.stringify({
         model: 'claude-sonnet-4-20250514',
-        max_tokens: 500,
+        max_tokens: 2000,
         messages: [{ role: 'user', content: prompt }]
       })
     }).then(function(r) { return r.json(); }).then(function(data) {
@@ -5388,6 +5673,16 @@ function aplicarDuplicatasSelecionadas(inicio, fim) {
   }
 
   processarProximo();
+}
+
+// Returns the Monday of the week containing the given date
+function getMondayOf(date) {
+  var d = new Date(date);
+  d.setHours(0,0,0,0);
+  var day = d.getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
+  var diff = (day === 0) ? -6 : 1 - day; // adjust to Monday
+  d.setDate(d.getDate() + diff);
+  return d;
 }
 
 function setPlanoInicio(dateStr) {
