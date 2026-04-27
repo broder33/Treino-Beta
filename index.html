@@ -1299,7 +1299,7 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
     <button class="btn btn-desktop-only" onclick="resetData()" title="Limpar todos os dados e voltar ao padrão">RESET</button>
     <button class="btn btn-desktop-only" onclick="exportData()">EXPORTAR</button>
     <button class="btn btn-desktop-only" onclick="importData()">IMPORTAR</button>
-    <span style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted);margin-left:4px">v0.8.6.98</span>
+    <span style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted);margin-left:4px">v0.8.7.04</span>
     <div id="auth-status" style="display:flex;align-items:center;margin-left:4px"></div>
 
     <div class="mobile-menu-wrap" id="mobile-menu-wrap">
@@ -2963,7 +2963,7 @@ ${temPlano ?
 {"diaExpandido":{"semana":1,"dia":"Segunda","serie":"A","foco":"foco do dia","exercicios":[{"id":"e1","nome":"Overhead Press Sentado","sets":"3x5","weight":"24kg cada lado","rest":"90-120s","notes":""}]}}
 
 3. MODIFICAR EXERCÍCIOS DE UMA SÉRIE
-{"modificacoes":{"serieLabel":"A","acoes":[{"tipo":"substituir","de":"nome","por":"novo","sets":"3x8","weight":"20kg","notes":""},{"tipo":"alterar","nome":"nome","sets":"4x6","weight":"25kg"},{"tipo":"remover","nome":"nome"},{"tipo":"adicionar","nome":"novo","sets":"3x10","weight":"15kg","posicao":2}]}}
+{"modificacoes":{"serieLabel":"A","acoes":[{"tipo":"substituir","de":"nome","por":"novo","sets":"3x8","weight":"20kg"},{"tipo":"alterar","nome":"nome","sets":"4x6","weight":"25kg"},{"tipo":"remover","nome":"nome"},{"tipo":"adicionar","nome":"novo","sets":"3x10","weight":"15kg","posicao":2}]}}
 
 4. DIA PERDIDO
 {"replanejamento":{"diaPerdido":"Quarta","motivoPerdido":"viagem","ajustes":[{"dia":"Quinta","serie":"C","orientacao":"ajuste"}],"observacao":"explicação"}}
@@ -3470,6 +3470,7 @@ async function enviarMensagemPlano() {
 }
 
 var _pendingMod = null;
+var _pendingDiaExpandido = null;
 
 function renderModificacoesProposta(mod) {
   _pendingMod = mod;
@@ -3621,15 +3622,15 @@ function aplicarModificacoes(mod) {
     if (a.tipo === 'substituir') {
       const idx = pd.exercises.findIndex(e => e.name.toLowerCase().includes(a.de.toLowerCase()));
       if (idx >= 0) {
-        pd.exercises[idx] = { ...pd.exercises[idx], name: a.por, sets: a.sets||pd.exercises[idx].sets, weight: a.weight||pd.exercises[idx].weight, notes: a.notes||pd.exercises[idx].notes };
+        pd.exercises[idx] = { ...pd.exercises[idx], name: a.por, sets: a.sets||pd.exercises[idx].sets, weight: a.weight||pd.exercises[idx].weight };
       }
     } else if (a.tipo === 'alterar') {
       const ex = pd.exercises.find(e => e.name.toLowerCase().includes(a.nome.toLowerCase()));
-      if (ex) { if (a.sets) ex.sets = a.sets; if (a.weight) ex.weight = a.weight; if (a.notes !== undefined) ex.notes = a.notes; }
+      if (ex) { if (a.sets) ex.sets = a.sets; if (a.weight) ex.weight = a.weight; }
     } else if (a.tipo === 'remover') {
       pd.exercises = pd.exercises.filter(e => !e.name.toLowerCase().includes(a.nome.toLowerCase()));
     } else if (a.tipo === 'adicionar') {
-      const novo = { id: uid(), name: a.nome, sets: a.sets||'3x10', weight: a.weight||'—', notes: a.notes||'', status: 'undone' };
+      const novo = { id: uid(), name: a.nome, sets: a.sets||'3x10', weight: a.weight||'—', status: 'undone' };
       if (a.posicao !== undefined && a.posicao >= 0) pd.exercises.splice(a.posicao, 0, novo);
       else pd.exercises.push(novo);
     }
@@ -3657,7 +3658,6 @@ function aplicarModificacoesInline(mod, dayKey, serieLabel) {
           sets: a.sets || exs[idx].sets,
           weight: a.weight || exs[idx].weight,
           rest: a.rest || exs[idx].rest,
-          notes: a.notes !== undefined ? a.notes : exs[idx].notes
         });
       }
     } else if (a.tipo === 'alterar') {
@@ -3666,7 +3666,6 @@ function aplicarModificacoesInline(mod, dayKey, serieLabel) {
         if (a.sets) ex.sets = a.sets;
         if (a.weight) ex.weight = a.weight;
         if (a.rest) ex.rest = a.rest;
-        if (a.notes !== undefined) ex.notes = a.notes;
         if (a.por) ex.nome = a.por; // renomear
       }
     } else if (a.tipo === 'remover') {
@@ -3678,7 +3677,7 @@ function aplicarModificacoesInline(mod, dayKey, serieLabel) {
       var novo = {
         id: uid(), nome: a.nome || a.por,
         sets: a.sets || '3x10', weight: a.weight || '—',
-        rest: a.rest || '', notes: a.notes || ''
+        rest: a.rest || ''
       };
       if (a.posicao !== undefined && a.posicao >= 0) exs.splice(a.posicao, 0, novo);
       else exs.push(novo);
@@ -3929,11 +3928,12 @@ function _doAplicarPlano() {
 }
 
 function aplicarPropostaInline(dayKey, serieLabel, btn) {
+  // The AI already sent the JSON in the same turn — just trigger another send
+  // so the AI applies the pending modification it already proposed
   if (btn) { btn.textContent = '⏳ Gerando...'; btn.disabled = true; }
-  // Inject a user message asking for the JSON
   var input = document.getElementById('chat-inline-input-' + dayKey);
   if (input) {
-    input.value = 'Sim, confirmo. Gere o JSON diaExpandido com o treino completo.';
+    input.value = 'Sim, confirmo.';
     enviarChatInline(dayKey, serieLabel);
   }
 }
@@ -4161,12 +4161,12 @@ async function enviarChatInline(dayKey, serieLabel) {
     'Responda perguntas e explique escolhas em português.\n' +
     'REGRA: Quando o usuário aprovar uma mudança, retorne JSON em um destes formatos:\n' +
     '- Para mudanças pontuais use {"modificacoes":{"serieLabel":"' + serieLabel + '","acoes":[...]}} com tipos:\n' +
-    '  substituir: {"tipo":"substituir","de":"nome atual","por":"novo nome","sets":"3x10","weight":"20kg","rest":"60s"}\n' +
+    '  substituir: {"tipo":"substituir","de":"nome atual","por":"novo nome","sets":"3x10","weight":"20kg","rest":"60s"} — SEMPRE inclua sets, weight e rest calibrados para o novo exercício (use a Biblioteca como referência e ajuste ao contexto do dia)\n' +
     '  alterar: {"tipo":"alterar","nome":"nome exato do exercício","weight":"20kg"} (só inclua os campos que mudam)\n' +
     '  remover: {"tipo":"remover","nome":"nome exato"}\n' +
     '  adicionar: {"tipo":"adicionar","nome":"novo exercício","sets":"3x10","weight":"15kg","posicao":5}\n' +
-    '- Para reescrever o treino completo: {"diaExpandido":{...treino completo...}}\n' +
-    'Use modificacoes quando alterar exercícios específicos (preserva edições manuais nos demais). Use diaExpandido apenas quando reorganizar o treino inteiro.\n' +
+    '- Para reescrever o treino completo (APENAS se o usuário pedir explicitamente para refazer/montar/reorganizar o treino inteiro): {"diaExpandido":{...treino completo...}}\n' +
+    'REGRA CRÍTICA: Use SEMPRE modificacoes por padrão. diaExpandido SOMENTE quando o usuário pedir explicitamente para refazer o treino inteiro — nunca por iniciativa própria para trocas pontuais.\n' +
     'Quando você tiver uma proposta pronta e precisar de confirmação antes de aplicar, termine sua mensagem com exatamente: [PRONTO PARA APLICAR]\n' +
     'Quando estiver fazendo perguntas para entender melhor o pedido, NÃO use [PRONTO PARA APLICAR].';
 
@@ -4217,13 +4217,22 @@ async function enviarChatInline(dayKey, serieLabel) {
       atualizarListaExerciciosInline(dayKey, serieLabel);
       addChatInlineMsg(dayKey, 'ai', confirmMsg);
     } else if (parsed && (parsed.diaExpandido || parsed.exercicios)) {
-      parsed = {diaExpandido: normalizarDiaExpandido(parsed, semana, dia)};
-      aplicarDiaExpandido(parsed.diaExpandido, true);
-      var nExs = parsed.diaExpandido.exercicios.length;
-      var confirmMsgDia = '✓ Treino atualizado com ' + nExs + ' exercícios.';
-      // Update exercise list without closing chat
-      atualizarListaExerciciosInline(dayKey, serieLabel);
-      addChatInlineMsg(dayKey, 'ai', confirmMsgDia);
+      var diaExpandidoParsed = normalizarDiaExpandido(parsed, semana, dia);
+      var nExs = diaExpandidoParsed.exercicios.length;
+      _pendingDiaExpandido = { data: diaExpandidoParsed, dayKey: dayKey, serieLabel: serieLabel };
+      // Guard: show confirmation with real buttons via innerHTML
+      var msgs = document.getElementById('chat-inline-msgs-' + dayKey);
+      if (msgs) {
+        var guardDiv = document.createElement('div');
+        guardDiv.style.cssText = 'font-size:12px;line-height:1.5;padding:10px 12px;border-radius:8px;max-width:90%;background:var(--surface2);color:var(--text)';
+        guardDiv.innerHTML = '⚠️ Isso vai substituir o treino inteiro (' + nExs + ' exercícios). Confirmar?' +
+          '<div style="display:flex;gap:8px;margin-top:10px">' +
+          '<button onclick="confirmarDiaExpandidoInline()" style="font-family:DM Mono,monospace;font-size:11px;padding:5px 14px;border-radius:6px;border:none;background:var(--accent3);color:#000;cursor:pointer">✓ CONFIRMAR</button>' +
+          '<button onclick="cancelarDiaExpandidoInline()" style="font-family:DM Mono,monospace;font-size:11px;padding:5px 14px;border-radius:6px;border:1px solid var(--border);background:none;color:var(--muted);cursor:pointer">✕ CANCELAR</button>' +
+          '</div>';
+        msgs.appendChild(guardDiv);
+        msgs.scrollTop = msgs.scrollHeight;
+      }
     } else {
       // Strip any JSON from the text before showing to user
       var displayText = text.replace(/```json[\s\S]*?```/g, '').replace(/```[\s\S]*?```/g, '').trim();
@@ -4371,8 +4380,14 @@ function expandirDia(semana, dia, serieLabel, knownDayKey) {
     coreInstruction +
     'Crie o treino mais eficaz para esta fase considerando o perfil do atleta. ' +
     'Escolha exercícios, ordem, volume e cargas ideais. ' +
-    'Retorne JSON com esta estrutura:\n' +
-    '{"treino":{"dia":"' + dia + '","serie":"' + serieLabel + '","semana":' + semana + ',"exercicios":[{"nome":"Nome","musculo":"grupo muscular","sets":"NxM","weight":"valor numérico com unidade (ex: 20kg, 15-20kg, Peso corporal)","rest":"intervalo entre séries (ex: 60-90s)","notes":"instrução técnica"}]}}';
+    'Para o campo rest, calibre o intervalo de acordo com a fase e o exercício:\n' +
+    '- Força (intensidade alta, 85-100%): 2-4min para compostos, 90-120s para isoladores\n' +
+    '- Hipertrofia (intensidade moderada, 70-85%): 60-90s para compostos, 45-60s para isoladores\n' +
+    '- Acumulação/Volume (intensidade moderada-baixa): 45-75s\n' +
+    '- Deload/Recuperação: 45-60s\n' +
+    'Sempre considere o foco e intensidade da semana informados acima para definir o rest de cada exercício.\n' +
+    'Retorne JSON com esta estrutura (SEM sets e SEM weight — apenas a lista de exercícios com o intervalo de descanso):\n' +
+    '{"treino":{"dia":"' + dia + '","serie":"' + serieLabel + '","semana":' + semana + ',"exercicios":[{"nome":"Nome","musculo":"grupo muscular","rest":"intervalo entre séries (ex: 60-90s)"}]}}';
 
   fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
@@ -4410,15 +4425,24 @@ function expandirDia(semana, dia, serieLabel, knownDayKey) {
 
     // STEP 2: Compare with library and substitute equivalent exercises
     var treinoGerado = JSON.stringify(parsed1, null, 2);
-    var prompt2 = 'Tenho este treino gerado:\n' + treinoGerado + '\n\n' +
-      'MINHA BIBLIOTECA (nomes exatos que uso):\n' + bibliotecaCompleta + '\n\n' +
-      'REGRA: Para cada exercício do treino gerado, verifique se ele é o mesmo que já existe na biblioteca. ' +
-      'Se for o mesmo, use EXATAMENTE o nome da biblioteca. Mantenha a carga gerada, mas preserve o formato da biblioteca (ex: se a biblioteca usa "X kg cada lado", use o mesmo sufixo). ' +
-      'PRINCÍPIO DE NOMENCLATURA: adjetivos que descrevem a variação PADRÃO de um exercício são redundantes e devem ser omitidos — ex: "Prancha Frontal" = "Prancha" porque frontal é o padrão. ' +
-      'Adjetivos que descrevem variações NÃO-PADRÃO são essenciais e devem ser mantidos — ex: "Prancha Lateral" ≠ "Prancha" porque lateral não é o padrão. ' +
-      'Exercícios genuinamente novos são bem-vindos — mantenha o nome original. ' +
-      'Mantenha sets, rest e ordem do treino gerado. ' +
-      'Retorne o treino final no mesmo formato JSON, com TODOS os campos: nome, musculo, sets, weight, rest e notes.';
+    var prompt2 = 'Tenho esta lista de exercícios escolhidos para o treino de ' + serieLabel + ' (' + dia + ', semana ' + semana + '):\n' + treinoGerado + '\n\n' +
+      'FASE DO TREINO:\n' +
+      '- Foco: ' + (semanaObj ? semanaObj.foco : '') + '\n' +
+      '- Intensidade: ' + intensidade + '\n' +
+      '- Progressão: ' + progressao + '\n' +
+      '- Orientação: ' + orientacao + '\n\n' +
+      'MINHA BIBLIOTECA (exercícios que já pratico — sets e carga são meus valores de referência/máximo):\n' + bibliotecaCompleta + '\n\n' +
+      'REGRAS:\n' +
+      '1. NOME: Se o exercício escolhido é equivalente a um da Biblioteca, use EXATAMENTE o nome da Biblioteca.\n' +
+      '   PRINCÍPIO DE NOMENCLATURA: adjetivos da variação PADRÃO são redundantes ("Prancha Frontal" = "Prancha"). Variações NÃO-PADRÃO são essenciais ("Prancha Lateral" ≠ "Prancha").\n' +
+      '   Exercícios genuinamente novos: mantenha o nome original.\n' +
+      '2. SETS: Se o exercício existe na Biblioteca, use os sets da Biblioteca como referência máxima e ajuste para os objetivos do dia (ex: deload = menos volume, força = menos reps/mais peso).\n' +
+      '   Se for exercício novo, defina sets adequados para a fase.\n' +
+      '3. WEIGHT: Se o exercício existe na Biblioteca, use a carga da Biblioteca como referência máxima e ajuste proporcionalmente à intensidade do dia.\n' +
+      '   Preserve o formato da Biblioteca (ex: "X kg cada lado"). Se for exercício novo, defina carga adequada.\n' +
+      '4. REST: Mantenha EXATAMENTE o rest já definido na lista acima. NÃO consulte a Biblioteca para rest.\n' +
+      '5. Mantenha a ordem dos exercícios.\n\n' +
+      'Retorne o treino final em JSON com TODOS os campos: nome, musculo, sets, weight, rest.';
 
     fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -4634,7 +4658,7 @@ function aplicarDiaExpandido(diaExp, fromChat) {
       exercises: diaExp.exercicios.map(function(ex) {
         var nome = ex.nome || ex.name || '';
         var status = ex.status || prevStatusMap[nome] || 'undone';
-        return { id: ex.id || uid(), name: ex.nome, sets: ex.sets, weight: ex.weight, rest: ex.rest || '', notes: ex.notes||'', status: status, skippedLast: false };
+        return { id: ex.id || uid(), name: ex.nome, sets: ex.sets, weight: ex.weight, rest: ex.rest || '', status: status, skippedLast: false };
       })
     };
     serieObj.planMode = false;
@@ -5007,6 +5031,23 @@ function toggleAgendaDia(dayKey) {
   }
 }
 
+function confirmarDiaExpandidoInline() {
+  if (!_pendingDiaExpandido) return;
+  var p = _pendingDiaExpandido;
+  _pendingDiaExpandido = null;
+  aplicarDiaExpandido(p.data, true);
+  var nExs = p.data.exercicios.length;
+  atualizarListaExerciciosInline(p.dayKey, p.serieLabel);
+  addChatInlineMsg(p.dayKey, 'ai', '✓ Treino substituído com ' + nExs + ' exercícios.');
+}
+
+function cancelarDiaExpandidoInline() {
+  if (!_pendingDiaExpandido) return;
+  var dayKey = _pendingDiaExpandido.dayKey;
+  _pendingDiaExpandido = null;
+  addChatInlineMsg(dayKey, 'ai', 'Ok, o treino foi mantido como estava.');
+}
+
 function atualizarListaExerciciosInline(dayKey, serieLabel) {
   var container = document.getElementById('agendadia-' + dayKey);
   if (!container) return;
@@ -5030,7 +5071,7 @@ function atualizarListaExerciciosInline(dayKey, serieLabel) {
   var exercises = expanded.exercicios.map(function(ex) {
     var pd = state.plano.seriesData && state.plano.seriesData[s.id];
     var pdEx = pd && pd.exercises.find(function(e) { return e.id === ex.id || e.name === ex.nome; });
-    return { id: ex.id || uid(), name: ex.nome, sets: ex.sets, weight: ex.weight, rest: ex.rest || '', notes: ex.notes || '', status: pdEx ? pdEx.status : 'undone' };
+    return { id: ex.id || uid(), name: ex.nome, sets: ex.sets, weight: ex.weight, rest: ex.rest || '', status: pdEx ? pdEx.status : 'undone' };
   });
 
   tableEl.innerHTML = exercises.map(function(ex) {
@@ -5047,7 +5088,7 @@ function irParaTreino(dayKey, serieLabel) {
     ? expanded.exercicios.map(function(ex) {
         var pd = state.plano.seriesData && state.plano.seriesData[s.id];
         var pdEx = pd && pd.exercises.find(function(e) { return e.id === ex.id || e.name === ex.nome; });
-        return { id: ex.id || uid(), name: ex.nome, sets: ex.sets, weight: ex.weight, rest: ex.rest || '', notes: ex.notes||'', status: pdEx ? pdEx.status : 'undone' };
+        return { id: ex.id || uid(), name: ex.nome, sets: ex.sets, weight: ex.weight, rest: ex.rest || '', status: pdEx ? pdEx.status : 'undone' };
       })
     : s.exercises;
 
@@ -5333,7 +5374,6 @@ function adicionarNovosExerciciosNaBiblioteca(exercises, serieObj) {
       sets: ex.sets || '3x10',
       weight: ex.weight || '—',
       rest: ex.rest || '',
-      notes: ex.notes || '',
       status: 'undone',
       skippedLast: false,
       isCore: ex.isCore || false
@@ -6231,7 +6271,6 @@ Contexto:
 - Nome informal atual: "${ex.name}"
 - Séries/reps: ${ex.sets}
 - Carga/equipamento: ${ex.weight}
-- Notas: ${ex.notes || 'nenhuma'}
 
 Regras:
 - Responda APENAS com o nome técnico correto, sem explicações, sem pontuação, sem aspas
