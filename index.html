@@ -1299,7 +1299,7 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
     <button class="btn btn-desktop-only" onclick="resetData()" title="Limpar todos os dados e voltar ao padrão">RESET</button>
     <button class="btn btn-desktop-only" onclick="exportData()">EXPORTAR</button>
     <button class="btn btn-desktop-only" onclick="importData()">IMPORTAR</button>
-    <span style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted);margin-left:4px">v0.8.7.04</span>
+    <span style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted);margin-left:4px">v0.8.7.09</span>
     <div id="auth-status" style="display:flex;align-items:center;margin-left:4px"></div>
 
     <div class="mobile-menu-wrap" id="mobile-menu-wrap">
@@ -5130,7 +5130,7 @@ function irParaTreino(dayKey, serieLabel) {
     exercises.map(function(ex) { return renderInlineEx(ex, dayKey, serieLabel); }).join('') +
     '</table>' +
     '<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">' +
-      '<button class="agenda-action-btn done" onclick="marcarTodosInline(\'' + dayKey + '\',\'' + serieLabel + '\')">✓ MARCAR TODOS</button>' +
+      '<button id="btn-marcar-todos-' + dayKey + '" class="agenda-action-btn done" onclick="marcarTodosInline(\'' + dayKey + '\',\'' + serieLabel + '\')">✓ MARCAR TODOS</button>' +
       '<button class="agenda-action-btn" onclick="finishSerieFromAgenda(\'' + dayKey + '\',\'' + s.id + '\')">⬤ REGISTRAR NO HISTÓRICO</button>' +
       '<button class="agenda-action-btn" style="border-color:var(--accent3);color:var(--accent3);margin-left:auto" onclick="toggleChatInline(\'' + dayKey + '\',\'' + serieLabel + '\')">✦ AJUSTAR COM IA</button>' +
     '</div>' +
@@ -5156,7 +5156,7 @@ function renderInlineEx(ex, dayKey, serieLabel) {
   var status = ex.status === 'partial' ? 'done' : (ex.status || 'undone');
   return '<tr id="inline-ex-' + ex.id + '">' +
     '<td style="width:24px;padding:6px 4px 6px 0;vertical-align:top;padding-top:10px">' +
-      '<span onclick="cycleInlineEx(\'' + dayKey + '\',\'' + serieLabel + '\',\'' + ex.id + '\')" ' +
+      '<span class="inline-ex-dot" onclick="cycleInlineEx(\'' + dayKey + '\',\'' + serieLabel + '\',\'' + ex.id + '\')" ' +
       'style="font-size:16px;color:' + colorMap[status] + ';cursor:pointer;display:block;text-align:center;transition:color .15s">' + dotMap[status] + '</span>' +
     '</td>' +
     '<td style="padding:6px 4px;vertical-align:middle">' +
@@ -5186,31 +5186,69 @@ function renderInlineEx(ex, dayKey, serieLabel) {
   '</tr>';
 }
 
+function atualizarBotaoMarcarTodos(dayKey) {
+  var expanded = state.plano && state.plano.diasExpandidos && state.plano.diasExpandidos[dayKey];
+  if (!expanded || !expanded.exercicios) return;
+  var allDone = expanded.exercicios.every(function(ex) { return ex.status === 'done'; });
+  var btn = document.getElementById('btn-marcar-todos-' + dayKey);
+  if (!btn) return;
+  btn.textContent = allDone ? '○ DESMARCAR TODOS' : '✓ MARCAR TODOS';
+}
+
 function marcarTodosInline(dayKey, serieLabel) {
+  var expanded = state.plano && state.plano.diasExpandidos && state.plano.diasExpandidos[dayKey];
+  if (!expanded || !expanded.exercicios) return;
+
+  // Toggle: if all done → undo all; otherwise → mark all done
+  var allDone = expanded.exercicios.every(function(ex) { return ex.status === 'done'; });
+  var newStatus = allDone ? 'undone' : 'done';
+  expanded.exercicios.forEach(function(ex) { ex.status = newStatus; });
+
+  // Also sync seriesData if present
   var s = state.series.find(function(s) { return s.label === serieLabel; });
-  if (!s || !state.plano.seriesData || !state.plano.seriesData[s.id]) return;
-  state.plano.seriesData[s.id].exercises.forEach(function(ex) { ex.status = 'done'; });
-  saveState();
-  var container = document.getElementById('agendadia-' + dayKey);
-  if (container) {
-    container.querySelectorAll('[id^="inline-ex-"] span').forEach(function(span) {
-      if (span.style.cursor === 'pointer') { span.textContent = '●'; span.style.color = 'var(--done)'; }
-    });
+  if (s && state.plano.seriesData && state.plano.seriesData[s.id]) {
+    state.plano.seriesData[s.id].exercises.forEach(function(ex) { ex.status = newStatus; });
   }
+
+  saveState();
+
+  // Update UI — only the status dot spans inside inline-ex rows
+  var dotMap = { done: '●', undone: '○', skipped: '✕' };
+  var colorMap = { done: 'var(--done)', undone: 'var(--muted)', skipped: 'var(--danger)' };
+  expanded.exercicios.forEach(function(ex) {
+    var row = document.getElementById('inline-ex-' + ex.id);
+    if (!row) return;
+    var dot = row.querySelector('.inline-ex-dot');
+    if (dot) { dot.textContent = dotMap[newStatus]; dot.style.color = colorMap[newStatus]; }
+  });
+
+  // Update button label
+  atualizarBotaoMarcarTodos(dayKey);
 }
 
 function cycleInlineEx(dayKey, serieLabel, exId) {
   var s = state.series.find(function(s) { return s.label === serieLabel; });
-  if (!s || !state.plano.seriesData || !state.plano.seriesData[s.id]) return;
-  var ex = state.plano.seriesData[s.id].exercises.find(function(e) { return e.id === exId; });
-  if (!ex) return;
   var cycle = { undone: 'done', done: 'skipped', skipped: 'undone' };
-  ex.status = cycle[ex.status] || 'undone';
+
+  // Update diasExpandidos (primary source)
+  var expanded = state.plano && state.plano.diasExpandidos && state.plano.diasExpandidos[dayKey];
+  var exExpanded = expanded && expanded.exercicios && expanded.exercicios.find(function(e) { return e.id === exId; });
+  if (exExpanded) exExpanded.status = cycle[exExpanded.status] || 'undone';
+
+  // Also sync seriesData if present
+  if (s && state.plano.seriesData && state.plano.seriesData[s.id]) {
+    var exSeries = state.plano.seriesData[s.id].exercises.find(function(e) { return e.id === exId; });
+    if (exSeries) exSeries.status = exExpanded ? exExpanded.status : (cycle[exSeries.status] || 'undone');
+  }
+
+  var newStatus = exExpanded ? exExpanded.status : 'undone';
   saveState();
+
   var dotMap = { done: '●', skipped: '✕', undone: '○' };
   var colorMap = { done: 'var(--done)', skipped: 'var(--danger)', undone: 'var(--muted)' };
-  var span = document.querySelector('#inline-ex-' + exId + ' span');
-  if (span) { span.textContent = dotMap[ex.status]; span.style.color = colorMap[ex.status]; }
+  var span = document.querySelector('#inline-ex-' + exId + ' .inline-ex-dot');
+  if (span) { span.textContent = dotMap[newStatus]; span.style.color = colorMap[newStatus]; }
+  atualizarBotaoMarcarTodos(dayKey);
 }
 
 function updateInlineEx(dayKey, serieLabel, exId, field, value) {
@@ -6427,6 +6465,7 @@ function getSbClient() {
 
 var _supabaseUser = null;
 var _syncTimeout = null;
+var _supabaseLoadComplete = false; // blocks uploads until initial cloud load finishes
 var _suppressNextSync = false; // prevents re-upload after downloading from cloud
 var _authListenerRegistered = false;
 var _initCompleted = false; // prevents onAuthStateChange from firing during supabaseInit
@@ -6496,9 +6535,11 @@ async function supabaseInit() {
       if (state.planoRascunho || state.plano) renderPlanoMacro(state.planoRascunho || state.plano);
     }
     renderAuthUI();
+    if (!_supabaseUser) _supabaseLoadComplete = true; // not logged in — safe to save locally
     _initCompleted = true;
   } catch(e) {
     console.warn('Supabase init error:', e);
+    _supabaseLoadComplete = true; // on error, unblock saves
     renderAuthUI();
     _initCompleted = true;
   }
@@ -6592,19 +6633,21 @@ async function supabaseSave() {
 }
 
 async function supabaseLoad() {
-  if (!_supabaseUser) return;
+  if (!_supabaseUser) { _supabaseLoadComplete = true; return; }
   try {
-    const dbl2 = getSbClient(); if (!dbl2) return;
+    const dbl2 = getSbClient(); if (!dbl2) { _supabaseLoadComplete = true; return; }
     var loadResult = await supabaseWithTimeout(() =>
       dbl2.from('user_data').select('state, updated_at').eq('id', _supabaseUser.id).limit(1),
       8000);
     var data = loadResult.data, error = loadResult.error;
     if (error) {
       console.warn('Supabase load error:', error.message);
+      _supabaseLoadComplete = true;
       return;
     }
     // No data in cloud: first login — upload local state to cloud
     if (!data || data.length === 0 || !data[0].state) {
+      _supabaseLoadComplete = true;
       supabaseSave();
       return;
     }
@@ -6618,13 +6661,20 @@ async function supabaseLoad() {
     }
     // Local is newer: upload to cloud
     else if (localUpdatedAt > cloudUpdatedAt) {
+      _supabaseLoadComplete = true;
       supabaseSave();
+      return;
     }
     // Same timestamp: do nothing
-  } catch(e) { console.warn('Supabase load exception:', e); }
+    _supabaseLoadComplete = true;
+  } catch(e) {
+    console.warn('Supabase load exception:', e);
+    _supabaseLoadComplete = true;
+  }
 }
 
 function scheduleSyncToSupabase() {
+  if (!_supabaseLoadComplete) return; // never upload before initial cloud load finishes
   if (_syncTimeout) clearTimeout(_syncTimeout);
   _syncTimeout = setTimeout(function() {
     supabaseSave();
