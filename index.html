@@ -1299,7 +1299,7 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
     <button class="btn btn-desktop-only" onclick="resetData()" title="Limpar todos os dados e voltar ao padrão">RESET</button>
     <button class="btn btn-desktop-only" onclick="exportData()">EXPORTAR</button>
     <button class="btn btn-desktop-only" onclick="importData()">IMPORTAR</button>
-    <span style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted);margin-left:4px">v0.8.7.09</span>
+    <span style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted);margin-left:4px">v0.8.7.10</span>
     <div id="auth-status" style="display:flex;align-items:center;margin-left:4px"></div>
 
     <div class="mobile-menu-wrap" id="mobile-menu-wrap">
@@ -5071,7 +5071,7 @@ function atualizarListaExerciciosInline(dayKey, serieLabel) {
   var exercises = expanded.exercicios.map(function(ex) {
     var pd = state.plano.seriesData && state.plano.seriesData[s.id];
     var pdEx = pd && pd.exercises.find(function(e) { return e.id === ex.id || e.name === ex.nome; });
-    return { id: ex.id || uid(), name: ex.nome, sets: ex.sets, weight: ex.weight, rest: ex.rest || '', status: pdEx ? pdEx.status : 'undone' };
+    return { id: ex.id || uid(), name: ex.nome, sets: ex.sets, weight: ex.weight, rest: ex.rest || '', status: ex.status || (pdEx ? pdEx.status : 'undone') };
   });
 
   tableEl.innerHTML = exercises.map(function(ex) {
@@ -5088,7 +5088,7 @@ function irParaTreino(dayKey, serieLabel) {
     ? expanded.exercicios.map(function(ex) {
         var pd = state.plano.seriesData && state.plano.seriesData[s.id];
         var pdEx = pd && pd.exercises.find(function(e) { return e.id === ex.id || e.name === ex.nome; });
-        return { id: ex.id || uid(), name: ex.nome, sets: ex.sets, weight: ex.weight, rest: ex.rest || '', status: pdEx ? pdEx.status : 'undone' };
+        return { id: ex.id || uid(), name: ex.nome, sets: ex.sets, weight: ex.weight, rest: ex.rest || '', status: ex.status || (pdEx ? pdEx.status : 'undone') };
       })
     : s.exercises;
 
