@@ -1125,12 +1125,12 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
     border-bottom: 1px solid rgba(255,255,255,.04);
   }
   .agenda-ex-num { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--muted); min-width: 18px; padding-top: 2px; }
-  .agenda-ex-main { display: flex; flex-direction: column; gap: 3px; flex: 1; min-width: 0; }
-  .agenda-ex-name { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .agenda-ex-meta { display: flex; gap: 6px; align-items: center; }
-  .agenda-ex-sets { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--accent); white-space: nowrap; flex-shrink: 0; }
-  .agenda-ex-weight { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--accent2); white-space: nowrap; flex: 1; }
-  .agenda-ex-rest { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--muted); white-space: nowrap; flex-shrink: 0; }
+  .agenda-ex-main { display: flex; flex-direction: column; gap: 3px; flex: 1; }
+  .agenda-ex-name { white-space: normal; }
+  .agenda-ex-meta { display: flex; gap: 6px; align-items: baseline; flex-wrap: wrap; overflow: visible; }
+  .agenda-ex-sets { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--accent); white-space: nowrap; }
+  .agenda-ex-weight { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--accent2); white-space: nowrap; }
+  .agenda-ex-rest { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--muted); white-space: nowrap; }
 
   .agenda-dia-actions { display: flex; gap: 8px; flex-wrap: wrap; }
   .agenda-action-btn {
@@ -1325,7 +1325,7 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
     <button class="btn btn-desktop-only" onclick="resetData()" title="Limpar todos os dados e voltar ao padrão">RESET</button>
     <button class="btn btn-desktop-only" onclick="exportData()">EXPORTAR</button>
     <button class="btn btn-desktop-only" onclick="importData()">IMPORTAR</button>
-    <span style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted);margin-left:4px">v0.8.7.24</span>
+    <span style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted);margin-left:4px">v0.8.7.33</span>
     <div id="auth-status" style="display:flex;align-items:center;margin-left:4px"></div>
 
     <div class="mobile-menu-wrap" id="mobile-menu-wrap">
@@ -5040,8 +5040,8 @@ function renderAgendaLinear() {
   list.innerHTML = html;
 
   // Auto-open today's card
-  const hojeCard = list.querySelector('.agenda-dia.hoje');
-  if (hojeCard) hojeCard.classList.add('open');
+  var hojeCardEl = list.querySelector('.agenda-dia.hoje');
+  if (hojeCardEl) hojeCardEl.classList.add('open');
 
   // Restore previously open cards
   if (state._agendaOpenCards) {
@@ -5081,12 +5081,9 @@ function toggleSemana(semKey) {
 }
 
 function _restoreChatInline(dayKey) {
-  console.log('[restore] _restoreChatInline called for', dayKey);
   var chat = document.getElementById('chat-inline-' + dayKey);
-  console.log('[restore] chat element:', chat ? 'found' : 'NOT FOUND');
   if (!chat) return;
   chat.style.display = 'block';
-  console.log('[restore] chat display set to block');
   // Update state to reflect chat is open
   if (!state._agendaOpenCards) state._agendaOpenCards = {};
   if (!state._agendaOpenCards[dayKey]) state._agendaOpenCards[dayKey] = { open: true };
@@ -5157,9 +5154,10 @@ function toggleAgendaDia(dayKey) {
         if (diaObj2) serie2 = diaObj2.serie;
       }
       if (serie2 && serie2 !== 'descanso') {
-        irParaTreino(dayKey, serie2);
+        var prevChatOpen2 = state._agendaOpenCards && state._agendaOpenCards[dayKey] ? state._agendaOpenCards[dayKey].chatOpen : false;
+        irParaTreino(dayKey, serie2, prevChatOpen2);
         if (!state._agendaOpenCards) state._agendaOpenCards = {};
-        state._agendaOpenCards[dayKey] = { open: true, chatOpen: false };
+        state._agendaOpenCards[dayKey] = { open: true, chatOpen: prevChatOpen2 };
         saveState();
       }
     } else {
@@ -5333,7 +5331,7 @@ function renderInlineEx(ex, dayKey, serieLabel) {
       '<div style="display:flex;gap:6px;align-items:center">' +
         '<input type="text" value="' + escHtml(ex.sets) + '" ' +
         'onchange="updateInlineEx(\'' + dayKey + '\',\'' + serieLabel + '\',\'' + ex.id + '\',\'sets\',this.value)" ' +
-        'style="font-family:DM Mono,monospace;font-size:11px;color:var(--accent);background:transparent;border:none;border-bottom:1px solid var(--border);width:55px;text-align:center;outline:none;padding:2px;flex-shrink:0">' +
+        'style="font-family:DM Mono,monospace;font-size:11px;color:var(--accent);background:transparent;border:none;border-bottom:1px solid var(--border);width:120px;text-align:center;outline:none;padding:2px;flex-shrink:0">' +
         '<input type="text" value="' + escHtml(ex.weight) + '" ' +
         'onchange="updateInlineEx(\'' + dayKey + '\',\'' + serieLabel + '\',\'' + ex.id + '\',\'weight\',this.value)" ' +
         'style="font-family:DM Mono,monospace;font-size:11px;color:var(--accent2);background:transparent;border:none;border-bottom:1px solid var(--border);flex:1;min-width:0;text-align:right;outline:none;padding:2px">' +

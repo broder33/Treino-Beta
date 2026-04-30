@@ -1,4 +1,4 @@
-const CACHE_NAME = 'treino-v224';
+const CACHE_NAME = 'treino-v233';
 
 self.addEventListener('message', function(event) {
   if (event.data && event.data.type === 'SKIP_WAITING') {
