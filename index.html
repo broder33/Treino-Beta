@@ -180,7 +180,7 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
   .exercise-list {
     padding: 0 24px;
     display: grid;
-    grid-template-columns: auto 1fr auto auto auto;
+    grid-template-columns: auto 1fr auto auto auto auto;
     row-gap: 6px;
   }
 
@@ -192,6 +192,7 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
   .ex-col-sets,
   .ex-col-weight,
   .ex-col-rest,
+  .ex-col-info,
   .ex-chevron-wrap {
     background: var(--surface);
     border-top: 1px solid var(--border);
@@ -209,6 +210,7 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
   .ex-card.status-done   .ex-col-sets,
   .ex-card.status-done   .ex-col-weight,
   .ex-card.status-done   .ex-col-rest,
+  .ex-card.status-done   .ex-col-info,
   .ex-card.status-done   .ex-chevron-wrap {
     border-color: rgba(57,255,133,.4); background: rgba(57,255,133,.03);
   }
@@ -216,6 +218,7 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
   .ex-card.status-partial .ex-col-sets,
   .ex-card.status-partial .ex-col-weight,
   .ex-card.status-partial .ex-col-rest,
+  .ex-card.status-partial .ex-col-info,
   .ex-card.status-partial .ex-chevron-wrap {
     border-color: rgba(255,204,0,.4); background: rgba(255,204,0,.03);
   }
@@ -223,6 +226,7 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
   .ex-card.status-skipped .ex-col-sets,
   .ex-card.status-skipped .ex-col-weight,
   .ex-card.status-skipped .ex-col-rest,
+  .ex-card.status-skipped .ex-col-info,
   .ex-card.status-skipped .ex-chevron-wrap {
     border-color: rgba(255,107,255,.4); background: rgba(255,107,255,.03);
   }
@@ -249,10 +253,10 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
     border-left: 1px solid var(--border);
     display: flex;
     align-items: center;
-    overflow: hidden;
   }
   .ex-name-input {
-    width: 100%;
+    flex: 1;
+    min-width: 0;
     font-family: 'Bebas Neue', sans-serif;
     font-size: 17px;
     letter-spacing: 1.5px;
@@ -286,6 +290,20 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
     white-space: nowrap;
   }
   .ex-rename-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .ex-info-btn {
+    flex-shrink: 0;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    border-radius: 4px;
+    padding: 1px 7px;
+    cursor: pointer;
+    transition: all .15s;
+    margin-left: auto;
+  }
+  .ex-info-btn:hover { border-color: var(--accent3); color: var(--accent3); }
   .ex-rename-btn.loading { border-color: var(--accent3); color: var(--accent3); animation: pulse .8s infinite; }
   @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:.4; } }
 
@@ -356,9 +374,16 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
     padding: 6px 12px;
     gap: 1px;
     border-left: 1px solid var(--border);
+    min-width: 80px;
+  }
+  .ex-col-info {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 10px;
+    border-left: 1px solid var(--border);
     border-right: 1px solid var(--border);
     border-radius: 0 10px 10px 0;
-    min-width: 80px;
   }
 
   .ex-col-label {
@@ -1198,8 +1223,8 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
       flex-direction: column;
       border: 1px solid var(--border);
       border-radius: 10px;
-      overflow: hidden;
       background: var(--surface);
+      position: relative;
     }
     .ex-card.status-done { border-color: rgba(57,255,133,.4); background: rgba(57,255,133,.03); }
     .ex-card.status-partial { border-color: rgba(255,204,0,.4); background: rgba(255,204,0,.03); }
@@ -1241,6 +1266,7 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
     .ex-col-sets { order: 2; flex: 0 0 auto; padding: 2px 0 8px 12px; }
     .ex-col-weight { order: 3; flex: 1; padding: 2px 0 8px 16px; }
     .ex-col-rest { order: 4; flex: 0 0 auto; padding: 2px 12px 8px 8px; }
+    .ex-col-info { order: 1; padding: 8px 12px 0; justify-content: flex-end; border: none; background: none; min-height: unset; }
 
     /* Tornar ex-card um flex container com wrap */
     .ex-card {
@@ -1299,7 +1325,7 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
     <button class="btn btn-desktop-only" onclick="resetData()" title="Limpar todos os dados e voltar ao padrão">RESET</button>
     <button class="btn btn-desktop-only" onclick="exportData()">EXPORTAR</button>
     <button class="btn btn-desktop-only" onclick="importData()">IMPORTAR</button>
-    <span style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted);margin-left:4px">v0.8.7.10</span>
+    <span style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted);margin-left:4px">v0.8.7.24</span>
     <div id="auth-status" style="display:flex;align-items:center;margin-left:4px"></div>
 
     <div class="mobile-menu-wrap" id="mobile-menu-wrap">
@@ -1705,10 +1731,12 @@ function switchTab(id) {
       renderPlanoMacro(state.plano);
     }
   }
-  else if (id === 'biblioteca') { document.getElementById('view-biblioteca').classList.add('active'); renderBiblioteca(currentTab.startsWith('workout-') ? currentTab : 'workout-'+state.series[0].id); }
+  else if (id === 'biblioteca') { document.getElementById('view-biblioteca').classList.add('active'); renderBiblioteca(state.lastBibTab && state.lastBibTab.startsWith('workout-') ? state.lastBibTab : (currentTab.startsWith('workout-') ? currentTab : 'workout-'+state.series[0].id)); }
   else if (id.startsWith('workout-')) {
     // Switch to biblioteca and activate the right serie sub-tab
     currentTab = id;
+    state.lastBibTab = id;
+    saveState();
     document.getElementById('view-biblioteca').classList.add('active');
     renderBiblioteca(id);
   }
@@ -1763,6 +1791,9 @@ function buildExHTML(serieId, ex, idx, planMode) {
       ${wasSkippedLast ? '<span class="priority-badge">PRIORIDADE</span>' : ''}
       <button class="ex-rename-btn" id="rename-btn-${ex.id}" onclick="event.stopPropagation();renameWithAI('${serieId}','${ex.id}')" title="Sugerir nome oficial">✦</button>
     </div>
+    <div class="ex-col-info">
+      <button class="ex-info-btn" onclick="event.stopPropagation();toggleExNotes('${ex.id}','${escHtml(ex.name)}','${serieId}')" title="Informações sobre o exercício">i</button>
+    </div>
     <div class="ex-col-sets">
       <span class="ex-col-label">SÉRIES</span>
       <input class="ex-col-input" type="text" oninput="updateExField('${serieId}','${ex.id}','sets',this.value)" value="${escHtml(ex.sets)}" placeholder="3x10" />
@@ -1788,18 +1819,33 @@ function buildExHTML(serieId, ex, idx, planMode) {
         <button class="ex-action-btn move" onclick="moveEx('${serieId}','${ex.id}',1)">↓</button>
         <button class="ex-action-btn" onclick="${planMode ? `removePlanExercise('${serieId}','${ex.id}')` : `removeEx('${serieId}','${ex.id}')`}">REMOVER</button>
       </div>
+      <div id="notes-${ex.id}" style="display:none;margin-top:8px;font-size:11px;line-height:1.6;color:var(--muted);background:var(--surface2);border-radius:6px;padding:10px 12px"></div>
     </div>
   </div>`;
 }
 
 // ─────────────────────────── ACTIONS ───────────────────────────
-function toggleExNotes(exId, exName, serieLabel) {
+function toggleExNotes(exId, exName, serieId) {
+  var card = document.getElementById('excard-' + exId);
   var el = document.getElementById('notes-' + exId);
   if (!el) return;
 
+  // If info panel is open → close it, and collapse card if we opened it
   if (el.style.display === 'block') {
     el.style.display = 'none';
+    if (card && card.dataset.autoOpened === 'true') {
+      card.classList.remove('open');
+      delete card.dataset.autoOpened;
+    }
     return;
+  }
+
+  // Auto-expand card if not open, remember we did it
+  if (card && !card.classList.contains('open')) {
+    card.classList.add('open');
+    card.dataset.autoOpened = 'true';
+  } else if (card) {
+    delete card.dataset.autoOpened;
   }
 
   el.style.display = 'block';
@@ -2205,7 +2251,7 @@ function renderBiblioteca(activeId) {
     var btn = document.createElement('button');
     btn.className = 'bib-tab' + (activeId === 'workout-'+s.id ? ' active' : '');
     btn.innerHTML = s.label + ' — ' + s.name;
-    btn.onclick = (function(sid) { return function() { switchTab('workout-'+sid); }; })(s.id);
+    btn.onclick = (function(sid) { return function() { state.lastBibTab = 'workout-'+sid; saveState(); switchTab('workout-'+sid); }; })(s.id);
     bibTabs.appendChild(btn);
   });
 
@@ -2213,7 +2259,7 @@ function renderBiblioteca(activeId) {
   var coreBtn = document.createElement('button');
   coreBtn.className = 'bib-tab' + (activeId === 'workout-core' ? ' active' : '');
   coreBtn.innerHTML = 'CORE';
-  coreBtn.onclick = function() { switchTab('workout-core'); };
+  coreBtn.onclick = function() { state.lastBibTab = 'workout-core'; saveState(); switchTab('workout-core'); };
   bibTabs.appendChild(coreBtn);
 
   // Spacer
@@ -3471,6 +3517,7 @@ async function enviarMensagemPlano() {
 
 var _pendingMod = null;
 var _pendingDiaExpandido = null;
+var _chatInlineDrafts = {}; // dayKey -> draft text
 
 function renderModificacoesProposta(mod) {
   _pendingMod = mod;
@@ -3966,6 +4013,18 @@ function toggleChatInline(dayKey, serieLabel) {
   var chat = document.getElementById('chat-inline-' + dayKey);
   if (!chat) return;
   var isOpen = chat.style.display !== 'none';
+  // Save draft before closing
+  if (isOpen) {
+    var inputEl = document.getElementById('chat-inline-input-' + dayKey);
+    if (inputEl && inputEl.value.trim()) _chatInlineDrafts[dayKey] = inputEl.value;
+    else delete _chatInlineDrafts[dayKey];
+    if (state._agendaOpenCards && state._agendaOpenCards[dayKey]) state._agendaOpenCards[dayKey].chatOpen = false;
+  } else {
+    if (!state._agendaOpenCards) state._agendaOpenCards = {};
+    if (!state._agendaOpenCards[dayKey]) state._agendaOpenCards[dayKey] = { open: true };
+    state._agendaOpenCards[dayKey].chatOpen = true;
+  }
+  saveState();
   chat.style.display = isOpen ? 'none' : 'block';
   if (!isOpen) {
     var msgs = document.getElementById('chat-inline-msgs-' + dayKey);
@@ -3993,7 +4052,10 @@ function toggleChatInline(dayKey, serieLabel) {
     }
     setTimeout(function() {
       var input = document.getElementById('chat-inline-input-' + dayKey);
-      if (input) input.focus();
+      if (input) {
+        if (_chatInlineDrafts[dayKey]) input.value = _chatInlineDrafts[dayKey];
+        input.focus();
+      }
     }, 100);
   }
 }
@@ -4130,6 +4192,7 @@ async function enviarChatInline(dayKey, serieLabel) {
   if (!input || !input.value.trim()) return;
   var msg = input.value.trim();
   input.value = '';
+  delete _chatInlineDrafts[dayKey];
 
   addChatInlineMsg(dayKey, 'user', msg);
 
@@ -4979,6 +5042,34 @@ function renderAgendaLinear() {
   // Auto-open today's card
   const hojeCard = list.querySelector('.agenda-dia.hoje');
   if (hojeCard) hojeCard.classList.add('open');
+
+  // Restore previously open cards
+  if (state._agendaOpenCards) {
+    Object.keys(state._agendaOpenCards).forEach(function(dayKey) {
+      var saved = state._agendaOpenCards[dayKey];
+      if (!saved || !saved.open) return;
+      // Ensure the semana containing this card is open
+      var semKey = dayKey.replace(/_.*$/, '');
+      if (state.plano.semanaOpen && state.plano.semanaOpen[semKey] === false) {
+        state.plano.semanaOpen[semKey] = true;
+        var semBody = document.querySelector('#' + semKey + ' .agenda-semana-body');
+        if (semBody) semBody.style.display = '';
+      }
+      var card = document.getElementById('agendadia-' + dayKey);
+      if (!card) return;
+      card.classList.add('open');
+      // Update state to reflect card is now open in UI
+      state._agendaOpenCards[dayKey] = { open: true, chatOpen: saved.chatOpen };
+      if (state.plano && state.plano.diasExpandidos && state.plano.diasExpandidos[dayKey]) {
+        var serie = state.plano.diasExpandidos[dayKey].serie || '';
+        if (serie && serie !== 'descanso') {
+          (function(dk, chatOpen) {
+            irParaTreino(dk, serie, chatOpen);
+          })(dayKey, saved.chatOpen);
+        }
+      }
+    });
+  }
 }
 
 function toggleSemana(semKey) {
@@ -4989,6 +5080,32 @@ function toggleSemana(semKey) {
   renderAgendaLinear();
 }
 
+function _restoreChatInline(dayKey) {
+  console.log('[restore] _restoreChatInline called for', dayKey);
+  var chat = document.getElementById('chat-inline-' + dayKey);
+  console.log('[restore] chat element:', chat ? 'found' : 'NOT FOUND');
+  if (!chat) return;
+  chat.style.display = 'block';
+  console.log('[restore] chat display set to block');
+  // Update state to reflect chat is open
+  if (!state._agendaOpenCards) state._agendaOpenCards = {};
+  if (!state._agendaOpenCards[dayKey]) state._agendaOpenCards[dayKey] = { open: true };
+  state._agendaOpenCards[dayKey].chatOpen = true;
+  state._agendaOpenCards[dayKey].open = true;
+  saveState();
+  var msgs = document.getElementById('chat-inline-msgs-' + dayKey);
+  if (msgs && msgs.children.length === 0) {
+    var history = getChatInlineHistory(dayKey);
+    history.forEach(function(m) {
+      var c = m.content || '';
+      if (m.role !== 'user') c = c.replace(/\{[\s\S]*\}$/m,'').replace(/^\{[\s\S]*\}/m,'').trim();
+      if (c) addChatInlineMsg(dayKey, m.role === 'user' ? 'user' : 'ai', c);
+    });
+  }
+  var input = document.getElementById('chat-inline-input-' + dayKey);
+  if (input && _chatInlineDrafts[dayKey]) input.value = _chatInlineDrafts[dayKey];
+}
+
 function toggleAgendaDia(dayKey) {
   var card = document.getElementById('agendadia-' + dayKey);
   if (!card) return;
@@ -4997,8 +5114,12 @@ function toggleAgendaDia(dayKey) {
   var hasInline = !!card.querySelector('.agenda-treino-inline');
 
   if (!isOpen) {
-    // Closed → open (and load inline if expanded)
+    // Closed → open
     card.classList.add('open');
+    if (!state._agendaOpenCards) state._agendaOpenCards = {};
+    var prevChatOpen = state._agendaOpenCards[dayKey] ? state._agendaOpenCards[dayKey].chatOpen : false;
+    state._agendaOpenCards[dayKey] = { open: true, chatOpen: prevChatOpen };
+    saveState();
     if (state.plano && state.plano.diasExpandidos && state.plano.diasExpandidos[dayKey]) {
       var parts = dayKey.match(/^sem(\d+)_(.+)$/);
       var serie = state.plano.diasExpandidos[dayKey].serie || '';
@@ -5007,13 +5128,24 @@ function toggleAgendaDia(dayKey) {
         var diaObj = semanaObj ? (semanaObj.dias || semanaObj.agenda || []).find(function(d) { return d.dia === parts[2]; }) : null;
         if (diaObj) serie = diaObj.serie;
       }
-      if (serie && serie !== 'descanso') irParaTreino(dayKey, serie);
+      if (serie && serie !== 'descanso') {
+        irParaTreino(dayKey, serie, prevChatOpen);
+      }
     }
   } else if (hasInline) {
-    // Open with inline → close
+    // Open with inline → close — save draft and chat state first
+    var inputBeforeClose = document.getElementById('chat-inline-input-' + dayKey);
+    if (inputBeforeClose && inputBeforeClose.value.trim()) _chatInlineDrafts[dayKey] = inputBeforeClose.value;
+    else delete _chatInlineDrafts[dayKey];
+    var chatEl = document.getElementById('chat-inline-' + dayKey);
+    var chatWasOpen = chatEl && chatEl.style.display !== 'none';
     card.classList.remove('open');
     var inline = card.querySelector('.agenda-treino-inline');
     if (inline) inline.remove();
+    // Keep chatOpen in state but mark card as closed
+    if (!state._agendaOpenCards) state._agendaOpenCards = {};
+    state._agendaOpenCards[dayKey] = { open: false, chatOpen: chatWasOpen };
+    saveState();
   } else {
     // Semiopen (no inline) → load inline if expanded, otherwise close
     if (state.plano && state.plano.diasExpandidos && state.plano.diasExpandidos[dayKey]) {
@@ -5024,9 +5156,17 @@ function toggleAgendaDia(dayKey) {
         var diaObj2 = semanaObj2 ? (semanaObj2.dias || semanaObj2.agenda || []).find(function(d) { return d.dia === parts2[2]; }) : null;
         if (diaObj2) serie2 = diaObj2.serie;
       }
-      if (serie2 && serie2 !== 'descanso') irParaTreino(dayKey, serie2);
+      if (serie2 && serie2 !== 'descanso') {
+        irParaTreino(dayKey, serie2);
+        if (!state._agendaOpenCards) state._agendaOpenCards = {};
+        state._agendaOpenCards[dayKey] = { open: true, chatOpen: false };
+        saveState();
+      }
     } else {
       card.classList.remove('open');
+      if (!state._agendaOpenCards) state._agendaOpenCards = {};
+      state._agendaOpenCards[dayKey] = { open: false, chatOpen: false };
+      saveState();
     }
   }
 }
@@ -5079,7 +5219,9 @@ function atualizarListaExerciciosInline(dayKey, serieLabel) {
   }).join('');
 }
 
-function irParaTreino(dayKey, serieLabel) {
+function irParaTreino(dayKey, serieLabel, callbackOrChatOpen) {
+  var chatOpen = typeof callbackOrChatOpen === 'boolean' ? callbackOrChatOpen : false;
+  var callback = typeof callbackOrChatOpen === 'function' ? callbackOrChatOpen : null;
   var s = state.series.find(function(s) { return s.label === serieLabel; });
   if (!s) return;
 
@@ -5134,7 +5276,7 @@ function irParaTreino(dayKey, serieLabel) {
       '<button class="agenda-action-btn" onclick="finishSerieFromAgenda(\'' + dayKey + '\',\'' + s.id + '\')">⬤ REGISTRAR NO HISTÓRICO</button>' +
       '<button class="agenda-action-btn" style="border-color:var(--accent3);color:var(--accent3);margin-left:auto" onclick="toggleChatInline(\'' + dayKey + '\',\'' + serieLabel + '\')">✦ AJUSTAR COM IA</button>' +
     '</div>' +
-    '<div id="chat-inline-' + dayKey + '" style="display:none;margin-top:12px;border-top:1px solid var(--border);padding-top:10px">' +
+    '<div id="chat-inline-' + dayKey + '" style="display:' + (chatOpen ? 'block' : 'none') + ';margin-top:12px;border-top:1px solid var(--border);padding-top:10px">' +
       '<div style="display:flex;justify-content:flex-end;margin-bottom:6px">' +
         '<button onclick="limparChatInline(\'' + dayKey + '\')" style="font-family:DM Mono,monospace;font-size:9px;letter-spacing:1px;background:none;border:1px solid var(--border);color:var(--muted);border-radius:4px;padding:2px 10px;cursor:pointer">↺ NOVA CONVERSA</button>' +
       '</div>' +
@@ -5148,6 +5290,24 @@ function irParaTreino(dayKey, serieLabel) {
     '</div>';
 
   container.querySelector('.agenda-dia-body').appendChild(div);
+
+  // If chat was open, restore history
+  if (chatOpen) {
+    var msgs = document.getElementById('chat-inline-msgs-' + dayKey);
+    if (msgs && msgs.children.length === 0) {
+      var history = getChatInlineHistory(dayKey);
+      history.forEach(function(m) {
+        var c = m.content || '';
+        if (m.role !== 'user') c = c.replace(/\{[\s\S]*\}$/m,'').replace(/^\{[\s\S]*\}/m,'').trim();
+        if (c) addChatInlineMsg(dayKey, m.role === 'user' ? 'user' : 'ai', c);
+      });
+    }
+    var input = document.getElementById('chat-inline-input-' + dayKey);
+    if (input && _chatInlineDrafts[dayKey]) input.value = _chatInlineDrafts[dayKey];
+  }
+
+  // Run callback if provided
+  if (callback) callback();
 }
 
 function renderInlineEx(ex, dayKey, serieLabel) {
@@ -5228,12 +5388,16 @@ function marcarTodosInline(dayKey, serieLabel) {
 
 function cycleInlineEx(dayKey, serieLabel, exId) {
   var s = state.series.find(function(s) { return s.label === serieLabel; });
+  var validStatuses = { undone: true, done: true, skipped: true };
   var cycle = { undone: 'done', done: 'skipped', skipped: 'undone' };
 
   // Update diasExpandidos (primary source)
   var expanded = state.plano && state.plano.diasExpandidos && state.plano.diasExpandidos[dayKey];
   var exExpanded = expanded && expanded.exercicios && expanded.exercicios.find(function(e) { return e.id === exId; });
-  if (exExpanded) exExpanded.status = cycle[exExpanded.status] || 'undone';
+  if (exExpanded) {
+    var currentStatus = validStatuses[exExpanded.status] ? exExpanded.status : 'undone';
+    exExpanded.status = cycle[currentStatus];
+  }
 
   // Also sync seriesData if present
   if (s && state.plano.seriesData && state.plano.seriesData[s.id]) {
