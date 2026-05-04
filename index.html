@@ -1325,7 +1325,7 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
     <button class="btn btn-desktop-only" onclick="resetData()" title="Limpar todos os dados e voltar ao padrão">RESET</button>
     <button class="btn btn-desktop-only" onclick="exportData()">EXPORTAR</button>
     <button class="btn btn-desktop-only" onclick="importData()">IMPORTAR</button>
-    <span style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted);margin-left:4px">v0.8.7.33</span>
+    <span style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted);margin-left:4px">v0.8.7.34</span>
     <div id="auth-status" style="display:flex;align-items:center;margin-left:4px"></div>
 
     <div class="mobile-menu-wrap" id="mobile-menu-wrap">
@@ -2423,6 +2423,7 @@ function getDefaultConfigTreino() {
   var filaPrincipal = [];
   var intercaladas = [];
   series.forEach(function(s) {
+    if (s.id === 'score') return; // Core é complementar, nunca entra na fila principal
     if (s.label === 'D') {
       intercaladas.push({ label: s.label, freqApos: 2, prioridade: 1 });
     } else {
@@ -2445,8 +2446,12 @@ function getDefaultConfigTreino() {
 
 function gerarFilaEstatica(cfg, totalDias) {
   // Generate the static queue: filaPrincipal circular with intercaladas inserted every N
-  var fila = cfg.filaPrincipal || ['A','B','C'];
-  var intercaladas = cfg.intercaladas || [];
+  // Core (complementar) never belongs in the main queue
+  var coreLabel = (state.series || []).find(function(s) { return s.id === 'score'; });
+  coreLabel = coreLabel ? coreLabel.label : null;
+
+  var fila = (cfg.filaPrincipal || ['A','B','C']).filter(function(l) { return l !== coreLabel; });
+  var intercaladas = (cfg.intercaladas || []).filter(function(ic) { return ic.label !== coreLabel; });
   var resultado = [];
   var contadoresPrincipal = {}; // count since last intercalada per intercalada
   intercaladas.forEach(function(ic) { contadoresPrincipal[ic.label] = 0; });
