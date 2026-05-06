@@ -1325,7 +1325,7 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
     <button class="btn btn-desktop-only" onclick="resetData()" title="Limpar todos os dados e voltar ao padrão">RESET</button>
     <button class="btn btn-desktop-only" onclick="exportData()">EXPORTAR</button>
     <button class="btn btn-desktop-only" onclick="importData()">IMPORTAR</button>
-    <span style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted);margin-left:4px">v0.8.7.34</span>
+    <span style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted);margin-left:4px">v0.8.7.35</span>
     <div id="auth-status" style="display:flex;align-items:center;margin-left:4px"></div>
 
     <div class="mobile-menu-wrap" id="mobile-menu-wrap">
@@ -7080,6 +7080,14 @@ function importData() {
 function exportData() {
   // Ensure in-memory chat history is synced to state before export
   state.planoChatHistory = planoChatHistory;
+  // Sync all in-memory inline chat histories to state
+  if (!state.plano) state.plano = {};
+  if (!state.plano.chatInline) state.plano.chatInline = {};
+  Object.keys(chatInlineHistory).forEach(function(dayKey) {
+    if (chatInlineHistory[dayKey] && chatInlineHistory[dayKey].length > 0) {
+      state.plano.chatInline[dayKey] = chatInlineHistory[dayKey];
+    }
+  });
   const json = JSON.stringify(state, null, 2);
   const blob = new Blob([json], {type:'application/json'});
   const url = URL.createObjectURL(blob);
