@@ -63,7 +63,16 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
     color: var(--accent);
   }
   .header-actions { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
-  .mobile-menu-wrap { display: none; }
+  .mobile-menu-wrap { position: relative; display: inline-block; flex-shrink: 0; }
+  .btn-desktop-only { display: none !important; }
+  .mobile-menu-btn { font-family: 'DM Mono', monospace; font-size: 16px; background: none; border: 1px solid var(--border); color: var(--muted); border-radius: 4px; padding: 2px 8px; cursor: pointer; line-height: 1.2; }
+  .mobile-menu-btn:hover { color: var(--text); border-color: var(--text); }
+  .mobile-menu-dropdown { display: none; position: absolute; right: 0; top: calc(100% + 6px); background: var(--surface); border: 1px solid var(--border); border-radius: 6px; z-index: 200; min-width: 180px; box-shadow: 0 4px 16px rgba(0,0,0,.4); }
+  .mobile-menu-dropdown.open { display: block; }
+  .mobile-menu-item { display: block; width: 100%; text-align: left; font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 0.5px; background: none; border: none; color: var(--muted); padding: 10px 14px; cursor: pointer; white-space: nowrap; }
+  .mobile-menu-item:hover { color: var(--text); background: var(--surface2); }
+  .mobile-menu-item:first-child { border-radius: 6px 6px 0 0; }
+  .mobile-menu-item:last-child { border-radius: 0 0 6px 6px; }
   .auth-dot-mobile { display: none; }
 
   /* ── TABS ── */
@@ -103,7 +112,7 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
   }
 
   /* ── VIEWS ── */
-  .view { display: none; padding: 0 0 80px; }
+  .view { display: none; padding: 0 0 80px; box-sizing: border-box; width: 100%; }
   .view.active { display: block; }
 
   /* ── SERIE HEADER ── */
@@ -983,10 +992,12 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
   .history-clear-wrap { display:flex; justify-content:flex-end; margin-bottom:12px; padding:0 24px; }
 
   /* ── PERFIL ── */
-  .perfil-wrap { padding: 20px 0 80px; }
+  .perfil-wrap { padding: 20px 0 80px; overflow-x: hidden; box-sizing: border-box; width: 100%; }
   .perfil-section {
     padding: 16px 24px;
     border-bottom: 1px solid var(--border);
+    box-sizing: border-box;
+    width: 100%;
   }
   .perfil-section-title {
     font-family: 'Bebas Neue', sans-serif;
@@ -1000,8 +1011,8 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
     grid-template-columns: 1fr 1fr;
     gap: 12px;
   }
-  .perfil-field { display: flex; flex-direction: column; gap: 5px; }
-  .perfil-field.full { margin-top: 10px; }
+  .perfil-field { display: flex; flex-direction: column; gap: 5px; width: 100%; }
+  .perfil-field.full { margin-top: 10px; width: 100%; }
   .perfil-field label {
     font-family: 'DM Mono', monospace;
     font-size: 10px;
@@ -1022,12 +1033,48 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
     outline: none;
     transition: border-color .2s;
     resize: vertical;
+    box-sizing: border-box;
   }
+  /* Inputs dentro dos cards de configuração — não herdam o estilo do perfil-field */
+  #config-fila-principal input, #config-fila-principal select,
+  #config-intercaladas input, #config-intercaladas select,
+  #config-complementares input, #config-complementares select {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 2px 6px;
+    color: var(--text);
+    outline: none;
+    resize: none;
+    box-sizing: border-box;
+    width: auto;
+  }
+  #config-fila-principal input[type="checkbox"],
+  #config-intercaladas input[type="checkbox"],
+  #config-complementares input[type="checkbox"] {
+    padding: 0;
+    width: auto;
+    height: auto;
+  }
+  .perfil-field > input,
+  .perfil-field > select,
+  .perfil-field > textarea { width: 100%; }
   .perfil-field input:focus,
   .perfil-field select:focus,
   .perfil-field textarea:focus { border-color: var(--accent); }
   .perfil-field textarea { min-height: 70px; }
-  @media (max-width: 480px) { .perfil-grid { grid-template-columns: 1fr; } }
+  #config-fila-principal > div,
+  #config-intercaladas > div,
+  #config-complementares > div {
+    box-sizing: border-box;
+    max-width: 100%;
+  }
+  @media (max-width: 480px) {
+    .perfil-grid { grid-template-columns: 1fr; }
+    .perfil-section { padding: 16px; }
+  }
 
   .agenda-semana { margin-bottom: 8px; }
   .agenda-semana.semana-encerrada { opacity: 0.5; }
@@ -1056,12 +1103,12 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: 12px;
-    overflow: hidden;
     transition: border-color .2s;
   }
   .agenda-dia.hoje { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
   .agenda-dia.perdido { border-color: var(--danger); background: rgba(255,68,68,.03); }
   .agenda-dia.ausente-planejada { border-color: #ff9500; background: rgba(255,149,0,.03); }
+  .agenda-dia.pulado { border-color: #a855f7; background: rgba(168,85,247,.03); }
   .agenda-dia.concluido { border-color: rgba(57,255,133,.3); background: rgba(57,255,133,.03); }
 
   .agenda-dia-head {
@@ -1098,6 +1145,13 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
   .tipo-aerobico { background: rgba(60,170,255,.1); color: var(--accent3); }
   .tipo-recuperacao { background: rgba(85,85,85,.3); color: var(--muted); }
   .tipo-perdido { background: rgba(255,68,68,.1); color: var(--danger); }
+  .tipo-pulado { background: rgba(168,85,247,.1); color: #a855f7; }
+  .dia-perdido-menu { display: none; flex-direction: column; gap: 4px; padding: 8px; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 50; box-shadow: 0 4px 16px rgba(0,0,0,.4); }
+  .dia-perdido-menu.open { display: flex; }
+  .dia-perdido-menu-btn { font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 0.5px; padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border); background: transparent; color: var(--muted); cursor: pointer; text-align: left; }
+  .dia-perdido-menu-btn:hover { color: var(--text); border-color: var(--text); }
+  .dia-perdido-menu-btn.danger { border-color: var(--danger); color: var(--danger); }
+  .dia-perdido-menu-btn.warning { border-color: #ff9500; color: #ff9500; }
   .tipo-ausente { background: rgba(255,149,0,.1); color: #ff9500; }
   .tipo-concluido { background: rgba(57,255,133,.1); color: var(--done); }
 
@@ -1146,6 +1200,9 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
     color: var(--muted);
     cursor: pointer;
     transition: all .15s;
+    flex: 1;
+    text-align: center;
+    white-space: nowrap;
   }
   .agenda-action-btn.primary { border-color: var(--accent); color: var(--accent); }
   .agenda-action-btn.primary:hover { background: rgba(232,255,60,.1); }
@@ -1157,6 +1214,8 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
   .agenda-action-btn.warning:hover { background: rgba(255,149,0,.1); }
   .agenda-action-btn.accent3 { border-color: var(--accent3); color: var(--accent3); }
   .agenda-action-btn.accent3:hover { background: rgba(60,170,255,.1); }
+  .agenda-action-btn.purple { border-color: #a855f7; color: #a855f7; }
+  .agenda-action-btn.purple:hover { background: rgba(168,85,247,.1); }
   .agenda-wrap { padding: 16px 24px 80px; }
   .agenda-today {
     background: var(--surface);
@@ -1294,18 +1353,6 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
     .header-actions { flex-wrap: nowrap; gap: 4px; overflow-x: visible; justify-content: flex-end; flex: 1; min-width: 0; }
     .header-actions .btn { font-size: 9px; padding: 3px 7px; letter-spacing: 0.5px; white-space: nowrap; }
     #auth-status button { font-size: 9px !important; padding: 3px 8px !important; }
-    /* Botões desktop ocultos em mobile — substituídos pelo dropdown */
-    .btn-desktop-only { display: none !important; }
-    /* Dropdown mobile */
-    .mobile-menu-wrap { position: relative; display: inline-block; flex-shrink: 0; }
-    .mobile-menu-btn { font-family: 'DM Mono', monospace; font-size: 16px; background: none; border: 1px solid var(--border); color: var(--muted); border-radius: 4px; padding: 2px 8px; cursor: pointer; line-height: 1.2; }
-    .mobile-menu-btn:hover { color: var(--text); border-color: var(--text); }
-    .mobile-menu-dropdown { display: none; position: absolute; right: 0; top: calc(100% + 6px); background: var(--surface); border: 1px solid var(--border); border-radius: 6px; z-index: 200; min-width: 140px; box-shadow: 0 4px 16px rgba(0,0,0,.4); }
-    .mobile-menu-dropdown.open { display: block; }
-    .mobile-menu-item { display: block; width: 100%; text-align: left; font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 0.5px; background: none; border: none; color: var(--muted); padding: 10px 14px; cursor: pointer; white-space: nowrap; }
-    .mobile-menu-item:hover { color: var(--text); background: var(--surface2); }
-    .mobile-menu-item:first-child { border-radius: 6px 6px 0 0; }
-    .mobile-menu-item:last-child { border-radius: 0 0 6px 6px; }
     /* Email: só ícone em mobile */
     .auth-email-text { display: none !important; }
     .auth-dot-mobile { display: inline !important; }
@@ -1324,10 +1371,9 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
 <header>
   <div class="logo">TREINO</div>
   <div class="header-actions">
-    <button class="btn btn-desktop-only" onclick="resetData()" title="Limpar todos os dados e voltar ao padrão">RESET</button>
-    <button class="btn btn-desktop-only" onclick="exportData()">EXPORTAR</button>
-    <button class="btn btn-desktop-only" onclick="importData()">IMPORTAR</button>
-    <span style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted);margin-left:4px">v0.8.7.38</span>
+    <button class="btn" onclick="exportData()">EXPORTAR</button>
+    <button class="btn" onclick="importData()">IMPORTAR</button>
+    <span style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted);margin-left:4px">v0.8.7.80</span>
     <div id="auth-status" style="display:flex;align-items:center;margin-left:4px"></div>
 
     <div class="mobile-menu-wrap" id="mobile-menu-wrap">
@@ -1409,18 +1455,18 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
 
       <div class="perfil-field full" style="margin-bottom:16px">
         <label>Séries da fila principal <span style="font-family:DM Mono,monospace;font-size:10px;color:var(--muted)">(seguem ordem circular)</span></label>
-        <div id="config-fila-principal" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px"></div>
+        <div id="config-fila-principal" style="display:flex;flex-direction:column;gap:6px;margin-top:8px"></div>
         <div style="font-family:DM Mono,monospace;font-size:10px;color:var(--muted);margin-top:6px">Marque as séries que entram na fila circular e defina a ordem.</div>
       </div>
 
       <div class="perfil-field full" style="margin-bottom:16px">
         <label>Séries intercaladas <span style="font-family:DM Mono,monospace;font-size:10px;color:var(--muted)">(inseridas a cada N treinos da fila principal)</span></label>
-        <div id="config-intercaladas" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px"></div>
+        <div id="config-intercaladas" style="display:flex;flex-direction:column;gap:6px;margin-top:8px"></div>
       </div>
 
       <div class="perfil-field full" style="margin-bottom:16px">
         <label>Séries complementares <span style="font-family:DM Mono,monospace;font-size:10px;color:var(--muted)">(mescladas com outros treinos, sem dia fixo — ex: Core)</span></label>
-        <div id="config-complementares" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px"></div>
+        <div id="config-complementares" style="display:flex;flex-direction:column;gap:6px;margin-top:8px"></div>
       </div>
 
       <div class="perfil-field full" style="margin-bottom:16px">
@@ -1438,9 +1484,10 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
           <label style="display:flex;align-items:center;gap:6px;font-family:DM Mono,monospace;font-size:12px;cursor:pointer"><input type="checkbox" id="cfg-dia-Quarta" onchange="saveConfigTreino()"> Quarta</label>
           <label style="display:flex;align-items:center;gap:6px;font-family:DM Mono,monospace;font-size:12px;cursor:pointer"><input type="checkbox" id="cfg-dia-Quinta" onchange="saveConfigTreino()"> Quinta</label>
           <label style="display:flex;align-items:center;gap:6px;font-family:DM Mono,monospace;font-size:12px;cursor:pointer"><input type="checkbox" id="cfg-dia-Sexta" onchange="saveConfigTreino()"> Sexta</label>
-          <label style="display:flex;align-items:center;gap:6px;font-family:DM Mono,monospace;font-size:12px;cursor:pointer"><input type="checkbox" id="cfg-dia-Sabado" onchange="saveConfigTreino()"> Sábado (requer confirmação)</label>
-          <label style="display:flex;align-items:center;gap:6px;font-family:DM Mono,monospace;font-size:12px;color:var(--muted)"><input type="checkbox" disabled> Domingo (sem força)</label>
+          <label style="display:flex;align-items:center;gap:6px;font-family:DM Mono,monospace;font-size:12px;cursor:pointer" title="Requer confirmação no dia"><input type="checkbox" id="cfg-dia-Sabado" onchange="saveConfigTreino()"> Sábado*</label>
+          <label style="display:flex;align-items:center;gap:6px;font-family:DM Mono,monospace;font-size:12px;color:var(--muted)" title="Sem treino de força"><input type="checkbox" disabled> Domingo</label>
         </div>
+        <div style="font-family:DM Mono,monospace;font-size:10px;color:var(--muted);margin-top:4px">* Sábado requer confirmação no dia. Domingo não permite treino de força.</div>
       </div>
 
       <div class="perfil-grid">
@@ -2502,28 +2549,34 @@ function loadConfigTreino() {
     saveState();
   }
 
-  // Render fila principal
+  var monoSm = 'font-family:DM Mono,monospace;font-size:11px;';
+  var monoXs = 'font-family:DM Mono,monospace;font-size:10px;';
+  var inputNum = 'width:44px;' + monoSm + 'font-size:13px;background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:2px 6px;color:var(--text);outline:none;text-align:center;flex-shrink:0';
+
+  // ── Fila principal ──
   var container = document.getElementById('config-fila-principal');
   if (container) {
     container.innerHTML = '';
-    series.filter(function(s) { return s.id !== 'score'; }).forEach(function(s, idx) {
+    series.filter(function(s) { return s.id !== 'score'; }).forEach(function(s) {
       var isInFila = cfg.filaPrincipal && cfg.filaPrincipal.indexOf(s.label) !== -1;
-      var div = document.createElement('div');
-      div.style.cssText = 'display:flex;align-items:center;gap:6px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:6px 10px;cursor:pointer;transition:border-color .15s';
       var orderIdx = cfg.filaPrincipal ? cfg.filaPrincipal.indexOf(s.label) : -1;
-      div.innerHTML = '<input type="checkbox" id="cfg-fila-' + s.label + '" ' + (isInFila ? 'checked' : '') + ' onchange="saveConfigTreino()">' +
-        (isInFila ? '<span style="font-family:DM Mono,monospace;font-size:11px;color:var(--muted);min-width:18px;text-align:center">' + (orderIdx + 1) + 'º</span>' : '<span style="min-width:18px"></span>') +
-        '<span style="font-family:DM Mono,monospace;font-size:12px;color:var(--accent)">' + s.label + '</span>' +
-        '<span style="font-family:DM Mono,monospace;font-size:11px;color:var(--muted)">' + s.name + '</span>' +
-        (isInFila ? '<span style="margin-left:auto;display:flex;gap:2px">' +
-          '<button onclick="event.stopPropagation();moverFilaPrincipal(\'' + s.label + '\', -1)" style="font-size:11px;padding:2px 8px;background:transparent;border:1px solid var(--accent);border-radius:4px;cursor:pointer;color:var(--accent);line-height:1" title="Mover para antes na fila">↑</button>' +
-          '<button onclick="event.stopPropagation();moverFilaPrincipal(\'' + s.label + '\', 1)" style="font-size:11px;padding:2px 8px;background:transparent;border:1px solid var(--accent);border-radius:4px;cursor:pointer;color:var(--accent);line-height:1" title="Mover para depois na fila">↓</button>' +
+      var div = document.createElement('div');
+      div.style.cssText = 'display:flex;align-items:center;gap:8px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:8px 12px;width:100%;box-sizing:border-box;min-width:0';
+      div.innerHTML =
+        '<input type="checkbox" id="cfg-fila-' + s.label + '" ' + (isInFila ? 'checked' : '') + ' onchange="saveConfigTreino()" style="flex-shrink:0">' +
+        '<span style="' + monoXs + 'color:var(--muted);width:20px;text-align:center;flex-shrink:0">' + (isInFila ? (orderIdx+1)+'º' : '') + '</span>' +
+        '<span style="' + monoSm + 'color:var(--accent);flex-shrink:0">' + s.label + '</span>' +
+        '<span style="' + monoSm + 'color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px">— ' + s.name + '</span>' +
+        (isInFila ?
+          '<span style="display:flex;gap:4px;flex-shrink:0;margin-left:8px">' +
+            '<button onclick="event.stopPropagation();moverFilaPrincipal(\'' + s.label + '\',-1)" style="' + monoSm + 'padding:2px 8px;background:transparent;border:1px solid var(--accent);border-radius:4px;cursor:pointer;color:var(--accent);line-height:1">↑</button>' +
+            '<button onclick="event.stopPropagation();moverFilaPrincipal(\'' + s.label + '\',1)" style="' + monoSm + 'padding:2px 8px;background:transparent;border:1px solid var(--accent);border-radius:4px;cursor:pointer;color:var(--accent);line-height:1">↓</button>' +
           '</span>' : '');
       container.appendChild(div);
     });
   }
 
-  // Render intercaladas
+  // ── Intercaladas ──
   var container2 = document.getElementById('config-intercaladas');
   if (container2) {
     container2.innerHTML = '';
@@ -2531,50 +2584,55 @@ function loadConfigTreino() {
       var icCfg = cfg.intercaladas && cfg.intercaladas.find(function(ic) { return ic.label === s.label; });
       var isIntercalada = !!icCfg;
       var div = document.createElement('div');
-      div.style.cssText = 'display:flex;align-items:center;gap:8px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:6px 10px';
-      div.innerHTML = '<input type="checkbox" id="cfg-ic-' + s.label + '" ' + (isIntercalada ? 'checked' : '') + ' onchange="saveConfigTreino()">' +
-        '<span style="font-family:DM Mono,monospace;font-size:12px;color:var(--accent)">' + s.label + '</span>' +
-        '<span style="font-family:DM Mono,monospace;font-size:11px;color:var(--muted)">a cada</span>' +
-        '<input type="number" min="1" max="10" value="' + (icCfg ? icCfg.freqApos : 2) + '" id="cfg-ic-freq-' + s.label + '" oninput="saveConfigTreino()"' +
-        ' style="width:44px;font-family:DM Mono,monospace;font-size:13px;background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:2px 6px;color:var(--text);outline:none;text-align:center">' +
-        '<span style="font-family:DM Mono,monospace;font-size:11px;color:var(--muted)">principais | prioridade</span>' +
-        '<input type="number" min="1" max="10" value="' + (icCfg ? icCfg.prioridade : 1) + '" id="cfg-ic-prio-' + s.label + '" oninput="saveConfigTreino()"' +
-        ' style="width:44px;font-family:DM Mono,monospace;font-size:13px;background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:2px 6px;color:var(--text);outline:none;text-align:center">';
+      div.style.cssText = 'display:flex;align-items:center;gap:8px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:8px 12px;width:100%;box-sizing:border-box;min-width:0';
+      div.innerHTML =
+        '<input type="checkbox" id="cfg-ic-' + s.label + '" ' + (isIntercalada ? 'checked' : '') + ' onchange="saveConfigTreino()" style="flex-shrink:0">' +
+        '<span style="' + monoSm + 'color:var(--accent);flex-shrink:0">' + s.label + '</span>' +
+        '<span style="' + monoSm + 'color:var(--muted);white-space:nowrap">— ' + s.name + '</span>' +
+        '<span style="' + monoXs + 'color:var(--muted);flex-shrink:0;white-space:nowrap;margin-left:8px">a cada</span>' +
+        '<input type="number" min="1" max="10" value="' + (icCfg ? icCfg.freqApos : 2) + '" id="cfg-ic-freq-' + s.label + '" oninput="saveConfigTreino()" style="' + inputNum + '">' +
+        '<span style="' + monoXs + 'color:var(--muted);flex-shrink:0;white-space:nowrap">princ. · prio.</span>' +
+        '<input type="number" min="1" max="10" value="' + (icCfg ? icCfg.prioridade : 1) + '" id="cfg-ic-prio-' + s.label + '" oninput="saveConfigTreino()" style="' + inputNum + '">';
       container2.appendChild(div);
     });
   }
 
-  // Render complementares (ex: Core)
+  // ── Complementares ──
   var container3 = document.getElementById('config-complementares');
   if (container3) {
     container3.innerHTML = '';
     var freqOpcoes = [
       { value: 'todos', label: 'Com todos os treinos' },
       { value: 'principais', label: 'Com treinos principais' },
-      { value: 'intercaladas', label: 'Com treinos intercalados' },
+      { value: 'intercaladas', label: 'Com intercalados' },
     ];
     series.forEach(function(s) {
       var compCfg = cfg.complementares && cfg.complementares.find(function(c) { return c.label === s.label; });
       var isComp = !!compCfg;
-      var div = document.createElement('div');
-      div.style.cssText = 'display:flex;align-items:center;gap:8px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:6px 10px';
       var compFreq = compCfg ? compCfg.freqApos : 'todos';
       var compCadaX = compCfg ? (compCfg.cadaX || 1) : 1;
       var selectOpts = freqOpcoes.map(function(o) {
         return '<option value="' + o.value + '"' + (compFreq === o.value ? ' selected' : '') + '>' + o.label + '</option>';
       }).join('');
-      div.innerHTML = '<input type="checkbox" id="cfg-comp-' + s.label + '" ' + (isComp ? 'checked' : '') + ' onchange="saveConfigTreino()">' +
-        '<span style="font-family:DM Mono,monospace;font-size:12px;color:var(--accent)">' + s.label + '</span>' +
-        '<span style="font-family:DM Mono,monospace;font-size:11px;color:var(--muted)">' + s.name + '</span>' +
-        '<select id="cfg-comp-freq-' + s.label + '" onchange="saveConfigTreino()" style="font-family:DM Mono,monospace;font-size:11px;background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:2px 6px;color:var(--text);outline:none">' + selectOpts + '</select>' +
-        '<span style="font-family:DM Mono,monospace;font-size:11px;color:var(--muted)"> | frequência: a cada</span>' +
-        '<input type="number" min="1" max="10" id="cfg-comp-cadax-' + s.label + '" value="' + compCadaX + '" oninput="(function(el){var lbl=document.getElementById(\'cfg-comp-cadax-label-' + s.label + '\');if(lbl)lbl.textContent=parseInt(el.value)===1?\'treino (todos)\':\'treinos\'})(this);saveConfigTreino()" style="width:44px;font-family:DM Mono,monospace;font-size:13px;background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:2px 6px;color:var(--text);outline:none;text-align:center" title="1 = todos os treinos do tipo selecionado">' +
-        '<span style="font-family:DM Mono,monospace;font-size:11px;color:var(--muted)" id="cfg-comp-cadax-label-' + s.label + '">' + (compCadaX === 1 ? 'treino (todos)' : 'treinos') + '</span>';
+      var div = document.createElement('div');
+      div.style.cssText = 'background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:8px 12px;width:100%;box-sizing:border-box;min-width:0';
+      div.innerHTML =
+        '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">' +
+          '<input type="checkbox" id="cfg-comp-' + s.label + '" ' + (isComp ? 'checked' : '') + ' onchange="saveConfigTreino()" style="flex-shrink:0">' +
+          '<span style="' + monoSm + 'color:var(--accent);flex-shrink:0">' + s.label + '</span>' +
+          '<span style="' + monoSm + 'color:var(--muted)">— ' + s.name + '</span>' +
+        '</div>' +
+        '<div style="display:flex;align-items:center;gap:8px;padding-left:22px">' +
+          '<select id="cfg-comp-freq-' + s.label + '" onchange="saveConfigTreino()" style="' + monoSm + 'background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:4px 8px;color:var(--text);outline:none;">' + selectOpts + '</select>' +
+          '<span style="' + monoXs + 'color:var(--muted);flex-shrink:0;white-space:nowrap">a cada</span>' +
+          '<input type="number" min="1" max="10" id="cfg-comp-cadax-' + s.label + '" value="' + compCadaX + '" oninput="(function(el){var lbl=document.getElementById(\'cfg-comp-cadax-label-' + s.label + '\');if(lbl)lbl.textContent=parseInt(el.value)===1?\'(todos)\':\'treinos\'})(this);saveConfigTreino()" style="' + inputNum + '">' +
+          '<span style="' + monoXs + 'color:var(--muted);flex-shrink:0;white-space:nowrap" id="cfg-comp-cadax-label-' + s.label + '">' + (compCadaX === 1 ? '(todos)' : 'treinos') + '</span>' +
+        '</div>';
       container3.appendChild(div);
     });
   }
 
-  // Render entrada fila select
+  // ── Entrada fila ──
   var sel = document.getElementById('cfg-entrada-fila');
   if (sel) {
     sel.innerHTML = '';
@@ -2589,14 +2647,14 @@ function loadConfigTreino() {
     });
   }
 
-  // Load dias treino checkboxes
+  // ── Dias treino ──
   var diasMap = { 'Segunda': 'Segunda', 'Terca': 'Terça', 'Quarta': 'Quarta', 'Quinta': 'Quinta', 'Sexta': 'Sexta', 'Sabado': 'Sábado' };
   Object.keys(diasMap).forEach(function(id) {
     var el = document.getElementById('cfg-dia-' + id);
     if (el) el.checked = cfg.diasTreino && cfg.diasTreino.indexOf(diasMap[id]) !== -1;
   });
 
-  // Load intervalo
+  // ── Intervalo ──
   var intEl = document.getElementById('cfg-intervalo');
   if (intEl) intEl.value = cfg.intervaloMinimo || 2;
 }
@@ -4933,7 +4991,7 @@ function renderAgendaLinear() {
       const status = diasStatus[dayKey] || 'pendente';
       const isDiaHoje = isHojeDate(dayKey);
       const dateStr = formatDate(dayKey);
-      const isRest = d.serie === 'descanso';
+      const isRest = d.serie === 'descanso' || status === 'pulado';
       const serieObj = state.series.find(function(s) { return s.label === d.serie; });
       const tipo = isRest ? (d.tipo || 'recuperacao') : 'treino';
 
@@ -4942,10 +5000,13 @@ function renderAgendaLinear() {
       if (status === 'perdido') cardClass += ' perdido';
       if (status === 'concluido') cardClass += ' concluido';
       if (status === 'ausente') cardClass += ' ausente-planejada';
+      if (status === 'pulado') cardClass += ' pulado';
 
       let tipoLabel = '', tipoClass = '';
       if (status === 'concluido') { tipoLabel = '✓ CONCLUÍDO'; tipoClass = 'tipo-concluido'; }
       else if (status === 'perdido') { tipoLabel = '✕ PERDIDO'; tipoClass = 'tipo-perdido'; }
+      else if (status === 'pulado') { tipoLabel = '⟶ PULADO'; tipoClass = 'tipo-pulado'; }
+      else if (status === 'antecipado') { tipoLabel = '↑ ANTECIPADO'; tipoClass = 'tipo-pulado'; }
       else if (status === 'ausente') { tipoLabel = '⚑ AUSÊNCIA PLANEJADA'; tipoClass = 'tipo-ausente'; }
       else if (status === 'disponivel') { tipoLabel = '✦ DISPONÍVEL'; tipoClass = 'tipo-aerobico'; }
       else if (isRest && tipo === 'aerobico') { tipoLabel = 'AERÓBICO'; tipoClass = 'tipo-aerobico'; }
@@ -5036,7 +5097,7 @@ function renderAgendaLinear() {
       }
 
       var actionsHTML = '<div class="agenda-dia-actions">';
-      if (status === 'pendente' || status === 'ausente' || status === 'disponivel') {
+      if (status === 'pendente' || status === 'antecipado' || status === 'ausente' || status === 'disponivel') {
         if (!isRest) {
           if (expanded) {
             actionsHTML += '<button class="agenda-action-btn accent3" onclick="reexpandirDia(\'' + dayKey + '\',' + semana.semana + ',\'' + d.dia + '\',\'' + d.serie + '\')">↺ RECRIAR</button>';
@@ -5044,16 +5105,20 @@ function renderAgendaLinear() {
             actionsHTML += '<button class="agenda-action-btn accent3" onclick="expandirDia(' + semana.semana + ',\'' + d.dia + '\',\'' + d.serie + '\')">✦ GERAR TREINO</button>';
           }
         }
-        if (status !== 'ausente') {
+        if (status === 'antecipado') {
           if (!isRest && !isDiaPast) actionsHTML += '<button class="agenda-action-btn done" onclick="marcarDia(\'' + dayKey + '\',\'concluido\')">✓ CONCLUÍDO</button>';
-          actionsHTML += '<button class="agenda-action-btn danger" onclick="marcarDiaPerdido(\'' + dayKey + '\',\'' + d.dia + '\',' + semana.semana + ')">✕ PERDI ESTE DIA</button>';
-          if (isDiaPast) {
-            actionsHTML += '<button class="agenda-action-btn warning" onclick="marcarAusente(\'' + dayKey + '\',\'' + d.dia + '\',' + semana.semana + ')">⚑ PERDA PROGRAMADA</button>';
-            actionsHTML += '<button class="agenda-action-btn" onclick="marcarDiaDescansoNeutro(\'' + dayKey + '\')">○ MARCAR COMO DESCANSO</button>';
-          } else {
-            actionsHTML += '<button class="agenda-action-btn warning" onclick="marcarAusente(\'' + dayKey + '\',\'' + d.dia + '\',' + semana.semana + ')">⚑ NÃO PODEREI TREINAR NESTE DIA</button>';
-            if (isRest) actionsHTML += '<button class="agenda-action-btn" onclick="marcarDiaDescansoNeutro(\'' + dayKey + '\')">○ MARCAR COMO DESCANSO</button>';
-          }
+          actionsHTML += '<button class="agenda-action-btn" onclick="desfazerRelocamento()">↺ DESFAZER ANTECIPAÇÃO</button>';
+        } else if (status !== 'ausente') {
+          if (!isRest && !isDiaPast) actionsHTML += '<button class="agenda-action-btn done" onclick="marcarDia(\'' + dayKey + '\',\'concluido\')">✓ CONCLUÍDO</button>';
+          if (!isRest) actionsHTML += '<button class="agenda-action-btn purple" onclick="pularDia(\'' + dayKey + '\',\'' + d.serie + '\')">⟶ PULAR ESTE TREINO</button>';
+          // Botão único "DIA PERDIDO" com submenu
+          actionsHTML += '<div style="position:relative;flex:1">' +
+            '<button class="agenda-action-btn danger" style="width:100%" onclick="toggleDiaPerdidoMenu(\'' + dayKey + '\')">✕ DIA PERDIDO ▾</button>' +
+            '<div class="dia-perdido-menu" id="dia-perdido-menu-' + dayKey + '">' +
+              '<button class="dia-perdido-menu-btn danger" onclick="toggleDiaPerdidoMenu(\'' + dayKey + '\');marcarDiaPerdido(\'' + dayKey + '\',\'' + d.dia + '\',' + semana.semana + ')">✕ PERDI ESTE DIA — reagenda o treino</button>' +
+              '<button class="dia-perdido-menu-btn warning" onclick="toggleDiaPerdidoMenu(\'' + dayKey + '\');marcarAusente(\'' + dayKey + '\',\'' + d.dia + '\',' + semana.semana + ')">⚑ PERDA PROGRAMADA — reagenda o treino</button>' +
+            '</div>' +
+          '</div>';
           // Sábado: show "VOU TREINAR NESTE DIA" button if not already confirmed
           if (d.dia === 'Sábado' && status !== 'disponivel' && !isDiaPast) {
             actionsHTML += '<button class="agenda-action-btn" style="border-color:var(--accent3);color:var(--accent3)" onclick="marcarSabadoDisponivel(\'' + dayKey + '\',\'' + d.dia + '\',' + semana.semana + ')">✦ VOU TREINAR NESTE DIA</button>';
@@ -5069,6 +5134,9 @@ function renderAgendaLinear() {
         // Past lost day — allow changing to ausente or descanso
         actionsHTML += '<button class="agenda-action-btn warning" onclick="marcarAusente(\'' + dayKey + '\',\'' + d.dia + '\',' + semana.semana + ')">⚑ PERDA PROGRAMADA</button>';
         actionsHTML += '<button class="agenda-action-btn" onclick="marcarDiaDescansoNeutro(\'' + dayKey + '\')">○ MARCAR COMO DESCANSO</button>';
+      } else if (status === 'pulado') {
+        actionsHTML += '<button class="agenda-action-btn purple" onclick="anteciparProximoTreino(\'' + dayKey + '\')">↑ ANTECIPAR PRÓXIMO TREINO</button>';
+        actionsHTML += '<button class="agenda-action-btn" onclick="desfazerPularDia(\'' + dayKey + '\')">↺ DESFAZER PULO</button>';
       } else if (status === 'concluido') {
         actionsHTML += '<button class="agenda-action-btn" onclick="desfazerConclusao(\'' + dayKey + '\',\'' + d.serie + '\')">' + '↺ DESFAZER</button>';
       }
@@ -5077,28 +5145,33 @@ function renderAgendaLinear() {
       html += '<div class="' + cardClass + '" id="agendadia-' + dayKey + '">' +
         '<div class="agenda-dia-head" onclick="toggleAgendaDia(\'' + dayKey + '\')">' +
           '<span class="agenda-dia-label">' + escHtml(d.dia) + (dateStr ? '<br><span style="font-size:10px;font-family:DM Mono,monospace;color:var(--muted)">' + dateStr + '</span>' : '') + '</span>' +
-          '<span class="agenda-dia-serie">' + (isRest ? (tipo === 'aerobico' ? 'Aeróbico / Cardio' : 'Descanso') : (serieObj ? d.serie + ' — ' + serieObj.name : d.serie)) + '</span>' +
+          '<span class="agenda-dia-serie">' + (status === 'pulado' ? '' : (isRest ? (tipo === 'aerobico' ? 'Aeróbico / Cardio' : 'Descanso') : (serieObj ? d.serie + ' — ' + serieObj.name : d.serie))) + '</span>' +
           '<span class="agenda-dia-tipo ' + tipoClass + '">' + tipoLabel + '</span>' +
         '</div>' +
         '<div class="agenda-dia-body">' +
-          (d.orientacao || d.instrucoes ? '<div class="agenda-instrucoes">' + escHtml(d.orientacao || d.instrucoes) + '</div>' : '') +
-          exHTML +
-          actionsHTML +
-          (isRest ? '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">' +
-            (expanded ? '<button class="agenda-action-btn danger" onclick="limparCacheDia(\'' + dayKey + '\')">✕ LIMPAR TREINO CANCELADO</button>' : '<span></span>') +
-            '<button class="agenda-action-btn" style="border-color:var(--accent3);color:var(--accent3)" onclick="toggleChatInline(\'' + dayKey + '\',\'\')">✦ AJUSTAR COM IA</button>' +
-            '</div>' +
-            '<div id="chat-inline-' + dayKey + '" style="display:none;margin-top:12px;border-top:1px solid var(--border);padding-top:10px">' +
-              '<div id="chat-inline-msgs-' + dayKey + '" style="max-height:200px;overflow-y:auto;display:flex;flex-direction:column;gap:6px;margin-bottom:8px"></div>' +
-              '<div style="display:flex;gap:6px">' +
-                '<textarea id="chat-inline-input-' + dayKey + '" placeholder="Como posso otimizar este dia?" ' +
-                'style="flex:1;font-family:\'DM Sans\',sans-serif;font-size:12px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px;color:var(--text);resize:none;height:60px;outline:none" ' +
-                'onkeydown="if(event.key===\'Enter\'&&!event.shiftKey){event.preventDefault();enviarChatInlineDia(\'' + dayKey + '\',\'' + d.dia + '\',' + semana.semana + ')}"></textarea>' +
-                '<button onclick="enviarChatInlineDia(\'' + dayKey + '\',\'' + d.dia + '\',' + semana.semana + ')" ' +
-                'style="font-family:DM Mono,monospace;font-size:11px;background:none;border:1px solid var(--accent3);color:var(--accent3);border-radius:8px;padding:0 14px;cursor:pointer">↑</button>' +
-              '</div>' +
-            '</div>'
-          : '') +
+          (status === 'pulado'
+            ? actionsHTML
+            : (
+              (d.orientacao || d.instrucoes ? '<div class="agenda-instrucoes">' + escHtml(d.orientacao || d.instrucoes) + '</div>' : '') +
+              exHTML +
+              actionsHTML +
+              (isRest ? '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">' +
+                (expanded ? '<button class="agenda-action-btn danger" onclick="limparCacheDia(\'' + dayKey + '\')">✕ LIMPAR TREINO CANCELADO</button>' : '<span></span>') +
+                '<button class="agenda-action-btn" style="border-color:var(--accent3);color:var(--accent3)" onclick="toggleChatInline(\'' + dayKey + '\',\'\')">✦ AJUSTAR COM IA</button>' +
+                '</div>' +
+                '<div id="chat-inline-' + dayKey + '" style="display:none;margin-top:12px;border-top:1px solid var(--border);padding-top:10px">' +
+                  '<div id="chat-inline-msgs-' + dayKey + '" style="max-height:200px;overflow-y:auto;display:flex;flex-direction:column;gap:6px;margin-bottom:8px"></div>' +
+                  '<div style="display:flex;gap:6px">' +
+                    '<textarea id="chat-inline-input-' + dayKey + '" placeholder="Como posso otimizar este dia?" ' +
+                    'style="flex:1;font-family:\'DM Sans\',sans-serif;font-size:12px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px;color:var(--text);resize:none;height:60px;outline:none" ' +
+                    'onkeydown="if(event.key===\'Enter\'&&!event.shiftKey){event.preventDefault();enviarChatInlineDia(\'' + dayKey + '\',\'' + d.dia + '\',' + semana.semana + ')}"></textarea>' +
+                    '<button onclick="enviarChatInlineDia(\'' + dayKey + '\',\'' + d.dia + '\',' + semana.semana + ')" ' +
+                    'style="font-family:DM Mono,monospace;font-size:11px;background:none;border:1px solid var(--accent3);color:var(--accent3);border-radius:8px;padding:0 14px;cursor:pointer">↑</button>' +
+                  '</div>' +
+                '</div>'
+              : '')
+            )
+          ) +
         '</div>' +
       '</div>';
     });
@@ -6245,6 +6318,155 @@ function marcarDia(dayKey, status) {
 
 function marcarDiaPerdido(dayKey, diaNome, semana) {
   aplicarRelocamento(dayKey, diaNome, semana, 'perdido');
+}
+
+function toggleDiaPerdidoMenu(dayKey) {
+  var menu = document.getElementById('dia-perdido-menu-' + dayKey);
+  if (!menu) return;
+  // Close all other open menus first
+  document.querySelectorAll('.dia-perdido-menu.open').forEach(function(m) {
+    if (m !== menu) m.classList.remove('open');
+  });
+  menu.classList.toggle('open');
+}
+
+// Close dropdown when clicking outside
+document.addEventListener('click', function(e) {
+  if (!e.target.closest('.dia-perdido-menu') && !e.target.closest('.agenda-action-btn')) {
+    document.querySelectorAll('.dia-perdido-menu.open').forEach(function(m) { m.classList.remove('open'); });
+  }
+});
+
+function pularDia(dayKey, serie) {
+  if (!state.plano || !state.plano.semanas) return;
+  if (!state.plano.diasStatus) state.plano.diasStatus = {};
+
+  // Save snapshot for undo
+  if (!state.plano._historico) state.plano._historico = [];
+  state.plano._historico.push(JSON.parse(JSON.stringify({
+    semanas: state.plano.semanas,
+    diasStatus: state.plano.diasStatus,
+    diasExpandidos: state.plano.diasExpandidos || {}
+  })));
+  if (state.plano._historico.length > 5) state.plano._historico.shift();
+
+  // Mark day as pulado — keep the original serie, just discard the expanded workout
+  state.plano.diasStatus[dayKey] = 'pulado';
+  state.plano.semanas.forEach(function(sem) {
+    (sem.dias || sem.agenda || []).forEach(function(d) {
+      if ('sem' + sem.semana + '_' + d.dia === dayKey) {
+        d.orientacao = 'Dia pulado — ' + (serie || d.serie || '?') + ' descartado';
+        if (state.plano.diasExpandidos) delete state.plano.diasExpandidos[dayKey];
+      }
+    });
+  });
+
+  saveState();
+  renderAgendaLinear();
+  toast('Dia pulado — treino descartado ✓');
+}
+
+function desfazerPularDia(dayKey) {
+  desfazerRelocamento();
+}
+
+function anteciparProximoTreino(dayKey) {
+  if (!state.plano || !state.plano.semanas) return;
+  if (!state.plano.diasStatus) state.plano.diasStatus = {};
+
+  // Save snapshot for undo
+  if (!state.plano._historico) state.plano._historico = [];
+  state.plano._historico.push(JSON.parse(JSON.stringify({
+    semanas: state.plano.semanas,
+    diasStatus: state.plano.diasStatus,
+    diasExpandidos: state.plano.diasExpandidos || {}
+  })));
+  if (state.plano._historico.length > 5) state.plano._historico.shift();
+
+  // Build flat list of all days
+  var todosDias = [];
+  state.plano.semanas.forEach(function(sem) {
+    (sem.dias || sem.agenda || []).forEach(function(d) {
+      todosDias.push({ key: 'sem' + sem.semana + '_' + d.dia, diaObj: d, diaNome: d.dia });
+    });
+  });
+
+  var pulIdx = todosDias.findIndex(function(d) { return d.key === dayKey; });
+  if (pulIdx === -1) return;
+
+  // Find next pending training day after pulIdx
+  var diasStatus = state.plano.diasStatus;
+  var proxIdx = null;
+  for (var i = pulIdx + 1; i < todosDias.length; i++) {
+    var c = todosDias[i];
+    var cStatus = diasStatus[c.key] || 'pendente';
+    if (c.diaObj.serie === 'descanso') continue;
+    if (cStatus === 'perdido' || cStatus === 'concluido' || cStatus === 'pulado' || cStatus === 'ausente') continue;
+    if (c.diaNome === 'Domingo') continue;
+    proxIdx = i;
+    break;
+  }
+
+  if (proxIdx === null) { toast('Nenhum treino encontrado para antecipar'); return; }
+
+  // Capture treino from proxIdx
+  var proxDia = todosDias[proxIdx];
+  var serieAntecipar = proxDia.diaObj.serie;
+  var tipoAntecipar = proxDia.diaObj.tipo;
+  var expandidoAntecipar = state.plano.diasExpandidos && state.plano.diasExpandidos[proxDia.key]
+    ? JSON.parse(JSON.stringify(state.plano.diasExpandidos[proxDia.key])) : null;
+
+  // Place anticipated treino on the skipped day
+  var pulDia = todosDias[pulIdx];
+  pulDia.diaObj.serie = serieAntecipar;
+  pulDia.diaObj.tipo = tipoAntecipar;
+  pulDia.diaObj.orientacao = (proxDia.diaObj.orientacao ? proxDia.diaObj.orientacao + ' ' : '') + '(Antecipado de ' + proxDia.diaNome + ')';
+  diasStatus[dayKey] = 'antecipado';
+  if (!state.plano.diasExpandidos) state.plano.diasExpandidos = {};
+  if (expandidoAntecipar) {
+    state.plano.diasExpandidos[dayKey] = Object.assign({}, expandidoAntecipar, { _dayKey: dayKey });
+  } else {
+    delete state.plano.diasExpandidos[dayKey];
+  }
+
+  // Cascade: collect eligible training slots from proxIdx onward (skip rest days)
+  var slots = [];
+  for (var k = proxIdx; k < todosDias.length; k++) {
+    var slot = todosDias[k];
+    if (slot.diaNome === 'Domingo') continue;
+    var slotStatus = diasStatus[slot.key] || 'pendente';
+    if (slotStatus === 'concluido' || slotStatus === 'perdido' || slotStatus === 'ausente') continue;
+    if (!slot.diaObj.serie || slot.diaObj.serie === 'descanso') continue; // skip rest days
+    slots.push(slot);
+  }
+
+  // Shift: slot[i] gets slot[i+1]'s content; last slot becomes descanso
+  for (var s = 0; s < slots.length - 1; s++) {
+    var dst = slots[s];
+    var src = slots[s + 1];
+    dst.diaObj.serie = src.diaObj.serie;
+    dst.diaObj.tipo = src.diaObj.tipo;
+    dst.diaObj.orientacao = src.diaObj.orientacao;
+    var srcExp = state.plano.diasExpandidos[src.key]
+      ? JSON.parse(JSON.stringify(state.plano.diasExpandidos[src.key])) : null;
+    if (srcExp) {
+      state.plano.diasExpandidos[dst.key] = Object.assign({}, srcExp, { _dayKey: dst.key });
+    } else {
+      delete state.plano.diasExpandidos[dst.key];
+    }
+  }
+  // Last training slot becomes descanso (its treino cascaded forward into previous slot)
+  if (slots.length > 0) {
+    var last = slots[slots.length - 1];
+    last.diaObj.serie = 'descanso';
+    last.diaObj.tipo = 'recuperacao';
+    last.diaObj.orientacao = '';
+    delete state.plano.diasExpandidos[last.key];
+  }
+
+  saveState();
+  renderAgendaLinear();
+  toast('Próximo treino antecipado ✓');
 }
 function marcarDiaDescansoNeutro(dayKey) {
   if (!state.plano.diasStatus) state.plano.diasStatus = {};
