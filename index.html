@@ -1030,6 +1030,8 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
   @media (max-width: 480px) { .perfil-grid { grid-template-columns: 1fr; } }
 
   .agenda-semana { margin-bottom: 8px; }
+  .agenda-semana.semana-encerrada { opacity: 0.5; }
+  .agenda-semana.semana-encerrada:hover { opacity: 0.75; transition: opacity 0.2s; }
   .agenda-semana-head {
     display: flex;
     align-items: center;
@@ -1325,7 +1327,7 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
     <button class="btn btn-desktop-only" onclick="resetData()" title="Limpar todos os dados e voltar ao padrão">RESET</button>
     <button class="btn btn-desktop-only" onclick="exportData()">EXPORTAR</button>
     <button class="btn btn-desktop-only" onclick="importData()">IMPORTAR</button>
-    <span style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted);margin-left:4px">v0.8.7.35</span>
+    <span style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted);margin-left:4px">v0.8.7.38</span>
     <div id="auth-status" style="display:flex;align-items:center;margin-left:4px"></div>
 
     <div class="mobile-menu-wrap" id="mobile-menu-wrap">
@@ -1334,6 +1336,9 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
         <button class="mobile-menu-item" onclick="resetData();closeMobileMenu()">RESET</button>
         <button class="mobile-menu-item" onclick="exportData();closeMobileMenu()">EXPORTAR</button>
         <button class="mobile-menu-item" onclick="importData();closeMobileMenu()">IMPORTAR</button>
+        <div style="height:1px;background:var(--border);margin:4px 0"></div>
+        <button class="mobile-menu-item" onclick="limparChatInlineDiasPassados(false);closeMobileMenu()">LIMPAR CHAT — DIAS PASSADOS</button>
+        <button class="mobile-menu-item" onclick="limparChatInlineDiasPassados(true);closeMobileMenu()">LIMPAR CHAT — SEMANAS ANTERIORES</button>
       </div>
     </div>
   </div>
@@ -3683,7 +3688,7 @@ function aplicarModificacoes(mod) {
       pd.exercises = pd.exercises.filter(e => !e.name.toLowerCase().includes(a.nome.toLowerCase()));
     } else if (a.tipo === 'adicionar') {
       const novo = { id: uid(), name: a.nome, sets: a.sets||'3x10', weight: a.weight||'—', status: 'undone' };
-      if (a.posicao !== undefined && a.posicao >= 0) pd.exercises.splice(a.posicao, 0, novo);
+      if (a.posicao !== undefined && a.posicao >= 1) pd.exercises.splice(a.posicao - 1, 0, novo);
       else pd.exercises.push(novo);
     }
   });
@@ -3731,7 +3736,7 @@ function aplicarModificacoesInline(mod, dayKey, serieLabel) {
         sets: a.sets || '3x10', weight: a.weight || '—',
         rest: a.rest || ''
       };
-      if (a.posicao !== undefined && a.posicao >= 0) exs.splice(a.posicao, 0, novo);
+      if (a.posicao !== undefined && a.posicao >= 1) exs.splice(a.posicao - 1, 0, novo);
       else exs.push(novo);
     }
   });
@@ -4113,6 +4118,56 @@ function limparChatInline(dayKey) {
   if (msgs) msgs.innerHTML = '';
 }
 
+function limparChatInlineDiasPassados(apenasAntesDestaSemana) {
+  if (!state.plano || !state.plano.semanas || !state.plano.dataInicio) {
+    toast('Data de início do plano não definida'); return;
+  }
+  var hoje = new Date(); hoje.setHours(0,0,0,0);
+  var planoInicio = new Date(state.plano.dataInicio); planoInicio.setHours(0,0,0,0);
+  var ordemSemana = ['Segunda','Terça','Quarta','Quinta','Sexta','Sábado','Domingo'];
+
+  // Calcular início da semana atual do plano (semana que contém hoje)
+  var inicioSemanaAtual = null;
+  if (apenasAntesDestaSemana) {
+    var mon = getMondayOf(planoInicio);
+    state.plano.semanas.forEach(function(semana) {
+      var weekStart = new Date(mon); weekStart.setDate(mon.getDate() + (semana.semana - 1) * 7); weekStart.setHours(0,0,0,0);
+      var weekEnd = new Date(weekStart); weekEnd.setDate(weekStart.getDate() + 6);
+      if (hoje >= weekStart && hoje <= weekEnd) inicioSemanaAtual = weekStart;
+    });
+    if (!inicioSemanaAtual) { inicioSemanaAtual = getMondayOf(hoje); inicioSemanaAtual.setHours(0,0,0,0); }
+  }
+
+  if (!state.plano.chatInline) { toast('Nenhum chat para limpar'); return; }
+  var limpos = 0;
+  var mon2 = getMondayOf(planoInicio);
+
+  Object.keys(state.plano.chatInline).forEach(function(dayKey) {
+    var parts = dayKey.match(/^sem(\d+)_(.+)$/);
+    if (!parts) return;
+    var semNum = parseInt(parts[1]);
+    var diaNome = parts[2];
+    var offset = ordemSemana.indexOf(diaNome);
+    if (offset === -1) return;
+    var weekStart = new Date(mon2); weekStart.setDate(mon2.getDate() + (semNum - 1) * 7);
+    var date = new Date(weekStart); date.setDate(weekStart.getDate() + offset); date.setHours(0,0,0,0);
+
+    var excluir = apenasAntesDestaSemana
+      ? (date.getTime() < inicioSemanaAtual.getTime())
+      : (date.getTime() < hoje.getTime());
+
+    if (excluir) {
+      delete state.plano.chatInline[dayKey];
+      delete chatInlineHistory[dayKey];
+      limpos++;
+    }
+  });
+
+  saveState();
+  var desc = apenasAntesDestaSemana ? 'semanas anteriores à atual' : 'dias anteriores a hoje';
+  toast('Chat de ' + limpos + ' dia(s) limpo(s) (' + desc + ') ✓');
+}
+
 function getChatInlineHistory(dayKey) {
   if (chatInlineHistory[dayKey]) return chatInlineHistory[dayKey];
   // Load from state
@@ -4232,7 +4287,7 @@ async function enviarChatInline(dayKey, serieLabel) {
     '  substituir: {"tipo":"substituir","de":"nome atual","por":"novo nome","sets":"3x10","weight":"20kg","rest":"60s"} — SEMPRE inclua sets, weight e rest calibrados para o novo exercício (use a Biblioteca como referência e ajuste ao contexto do dia)\n' +
     '  alterar: {"tipo":"alterar","nome":"nome exato do exercício","weight":"20kg"} (só inclua os campos que mudam)\n' +
     '  remover: {"tipo":"remover","nome":"nome exato"}\n' +
-    '  adicionar: {"tipo":"adicionar","nome":"novo exercício","sets":"3x10","weight":"15kg","posicao":5}\n' +
+    '  adicionar: {"tipo":"adicionar","nome":"novo exercício","sets":"3x10","weight":"15kg","posicao":3} — posicao é base 1: posicao:1 = primeiro da lista, posicao:3 = terceiro lugar na lista\n' +
     '- Para reescrever o treino completo (APENAS se o usuário pedir explicitamente para refazer/montar/reorganizar o treino inteiro): {"diaExpandido":{...treino completo...}}\n' +
     'REGRA CRÍTICA: Use SEMPRE modificacoes por padrão. diaExpandido SOMENTE quando o usuário pedir explicitamente para refazer o treino inteiro — nunca por iniciativa própria para trocas pontuais.\n' +
     'Quando você tiver uma proposta pronta e precisar de confirmação antes de aplicar, termine sua mensagem com exatamente: [PRONTO PARA APLICAR]\n' +
@@ -4855,10 +4910,19 @@ function renderAgendaLinear() {
     var semKey = 'sem' + semana.semana;
     var semOpen = state.plano.semanaOpen && state.plano.semanaOpen[semKey] !== false;
 
-    html += '<div class="agenda-semana" id="' + semKey + '">' +
+    // Determine if the week is fully in the past
+    var diasSemanaKeys = diasSemana.map(function(d) { return 'sem' + semana.semana + '_' + d.dia; });
+    var semanaEncerrada = dataMap && diasSemanaKeys.length > 0 && diasSemanaKeys.every(function(dk) {
+      if (!dataMap[dk]) return false;
+      var d = new Date(dataMap[dk]); d.setHours(0,0,0,0);
+      return d.getTime() < hoje.getTime();
+    });
+
+    html += '<div class="agenda-semana' + (semanaEncerrada ? ' semana-encerrada' : '') + '" id="' + semKey + '">' +
       '<div class="agenda-semana-head" onclick="toggleSemana(\'' + semKey + '\')">' +
         '<span class="agenda-semana-chevron">' + (semOpen ? '▾' : '▸') + '</span>' +
         '<span>SEMANA ' + semana.semana + (semana.foco ? ' — ' + semana.foco : '') + '</span>' +
+        (semanaEncerrada ? '<span style="font-family:DM Mono,monospace;font-size:10px;color:var(--muted);margin-left:6px">✓</span>' : '') +
         (semana.intensidade ? '<span style="font-family:DM Mono,monospace;font-size:10px;color:var(--accent2);margin-left:auto">' + semana.intensidade + '</span>' : '') +
       '</div>' +
       '<div class="agenda-semana-body" style="' + (semOpen ? '' : 'display:none') + '">';
