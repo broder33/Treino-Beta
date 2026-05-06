@@ -1383,7 +1383,7 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
   <div class="header-actions">
     <button class="btn btn-header-only" onclick="exportData()">EXPORTAR</button>
     <button class="btn btn-header-only" onclick="importData()">IMPORTAR</button>
-    <span style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted);margin-left:4px">v0.8.8.08</span>
+    <span style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted);margin-left:4px">v0.8.8.09</span>
     <div id="auth-status" style="display:flex;align-items:center;margin-left:4px"></div>
 
     <div class="mobile-menu-wrap" id="mobile-menu-wrap">
@@ -2458,7 +2458,6 @@ function renderBiblioteca(activeId) {
   btnAddWrap.appendChild(btnAdd);
   btnAddWrap.appendChild(drop);
   bibTabs.appendChild(btnAddWrap);
-  console.log('[debug] btnAddWrap appended, drop class:', drop.className, 'bibTabs children:', bibTabs.children.length);
 
   // Verificar duplicatas button
   var btnDup = document.createElement('button');
