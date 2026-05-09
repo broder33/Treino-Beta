@@ -1383,7 +1383,7 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
   <div class="header-actions">
     <button class="btn btn-header-only" onclick="exportData()">EXPORTAR</button>
     <button class="btn btn-header-only" onclick="importData()">IMPORTAR</button>
-    <span style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted);margin-left:4px">v0.8.8.09</span>
+    <span style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted);margin-left:4px">v0.8.8.17</span>
     <div id="auth-status" style="display:flex;align-items:center;margin-left:4px"></div>
 
     <div class="mobile-menu-wrap" id="mobile-menu-wrap">
@@ -3054,6 +3054,7 @@ function aplicarRelocamento(dayKey, diaNome, semana, tipo) {
     var expandidoAtual = expandidoPerdido; // carry the lost day's expanded treino forward
     var serieOverflow = null;
     var tipoOverflow = null;
+    var primeiroSlot = true;
     var absorbed = false;
     for (var s = slotIdx; s < todosDias.length; s++) {
       var dia = todosDias[s];
@@ -3065,7 +3066,13 @@ function aplicarRelocamento(dayKey, diaNome, semana, tipo) {
       var proxExpandido = state.plano.diasExpandidos ? (state.plano.diasExpandidos[dia.key] || null) : null;
       dia.diaObj.serie = serieAtual;
       dia.diaObj.tipo = tipoAtual;
-      dia.diaObj.orientacao = orientacaoAtual;
+      // Only annotate the first slot with relocation note; preserve orientation in subsequent slots
+      if (primeiroSlot) {
+        dia.diaObj.orientacao = (proxOrientacao ? proxOrientacao + ' ' : '') + '(Treino ' + seriePerdida + ' realocado de ' + diaNome + ')';
+        primeiroSlot = false;
+      } else {
+        dia.diaObj.orientacao = proxOrientacao;
+      }
       // Move expanded treino to this slot
       if (!state.plano.diasExpandidos) state.plano.diasExpandidos = {};
       if (expandidoAtual) {
@@ -3214,7 +3221,7 @@ CAPACIDADES:
 
 1. ${temPlano ? 'MODIFICAR DIAS DO PLANO ATUAL (use isso quando já existe um plano ativo — NUNCA gere um plano completo novo)' : 'GERAR PLANO MACRO COMPLETO (use apenas quando não há plano ativo)'}
 ${temPlano ?
-`Retorne os dias modificados no formato abaixo. Se o usuário pedir um replano completo de várias semanas, inclua TODOS os dias de TODAS as semanas afetadas — não omita nenhum dia. Para semanas novas ou com foco alterado, inclua uma ação de tipo "semana" com foco e intensidade:
+`Retorne os dias modificados no formato abaixo. Se o usuário pedir um replano completo de várias semanas, inclua TODOS os dias de TODAS as semanas afetadas — não omita nenhum dia. Para semanas novas ou com foco alterado, inclua uma ação de tipo "semana" com foco e intensidade. IMPORTANTE: sempre que alterar o número de dias de treino de uma semana (ex: de 1 para 2 dias, ou de 3 para 1 dia), inclua obrigatoriamente uma ação "semana" para atualizar o foco e intensidade da semana afetada de forma coerente com a nova estrutura:
 {"modificacoes":{"serieLabel":"planoMacro","acoes":[{"tipo":"semana","semana":2,"foco":"Acumulação","intensidade":"70-80%"},{"tipo":"alterar","semana":2,"dia":"Segunda","serie":"A","orientacao":"instrução específica"},{"tipo":"alterar","semana":2,"dia":"Terça","serie":"D","orientacao":"instrução"}]}}` :
 `Retorne APENAS este JSON (sem markdown, sem texto extra):
 {"planoMacro":{"objetivo":"descrição do ciclo","semanas":[{"semana":1,"foco":"Adaptação","intensidade":"60-70%","progressao":"semana de referência","dias":[{"dia":"Segunda","serie":"A","tipo":"treino","intensidade":"moderada","orientacao":"instrução específica"},{"dia":"Terça","serie":"D","tipo":"treino","intensidade":"moderada","orientacao":"instrução"},{"dia":"Quarta","serie":"descanso","tipo":"aerobico","orientacao":"instrução concreta"},{"dia":"Quinta","serie":"B","tipo":"treino","intensidade":"moderada","orientacao":"instrução"},{"dia":"Sexta","serie":"C","tipo":"treino","intensidade":"moderada","orientacao":"instrução"},{"dia":"Sábado","serie":"D","tipo":"treino","intensidade":"leve","orientacao":"instrução"},{"dia":"Domingo","serie":"descanso","tipo":"recuperacao","orientacao":"instrução"}]},{"semana":2,"foco":"...","intensidade":"...","progressao":"...","dias":[...]},{"semana":3,"foco":"...","intensidade":"...","progressao":"...","dias":[...]},{"semana":4,"foco":"Deload","intensidade":"50-60%","progressao":"recuperação","dias":[...]}],"observacoes":"orientações gerais"}}`}
@@ -3440,7 +3447,7 @@ function gerarOrientacoesDiasFuturos() {
     (sem.dias || sem.agenda || []).forEach(function(d) {
       var key = 'sem' + sem.semana + '_' + d.dia;
       var status = diasStatus[key] || 'pendente';
-      if (status === 'concluido' || status === 'perdido' || status === 'ausente') return;
+      if (status === 'concluido' || status === 'perdido' || status === 'ausente' || status === 'pulado') return;
       if (d.serie === 'descanso' || !d.serie) return;
       // Check if future
       if (dataInicio) {
@@ -3452,7 +3459,10 @@ function gerarOrientacoesDiasFuturos() {
           if (diaDate < hoje) return;
         }
       }
-      diasFuturos.push('Semana ' + sem.semana + ', ' + d.dia + ': Série ' + d.serie);
+      var info = 'Semana ' + sem.semana + ', ' + d.dia + ': Série ' + d.serie;
+      if (status === 'antecipado') info += ' (treino antecipado)';
+      if (status === 'disponivel') info += ' (sábado disponível)';
+      diasFuturos.push(info);
     });
   });
 
@@ -3461,10 +3471,23 @@ function gerarOrientacoesDiasFuturos() {
     return;
   }
 
+  // Build semana summary com contagem de treinos e foco atual
+  var semanasSummary = [];
+  state.plano.semanas.forEach(function(sem) {
+    var treinos = (sem.dias || sem.agenda || []).filter(function(d) {
+      return d.serie && d.serie !== 'descanso';
+    }).length;
+    if (treinos > 0) {
+      semanasSummary.push('Semana ' + sem.semana + ': ' + treinos + ' treino(s), foco atual: "' + (sem.foco || 'não definido') + '"');
+    }
+  });
+
   var msg = 'Gere orientações de periodização para os seguintes dias futuros do plano:\n\n' +
     diasFuturos.join('\n') + '\n\n' +
+    'Resumo das semanas:\n' + semanasSummary.join('\n') + '\n\n' +
     'Para cada dia, defina: foco do treino, intensidade, orientações específicas de execução e exercícios de core recomendados. ' +
     'Considere a progressão entre semanas e as restrições do perfil. ' +
+    'IMPORTANTE: para cada semana que aparecer nos dias acima, inclua obrigatoriamente uma ação {"tipo":"semana"} com foco e intensidade coerentes com o número real de treinos da semana. ' +
     'Retorne no formato JSON de modificacoes.';
 
   switchTab('ia');
@@ -3785,7 +3808,7 @@ function renderModificacoesProposta(mod) {
       }
     });
 
-    // Sort days in correct week order
+  // Sort days in correct week order
     var ordemDias = ['Segunda','Terça','Quarta','Quinta','Sexta','Sábado','Domingo'];
     planoCopy.semanas.forEach(function(sem) {
       var dd = sem.dias || sem.agenda || [];
@@ -6663,9 +6686,12 @@ function cancelarSabadoDisponivel(dayKey) {
   // Try full undo via snapshot first
   if (state.plano._historico && state.plano._historico.length > 0) {
     desfazerRelocamento();
+    // Always clear the Saturday expanded workout — it no longer applies
+    if (state.plano.diasExpandidos && state.plano.diasExpandidos[dayKey]) {
+      delete state.plano.diasExpandidos[dayKey];
+    }
     // After undo, find the day that now has the same serie and move the expanded there
     if (expandidoSabado && serieSabado && state.plano.diasStatus) {
-      // Find the first pending day with the same serie (likely the Monday it was relocated to)
       var ordemDias = ['Segunda','Terça','Quarta','Quinta','Sexta','Sábado','Domingo'];
       var todosDias = [];
       state.plano.semanas.forEach(function(sem) {
@@ -6684,6 +6710,7 @@ function cancelarSabadoDisponivel(dayKey) {
     }
     saveState();
     renderAgendaLinear();
+    toast('Disponibilidade do Sábado cancelada ✓');
     return;
   }
   // Fallback: simply reset status and serie to descanso
@@ -6781,7 +6808,7 @@ function marcarSabadoDisponivel(dayKey, diaNome, semana) {
 
   todosDias[sabIdx].diaObj.serie = primeiroSlot.diaObj.serie;
   todosDias[sabIdx].diaObj.tipo = primeiroSlot.diaObj.tipo;
-  todosDias[sabIdx].diaObj.orientacao = 'Treino antecipado de ' + primeiroSlot.diaNome;
+  todosDias[sabIdx].diaObj.orientacao = (primeiroSlot.diaObj.orientacao ? primeiroSlot.diaObj.orientacao + ' ' : '') + '(Antecipado de ' + primeiroSlot.diaNome + ')';
   if (proxExp0) {
     state.plano.diasExpandidos[dayKey] = Object.assign({}, proxExp0, { _dayKey: dayKey });
   } else {
