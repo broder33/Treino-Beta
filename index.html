@@ -1387,7 +1387,7 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
   <div class="header-actions">
     <button class="btn btn-header-only" onclick="exportData()">EXPORTAR</button>
     <button class="btn btn-header-only" onclick="importData()">IMPORTAR</button>
-    <span style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted);margin-left:4px">v0.8.8.27</span>
+    <span style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted);margin-left:4px">v0.8.8.32</span>
     <div id="auth-status" style="display:flex;align-items:center;margin-left:4px"></div>
 
     <div class="mobile-menu-wrap" id="mobile-menu-wrap">
@@ -5705,14 +5705,14 @@ function renderInlineEx(ex, dayKey, serieLabel, idx, total) {
       '<div style="display:flex;gap:6px;align-items:center">' +
         '<input type="text" value="' + escHtml(ex.sets) + '" ' +
         'onchange="updateInlineEx(\'' + dayKey + '\',\'' + serieLabel + '\',\'' + ex.id + '\',\'sets\',this.value)" ' +
-        'style="font-family:DM Mono,monospace;font-size:11px;color:var(--accent);background:transparent;border:none;border-bottom:1px solid var(--border);width:120px;text-align:center;outline:none;padding:2px;flex-shrink:0">' +
+        'style="font-family:DM Mono,monospace;font-size:11px;color:var(--accent);background:transparent;border:none;border-bottom:1px solid var(--border);width:80px;text-align:center;outline:none;padding:2px;flex-shrink:0">' +
         '<input type="text" value="' + escHtml(ex.weight) + '" ' +
         'onchange="updateInlineEx(\'' + dayKey + '\',\'' + serieLabel + '\',\'' + ex.id + '\',\'weight\',this.value)" ' +
         'style="font-family:DM Mono,monospace;font-size:11px;color:var(--accent2);background:transparent;border:none;border-bottom:1px solid var(--border);flex:1;min-width:0;text-align:right;outline:none;padding:2px">' +
         '<input type="text" value="' + escHtml(ex.rest || '') + '" ' +
         'placeholder="—" ' +
         'onchange="updateInlineEx(\'' + dayKey + '\',\'' + serieLabel + '\',\'' + ex.id + '\',\'rest\',this.value)" ' +
-        'style="font-family:DM Mono,monospace;font-size:11px;color:var(--muted);background:transparent;border:none;border-bottom:1px solid var(--border);width:55px;text-align:right;outline:none;padding:2px;flex-shrink:0">' +
+        'style="font-family:DM Mono,monospace;font-size:11px;color:var(--muted);background:transparent;border:none;border-bottom:1px solid var(--border);width:44px;text-align:right;outline:none;padding:2px;flex-shrink:0">' +
       '</div>' +
     '</td>' +
   '</tr>';
