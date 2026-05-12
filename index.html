@@ -1387,7 +1387,7 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
   <div class="header-actions">
     <button class="btn btn-header-only" onclick="exportData()">EXPORTAR</button>
     <button class="btn btn-header-only" onclick="importData()">IMPORTAR</button>
-    <span style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted);margin-left:4px">v0.8.8.32</span>
+    <span style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted);margin-left:4px">v0.8.8.33</span>
     <div id="auth-status" style="display:flex;align-items:center;margin-left:4px"></div>
 
     <div class="mobile-menu-wrap" id="mobile-menu-wrap">
@@ -3117,27 +3117,6 @@ function aplicarRelocamento(dayKey, diaNome, semana, tipo) {
       toast('Treino ' + seriePerdida + ' realocado — semana ' + (ultimaSemana.semana + 1) + ' adicionada ✓');
     } else {
       toast('Treino ' + seriePerdida + ' de ' + diaNome + ' realocado ✓');
-      // DEBUG: show shift log on screen
-      (function() {
-        var existing = document.getElementById('_shiftDebugPanel');
-        if (existing) existing.remove();
-        var panel = document.createElement('div');
-        panel.id = '_shiftDebugPanel';
-        panel.style.cssText = 'position:fixed;top:60px;left:8px;right:8px;background:#111;color:#0f0;font-family:monospace;font-size:11px;padding:10px;border-radius:8px;z-index:9999;max-height:60vh;overflow-y:auto;white-space:pre-wrap;border:1px solid #0f0';
-        var closeBtn = document.createElement('button');
-        closeBtn.textContent = '✕ FECHAR LOG';
-        closeBtn.style.cssText = 'display:block;margin-bottom:8px;background:#333;color:#fff;border:none;padding:4px 10px;border-radius:4px;cursor:pointer;font-size:12px';
-        closeBtn.onclick = function() { panel.remove(); };
-        panel.appendChild(closeBtn);
-        var ta = document.createElement('textarea');
-        ta.style.cssText = 'width:100%;height:300px;background:#111;color:#0f0;font-family:monospace;font-size:11px;border:none;resize:vertical;outline:none;';
-        ta.readOnly = true;
-        ta.value = (window._shiftLog || ['(nenhum log)']).join('\n');
-        panel.appendChild(ta);
-        setTimeout(function(){ ta.select(); }, 100);
-        document.body.appendChild(panel);
-        window._shiftLog = [];
-      })();
     }
   } else {
     // No valid slot found at all — extend plan
