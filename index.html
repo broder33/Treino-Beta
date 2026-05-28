@@ -1409,7 +1409,7 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
   <div class="header-actions">
     <button class="btn btn-header-only" onclick="exportData()">EXPORTAR</button>
     <button class="btn btn-header-only" onclick="importData()">IMPORTAR</button>
-    <span style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted);margin-left:4px">v0.8.9.37</span>
+    <span style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted);margin-left:4px">v0.8.9.41</span>
     <div id="auth-status" style="display:flex;align-items:center;margin-left:4px"></div>
 
     <div class="mobile-menu-wrap" id="mobile-menu-wrap">
@@ -5356,12 +5356,23 @@ function gerarOrientacaoBike(dayKey) {
     '- Restrição: tendão patelar direito — sem sprints, cadência alta (>85rpm)\n' +
     '\nIncluir na orientação: distância sugerida, tempo total, estrutura (aquecimento/desenvolvimento/volta à calma), zona FC alvo, cadência recomendada, pontos de atenção.';
 
+  var chat = document.getElementById('chat-inline-' + dayKey);
+  var isOpen = chat && chat.style.display !== 'none';
+  if (isOpen) {
+    toggleChatInline(dayKey, '');
+    return;
+  }
   toggleChatInline(dayKey, '');
   setTimeout(function() {
-    var input = document.getElementById('chat-inline-input-' + dayKey);
-    if (input) {
-      input.value = prompt;
-      enviarChatInline(dayKey, '');
+    // Only send if chat has no AI response yet
+    var msgs = document.getElementById('chat-inline-msgs-' + dayKey);
+    var jaTemResposta = msgs && msgs.children.length > 1; // >1 = beyond initial greeting
+    if (!jaTemResposta) {
+      var input = document.getElementById('chat-inline-input-' + dayKey);
+      if (input) {
+        input.value = prompt;
+        enviarChatInline(dayKey, '');
+      }
     }
   }, 200);
 }
@@ -5422,12 +5433,23 @@ function gerarOrientacaoBike(dayKey) {
     '- Restrição: tendão patelar direito — sem sprints, cadência alta (>85rpm)\n' +
     '\nIncluir na orientação: distância sugerida, tempo total, estrutura (aquecimento/desenvolvimento/volta à calma), zona FC alvo, cadência recomendada, pontos de atenção.';
 
+  var chat = document.getElementById('chat-inline-' + dayKey);
+  var isOpen = chat && chat.style.display !== 'none';
+  if (isOpen) {
+    toggleChatInline(dayKey, '');
+    return;
+  }
   toggleChatInline(dayKey, '');
   setTimeout(function() {
-    var input = document.getElementById('chat-inline-input-' + dayKey);
-    if (input) {
-      input.value = prompt;
-      enviarChatInline(dayKey, '');
+    // Only send if chat has no AI response yet
+    var msgs = document.getElementById('chat-inline-msgs-' + dayKey);
+    var jaTemResposta = msgs && msgs.children.length > 1; // >1 = beyond initial greeting
+    if (!jaTemResposta) {
+      var input = document.getElementById('chat-inline-input-' + dayKey);
+      if (input) {
+        input.value = prompt;
+        enviarChatInline(dayKey, '');
+      }
     }
   }, 200);
 }
@@ -6019,7 +6041,7 @@ function renderAgendaLinear() {
                 (isSubstitutoD && (bikeInfo && bikeInfo.musculacaoExtra) ? '<button class="agenda-action-btn" onclick="desfazerSubstitutoD(\'' + dayKey + '\',\'' + d.dia + '\',' + semana.semana + ')">↺ DESFAZER ANTECIPAÇÃO DO TREINO</button>' : '') +
                 (isSubstitutoD && !(bikeInfo && bikeInfo.musculacaoExtra) ? '<button class="agenda-action-btn" onclick="desfazerSubstitutoD(\'' + dayKey + '\',\'' + d.dia + '\',' + semana.semana + ')">↺ DESFAZER D→BIKE</button>' : '') +
                 (expanded ? '<button class="agenda-action-btn danger" onclick="limparCacheDia(\'' + dayKey + '\')">✕ LIMPAR TREINO CANCELADO</button>' : '<span></span>') +
-                '<button class="agenda-action-btn accent3" onclick="gerarOrientacaoBike(\'' + dayKey + '\')" style="flex:1">✦ GERAR TREINO DE BIKE</button>' +
+                '<button class="agenda-action-btn accent3" onclick="gerarOrientacaoBike(\'' + dayKey + '\')" style="flex:1" id="btn-gerar-bike-' + dayKey + '">✦ GERAR TREINO DE BIKE</button>' +
                 '<button class="agenda-action-btn" style="border-color:var(--accent3);color:var(--accent3)" onclick="toggleChatInline(\'' + dayKey + '\',\'\')">✦ AJUSTAR COM IA</button>' +
                 '</div>' +
                 '<div id="chat-inline-' + dayKey + '" style="display:none;margin-top:12px;border-top:1px solid var(--border);padding-top:10px">' +
@@ -8353,14 +8375,7 @@ function importData() {
         switchTab('agenda');
         setTimeout(autoResizeAll, 100);
         toast('Dados importados ✓');
-        // DEBUG diasBike
-        (function() {
-          var _dbg = document.createElement('div');
-          _dbg.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:#111;color:#0f0;font-family:monospace;font-size:11px;padding:10px;z-index:9999;border-top:2px solid #0f0';
-          _dbg.innerHTML = '<button onclick="this.parentNode.remove()" style="margin-bottom:6px;background:#333;color:#fff;border:none;padding:4px 8px;border-radius:4px;cursor:pointer">FECHAR</button><textarea readonly style="width:100%;height:120px;background:#111;color:#0f0;font-family:monospace;font-size:11px;border:none;outline:none;box-sizing:border-box">' +
-            'diasBike: ' + JSON.stringify(state.plano && state.plano.diasBike, null, 2) + '</textarea>';
-          document.body.appendChild(_dbg);
-        })();
+
       } catch(e) {
         toast('Erro: ' + e.message);
       }
