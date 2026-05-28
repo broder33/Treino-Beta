@@ -1402,7 +1402,7 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
   <div class="header-actions">
     <button class="btn btn-header-only" onclick="exportData()">EXPORTAR</button>
     <button class="btn btn-header-only" onclick="importData()">IMPORTAR</button>
-    <span style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted);margin-left:4px">v0.8.8.35</span>
+    <span style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted);margin-left:4px">v0.8.8.39</span>
     <div id="auth-status" style="display:flex;align-items:center;margin-left:4px"></div>
 
     <div class="mobile-menu-wrap" id="mobile-menu-wrap">
@@ -2583,6 +2583,8 @@ var DEFAULT_PERFIL = {
   dias: '5', fds: 'ocasionalmente',
   estilo: 'Treino explosivo com cargas altas para o porte. Precisa de moderação para evitar novas lesões.',
   aerobico: 'Academia fica a 2.2km de casa (4.4km ida+volta a pé, mesmo ritmo). Esse cardio já está embutido em todo dia de treino. Academia tem equipamentos de cardio disponíveis (não usa atualmente mas pode). Nos dias de descanso/aeróbico, preferir variações concretas: caminhada acelerada, elíptico leve.',
+  bikeModelo: '', bikeGps: '', bikeRides: '4', bikeDuracao: '1-2h',
+  bikeObjetivo: '', bikeTiming: 'flexivel', bikeObs: '',
   lesoes: 'Tendão bíceps distal bilateral — APENAS pegada neutra para bíceps, sem exceção. Tendão perna direita — cautela no leg press com carga elevada. Ombro direito: lesão por acidente mecânico (não pelo overhead), overhead press é SEGURO e prioritário. Histórico de treino explosivo — moderar progressão de carga.',
   obs: '',
   diasCiclo: '20'
@@ -2650,8 +2652,14 @@ function loadPerfil() {
   if (input && saved) input.value = saved;
   renderTokenUsage();
   var p = state.perfil || DEFAULT_PERFIL;
-  ['altura','peso','idade','pesoobj','objetivos','prioridades','dias','diasCiclo','estilo','aerobico','bikeModelo','bikeGps','bikeRides','bikeDuracao','bikeObjetivo','bikeObs','lesoes','obs'].forEach(function(k) {
+  ['altura','peso','idade','pesoobj','objetivos','prioridades','dias','diasCiclo','estilo','aerobico','lesoes','obs'].forEach(function(k) {
     var el = document.getElementById('pf-' + k);
+    if (el) el.value = p[k] || '';
+  });
+  // Bike fields have hyphenated IDs
+  var bikeMap = { bikeModelo: 'pf-bike-modelo', bikeGps: 'pf-bike-gps', bikeRides: 'pf-bike-rides', bikeDuracao: 'pf-bike-duracao', bikeObjetivo: 'pf-bike-objetivo', bikeObs: 'pf-bike-obs' };
+  Object.keys(bikeMap).forEach(function(k) {
+    var el = document.getElementById(bikeMap[k]);
     if (el) el.value = p[k] || '';
   });
   var fds = document.getElementById('pf-fds');
@@ -3238,13 +3246,13 @@ function savePerfil() {
     fds: document.getElementById('pf-fds').value,
     estilo: document.getElementById('pf-estilo').value,
     aerobico: document.getElementById('pf-aerobico') ? document.getElementById('pf-aerobico').value : '',
-    bikeModelo: bikeModelo ? bikeModelo.value : '',
-    bikeGps: bikeGps ? bikeGps.value : '',
-    bikeRides: bikeRides ? bikeRides.value : '',
-    bikeDuracao: bikeDuracao ? bikeDuracao.value : '',
-    bikeObjetivo: bikeObjetivo ? bikeObjetivo.value : '',
-    bikeTiming: bikeTiming ? bikeTiming.value : 'flexivel',
-    bikeObs: bikeObs ? bikeObs.value : '',
+    bikeModelo: document.getElementById('pf-bike-modelo') ? document.getElementById('pf-bike-modelo').value : '',
+    bikeGps: document.getElementById('pf-bike-gps') ? document.getElementById('pf-bike-gps').value : '',
+    bikeRides: document.getElementById('pf-bike-rides') ? document.getElementById('pf-bike-rides').value : '',
+    bikeDuracao: document.getElementById('pf-bike-duracao') ? document.getElementById('pf-bike-duracao').value : '',
+    bikeObjetivo: document.getElementById('pf-bike-objetivo') ? document.getElementById('pf-bike-objetivo').value : '',
+    bikeTiming: document.getElementById('pf-bike-timing') ? document.getElementById('pf-bike-timing').value : 'flexivel',
+    bikeObs: document.getElementById('pf-bike-obs') ? document.getElementById('pf-bike-obs').value : '',
     lesoes: document.getElementById('pf-lesoes').value,
     obs: document.getElementById('pf-obs').value,
     diasCiclo: document.getElementById('pf-diasCiclo').value
@@ -7842,8 +7850,20 @@ function importData() {
         // Merge imported over defaults to fill any missing fields
         state = Object.assign(loadState(), imported);
         planoChatHistory = state.planoChatHistory || [];
+        // DEBUG
+        var _dbg = document.createElement('div');
+        _dbg.id = '_importDebug';
+        _dbg.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:#111;color:#0f0;font-family:monospace;font-size:11px;padding:10px;z-index:9999;max-height:40vh;overflow-y:auto;border-top:2px solid #0f0';
+        _dbg.innerHTML = '<button onclick="document.getElementById(\'_importDebug\').remove()" style="background:#333;color:#fff;border:none;padding:4px 8px;border-radius:4px;margin-bottom:6px;cursor:pointer">FECHAR</button><pre>' +
+          'state.perfil.bikeModelo: ' + (state.perfil ? state.perfil.bikeModelo : 'NO PERFIL') + '\n' +
+          'state.perfil.bikeGps: ' + (state.perfil ? state.perfil.bikeGps : 'NO PERFIL') + '\n' +
+          'state.perfil.bikeRides: ' + (state.perfil ? state.perfil.bikeRides : 'NO PERFIL') + '\n' +
+          'state.perfil keys: ' + (state.perfil ? Object.keys(state.perfil).join(', ') : 'none') +
+          '</pre>';
+        document.body.appendChild(_dbg);
         saveState();
         render();
+        loadPerfil();
         renderPlanoChatMessages();
         if (state.planoRascunho || state.plano) {
           renderPlanoMacro(state.planoRascunho || state.plano);
