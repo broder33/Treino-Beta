@@ -28,6 +28,8 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
     --text: #f0f0f0;
     --muted: #555;
     --done: #39ff85;
+    --bike-chuva: #5b8fff;
+    --bike-imprevisto: #ff9500;
     --partial: #ffcc00;
     --skipped: #ff6bff;
     --undone: #333;
@@ -1151,6 +1153,19 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
   }
   .tipo-treino { background: rgba(232,255,60,.1); color: var(--accent); }
   .tipo-aerobico { background: rgba(60,170,255,.1); color: var(--accent3); }
+  .bike-badge { font-family: 'DM Mono', monospace; font-size: 9px; letter-spacing: 0.5px; padding: 2px 6px; border-radius: 3px; font-weight: 600; white-space: nowrap; }
+  .bike-badge-pendente { background: rgba(91,143,255,.12); color: var(--bike-chuva); border: 1px solid rgba(91,143,255,.3); }
+  .bike-badge-feito    { background: rgba(57,255,133,.1);  color: var(--done);        border: 1px solid rgba(57,255,133,.3); }
+  .bike-badge-chuva    { background: rgba(91,143,255,.15); color: var(--bike-chuva);  border: 1px solid var(--bike-chuva); }
+  .bike-badge-imprevisto { background: rgba(255,149,0,.12); color: var(--bike-imprevisto); border: 1px solid rgba(255,149,0,.3); }
+  .bike-section { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); }
+  .bike-section-title { font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 1px; color: var(--bike-chuva); margin-bottom: 8px; }
+  .bike-action-btn { font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 0.5px; background: none; border: 1px solid var(--border); color: var(--muted); border-radius: 6px; padding: 7px 10px; cursor: pointer; flex: 1; }
+  .bike-action-btn.feito    { border-color: var(--done);             color: var(--done); }
+  .bike-action-btn.chuva    { border-color: var(--bike-chuva);       color: var(--bike-chuva); }
+  .bike-action-btn.imprevisto { border-color: var(--bike-imprevisto); color: var(--bike-imprevisto); }
+  .bike-action-btn.active   { font-weight: 700; }
+  .bike-field { font-family: 'DM Mono', monospace; font-size: 11px; background: transparent; border: none; border-bottom: 1px solid var(--border); color: var(--text); outline: none; padding: 2px 4px; width: 100%; margin-top: 2px; }
   .tipo-recuperacao { background: rgba(85,85,85,.3); color: var(--muted); }
   .tipo-perdido { background: rgba(255,68,68,.1); color: var(--danger); }
   .tipo-pulado { background: rgba(168,85,247,.1); color: #a855f7; }
@@ -1387,7 +1402,7 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
   <div class="header-actions">
     <button class="btn btn-header-only" onclick="exportData()">EXPORTAR</button>
     <button class="btn btn-header-only" onclick="importData()">IMPORTAR</button>
-    <span style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted);margin-left:4px">v0.8.8.33</span>
+    <span style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted);margin-left:4px">v0.8.8.35</span>
     <div id="auth-status" style="display:flex;align-items:center;margin-left:4px"></div>
 
     <div class="mobile-menu-wrap" id="mobile-menu-wrap">
@@ -1508,9 +1523,38 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
     </div>
 
     <div class="perfil-section">
-      <div class="perfil-section-title">AERÓBICO</div>
-      <div class="perfil-field full"><label>Rotina aeróbica e contexto</label>
-        <textarea id="pf-aerobico" placeholder="Ex: academia fica a 2.2km de casa (4.4km ida+volta a pé). Academia tem equipamentos disponíveis. Pode intensificar se necessário." oninput="savePerfil()"></textarea>
+      <div class="perfil-section-title">CICLISMO</div>
+      <div style="display:flex;gap:12px;flex-wrap:wrap">
+        <div class="perfil-field" style="flex:1;min-width:140px"><label>Bike</label>
+          <input type="text" id="pf-bike-modelo" placeholder="Ex: Colnago V4Rs" oninput="savePerfil()">
+        </div>
+        <div class="perfil-field" style="flex:1;min-width:140px"><label>GPS / Computador</label>
+          <input type="text" id="pf-bike-gps" placeholder="Ex: GEOID CC-700" oninput="savePerfil()">
+        </div>
+        <div class="perfil-field" style="flex:1;min-width:100px"><label>Rides/semana</label>
+          <input type="number" id="pf-bike-rides" placeholder="4" min="1" max="7" oninput="savePerfil()">
+        </div>
+        <div class="perfil-field" style="flex:1;min-width:120px"><label>Duração média</label>
+          <input type="text" id="pf-bike-duracao" placeholder="Ex: 1-2h" oninput="savePerfil()">
+        </div>
+      </div>
+      <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:4px">
+        <div class="perfil-field" style="flex:1;min-width:140px"><label>Objetivo no ciclismo</label>
+          <input type="text" id="pf-bike-objetivo" placeholder="Ex: perda de gordura, resistência" oninput="savePerfil()">
+        </div>
+        <div class="perfil-field" style="flex:1;min-width:140px"><label>Timing preferido</label>
+          <select id="pf-bike-timing" onchange="savePerfil()">
+            <option value="flexivel">Flexível (manhã ou noite)</option>
+            <option value="manha">Preferencialmente manhã</option>
+            <option value="noite">Preferencialmente noite</option>
+          </select>
+        </div>
+      </div>
+      <div class="perfil-field full" style="margin-top:4px"><label>Restrições / observações de ciclismo</label>
+        <textarea id="pf-bike-obs" placeholder="Ex: tendão patelar direito — cadência alta, sem sprints longos. Não pedala em dia D (pernas)." oninput="savePerfil()" rows="2"></textarea>
+      </div>
+      <div class="perfil-field full" style="margin-top:4px"><label>Outras atividades aeróbicas</label>
+        <textarea id="pf-aerobico" placeholder="Ex: caminhada, elíptico, natação..." oninput="savePerfil()" rows="2"></textarea>
       </div>
     </div>
 
@@ -2317,7 +2361,28 @@ function renderHistory() {
   const clearBtn = `<div class="history-clear-wrap">
     <button class="btn danger" onclick="clearHistory()" title="Apaga todo o histórico de treinos registrados. Esta ação não pode ser desfeita.">↺ LIMPAR HISTÓRICO</button>
   </div>`;
-  list.innerHTML = clearBtn + state.history.map(h => {
+  var bikeEntries = [];
+  if (state.plano && state.plano.diasBike) {
+    Object.keys(state.plano.diasBike).forEach(function(dk) {
+      var b = state.plano.diasBike[dk];
+      if (!b || b.status === 'pendente') return;
+      var parts = dk.match(/^sem(\d+)_(.+)$/);
+      if (!parts) return;
+      bikeEntries.push({ dayKey: dk, sem: parts[1], dia: parts[2], status: b.status, distancia: b.distancia||'', tempo: b.tempo||'', velocidade: b.velocidade||'', percurso: b.percurso||'' });
+    });
+  }
+  var bikeHTML = bikeEntries.length ? '<div style="margin-bottom:12px"><div style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;color:var(--bike-chuva);margin-bottom:8px">&#128690; HISTORICO DE PEDAL</div>' +
+    bikeEntries.map(function(b) {
+      var color = b.status==='feito' ? 'var(--done)' : b.status==='chuva' ? 'var(--bike-chuva)' : 'var(--bike-imprevisto)';
+      var icon = b.status==='feito' ? '&#128690;' : b.status==='chuva' ? 'CHUVA' : 'IMPREVISTO';
+      var label = b.status==='feito' ? 'Pedalei' : b.status==='chuva' ? 'Chuva' : 'Imprevisto';
+      var meta = [b.distancia ? b.distancia+'km' : '', b.tempo, b.velocidade, b.percurso].filter(Boolean).join(' · ');
+      return '<div class="history-card" style="flex-direction:column;align-items:stretch"><div style="display:flex;justify-content:space-between;align-items:center">' +
+        '<div><div style="font-family:DM Mono,monospace;font-size:13px;color:' + color + '">' + icon + ' ' + label + ' — Sem.' + b.sem + ' ' + b.dia + '</div>' +
+        (meta ? '<div style="font-family:DM Mono,monospace;font-size:11px;color:var(--muted);margin-top:3px">' + escHtml(meta) + '</div>' : '') +
+        '</div></div></div>';
+    }).join('') + '</div>' : '';
+  list.innerHTML = clearBtn + bikeHTML + state.history.map(h => {
     const d = new Date(h.date);
     const dataFormatada = d.toLocaleDateString('pt-BR', {day:'2-digit',month:'2-digit',year:'2-digit'});
     const diaSemana = d.toLocaleDateString('pt-BR', {weekday:'long'});
@@ -2585,12 +2650,14 @@ function loadPerfil() {
   if (input && saved) input.value = saved;
   renderTokenUsage();
   var p = state.perfil || DEFAULT_PERFIL;
-  ['altura','peso','idade','pesoobj','objetivos','prioridades','dias','diasCiclo','estilo','aerobico','lesoes','obs'].forEach(function(k) {
+  ['altura','peso','idade','pesoobj','objetivos','prioridades','dias','diasCiclo','estilo','aerobico','bikeModelo','bikeGps','bikeRides','bikeDuracao','bikeObjetivo','bikeObs','lesoes','obs'].forEach(function(k) {
     var el = document.getElementById('pf-' + k);
     if (el) el.value = p[k] || '';
   });
   var fds = document.getElementById('pf-fds');
   if (fds) fds.value = p.fds || 'ocasionalmente';
+  var bikeTimingEl = document.getElementById('pf-bike-timing');
+  if (bikeTimingEl && p.bikeTiming) bikeTimingEl.value = p.bikeTiming;
   loadConfigTreino();
 }
 
@@ -3153,6 +3220,13 @@ function aplicarRelocamento(dayKey, diaNome, semana, tipo) {
 }
 
 function savePerfil() {
+  var bikeModelo = document.getElementById('pf-bike-modelo');
+  var bikeGps = document.getElementById('pf-bike-gps');
+  var bikeRides = document.getElementById('pf-bike-rides');
+  var bikeDuracao = document.getElementById('pf-bike-duracao');
+  var bikeObjetivo = document.getElementById('pf-bike-objetivo');
+  var bikeTiming = document.getElementById('pf-bike-timing');
+  var bikeObs = document.getElementById('pf-bike-obs');
   state.perfil = {
     altura: document.getElementById('pf-altura').value,
     peso: document.getElementById('pf-peso').value,
@@ -3163,7 +3237,14 @@ function savePerfil() {
     dias: document.getElementById('pf-dias').value,
     fds: document.getElementById('pf-fds').value,
     estilo: document.getElementById('pf-estilo').value,
-    aerobico: document.getElementById('pf-aerobico').value,
+    aerobico: document.getElementById('pf-aerobico') ? document.getElementById('pf-aerobico').value : '',
+    bikeModelo: bikeModelo ? bikeModelo.value : '',
+    bikeGps: bikeGps ? bikeGps.value : '',
+    bikeRides: bikeRides ? bikeRides.value : '',
+    bikeDuracao: bikeDuracao ? bikeDuracao.value : '',
+    bikeObjetivo: bikeObjetivo ? bikeObjetivo.value : '',
+    bikeTiming: bikeTiming ? bikeTiming.value : 'flexivel',
+    bikeObs: bikeObs ? bikeObs.value : '',
     lesoes: document.getElementById('pf-lesoes').value,
     obs: document.getElementById('pf-obs').value,
     diasCiclo: document.getElementById('pf-diasCiclo').value
@@ -3179,15 +3260,39 @@ function salvarPerfil() {
 
 function buildPerfilTexto() {
   var p = state.perfil || DEFAULT_PERFIL;
+  var bikeCtx = '';
+  if (state.plano && state.plano.diasBike) {
+    var feitos = 0, chuvas = 0, imprevistos = 0;
+    Object.values(state.plano.diasBike).forEach(function(b) {
+      if (b.status === 'feito') feitos++;
+      else if (b.status === 'chuva') chuvas++;
+      else if (b.status === 'imprevisto') imprevistos++;
+    });
+    if (feitos + chuvas + imprevistos > 0) {
+      bikeCtx = '\n- Bike neste ciclo: ' + feitos + ' ride(s) feito(s), ' + chuvas + ' cancelado(s) por chuva, ' + imprevistos + ' por imprevisto';
+    }
+  }
   return 'PERFIL DO ATLETA:\n' +
     '- ' + p.altura + 'cm, ' + p.peso + 'kg, ' + p.idade + ' anos. Objetivo de peso: ' + p.pesoobj + 'kg\n' +
     '- Objetivos: ' + p.objetivos + '\n' +
     '- Prioridades musculares: ' + p.prioridades + '\n' +
     '- Treina ' + p.dias + 'x/semana. Fins de semana: ' + p.fds + '\n' +
     '- Estilo: ' + p.estilo + '\n' +
-    '- Aeróbico: ' + p.aerobico + '\n' +
+    '- Aeróbico/Bike: ' + p.aerobico + '\n' +
     '- Lesões/restrições: ' + p.lesoes +
-    (p.obs ? '\n- Obs: ' + p.obs : '');
+    (p.obs ? '\n- Obs: ' + p.obs : '') +
+    bikeCtx + '\n' +
+    (p.bikeModelo || p.bikeGps || p.bikeRides ? '\nCICLISMO:\n' +
+    (p.bikeModelo ? '- Bike: ' + p.bikeModelo + '\n' : '') +
+    (p.bikeGps ? '- GPS: ' + p.bikeGps + ' (registra distância, tempo, velocidade média)\n' : '') +
+    '- Meta: ' + (p.bikeRides || '4') + ' rides/semana, ' + (p.bikeDuracao || '1-2h') + ' cada. Z2 predominante, Z4 1x/semana.\n' +
+    (p.bikeObjetivo ? '- Objetivo ciclismo: ' + p.bikeObjetivo + '\n' : '') +
+    '- Timing preferido: ' + (p.bikeTiming === 'manha' ? 'manhã' : p.bikeTiming === 'noite' ? 'noite' : 'flexível (manhã ou noite)') + '.\n' +
+    '- REGRAS: bike NUNCA em dia D (pernas). Bike antes da musculação: reduza intensidade da musculação. Bike após A/B/C: Z2 apenas, nunca Z4.\n' +
+    '- "D trocado por bike": usuário pode substituir dia D por bike (D é relocado). Pode combinar com A/B/C no mesmo dia.\n' +
+    (p.bikeObs ? '- Obs ciclismo: ' + p.bikeObs : '')
+    : '- Bike: sem dados configurados no perfil.\n') +
+    bikeCtx;
 }
 
 
@@ -3242,7 +3347,13 @@ ${temPlano ?
 4. DIA PERDIDO
 {"replanejamento":{"diaPerdido":"Quarta","motivoPerdido":"viagem","ajustes":[{"dia":"Quinta","serie":"C","orientacao":"ajuste"}],"observacao":"explicação"}}
 
-5. CONVERSA NORMAL — responda em português, direto e técnico.
+5. BIKE — planejamento de ciclismo integrado ao plano
+Inclua o campo "bike" em todo dia que NÃO seja D e NÃO seja Domingo. Formato:
+{"bike":{"foco":"Z2 Endurance","duracao":"1h30","timing":"após musculação","intensidade":"Ritmo confortável, consegue falar frases completas. FC ~65-75% FCmax.","obs":"Cadência alta, sem força excessiva — joelho direito."}}
+Zonas: Z2=confortável (frases completas), Z3=moderado (frases curtas), Z4=forte (palavras isoladas).
+Regras: nunca bike em dia D. Tendão patelar direito: sem sprints longos. Timing "antes": reduza intensidade da musculação. Timing "após": Z2 apenas. Meta ~4 rides/semana: Z2 (3x) + Z4 (1x em dia leve). "D trocado por bike": bike.foco="Ride substituto de D", Z2-Z3, D é relocado.
+
+6. CONVERSA NORMAL — responda em português, direto e técnico.
 
 REGRA DE FORMATO: quando retornar JSON, retorne APENAS o JSON — sem texto antes, sem texto depois, sem markdown, sem explicações. Se precisar explicar algo, faça em uma mensagem separada antes do JSON.`;
 }
@@ -3275,8 +3386,40 @@ function buildContextoTreino() {
       '\n\nIMPORTANTE: Este plano tem ' + state.plano.semanas.length + ' semanas. Ao gerar modificações, inclua TODAS as semanas do plano, inclusive semanas adicionais se o ciclo exigir.';
   }
 
+  // Bike history
+  var bikeResumo = '';
+  if (state.plano && state.plano.diasBike) {
+    var bikeLinhas = [];
+    Object.keys(state.plano.diasBike).forEach(function(dk) {
+      var b = state.plano.diasBike[dk];
+      if (!b || b.status === 'pendente') return;
+      var parts = dk.match(/^sem(\d+)_(.+)$/);
+      if (!parts) return;
+      var linha = 'Sem' + parts[1] + ' ' + parts[2] + ': ' + b.status;
+      if (b.status === 'feito') {
+        if (b.distancia) linha += ' — ' + b.distancia + 'km';
+        if (b.tempo) linha += ', ' + b.tempo;
+        if (b.velocidade) linha += ', ' + b.velocidade + ' med.';
+        if (b.timingReal) linha += ' (' + b.timingReal + ')';
+      }
+      bikeLinhas.push(linha);
+    });
+    if (bikeLinhas.length) bikeResumo = '\n\nBIKE NESTE CICLO:\n' + bikeLinhas.join('\n');
+  }
+  var bikePlanoCtx = '';
+  if (state.plano && state.plano.semanas) {
+    var bpLinhas = [];
+    state.plano.semanas.forEach(function(sem) {
+      (sem.dias || sem.agenda || []).forEach(function(d) {
+        if (d.bike) bpLinhas.push('Sem' + sem.semana + ' ' + d.dia + ': ' + (d.bike.foco||'') + ' ' + (d.bike.duracao||'') + ', timing: ' + (d.bike.timing||'') + (d.bike.timingReal ? ' (real: '+d.bike.timingReal+')' : ''));
+      });
+    });
+    if (bpLinhas.length) bikePlanoCtx = '\n\nBIKE PLANEJADO NO PLANO:\n' + bpLinhas.join('\n');
+  }
   return 'HISTÓRICO RECENTE:\n' + histSummary +
     (skippedAll.length ? '\n\nEXERCÍCIOS PULADOS NA ÚLTIMA SESSÃO:\n' + skippedAll.join('\n') : '') +
+    bikeResumo +
+    bikePlanoCtx +
     planoAtual;
 }
 
@@ -3811,6 +3954,7 @@ function renderModificacoesProposta(mod) {
           // Re-check aerobico from orientacao
           if (d.serie === 'descanso' && /aer[oó]b/i.test(a.orientacao)) d.tipo = 'aerobico';
         }
+        if (a.bike !== undefined) d.bike = a.bike;
         if (a.tipo_dia) d.tipo = a.tipo_dia;
       }
     });
@@ -4029,6 +4173,7 @@ function aplicarModificacoesMacro(mod) {
         d.orientacao = a.orientacao;
         if (d.serie === 'descanso' && /aer[oó]b/i.test(a.orientacao)) d.tipo = 'aerobico';
       }
+      if (a.bike !== undefined) d.bike = a.bike;
       if (a.tipo_dia) d.tipo = a.tipo_dia;
       if (a.intensidade) d.intensidade = a.intensidade;
     } else if (a.tipo === 'substituir' && diaNome) {
@@ -5081,6 +5226,124 @@ function renderReplanejamento(rep) {
 }
 
 
+// ─── BIKE ───
+function _bikeEhDiaDPernas(dayKey) {
+  if (!state.plano) return false;
+  var m = dayKey.match(/^sem(\d+)_(.+)$/);
+  if (!m) return false;
+  var sem = state.plano.semanas && state.plano.semanas[parseInt(m[1])-1];
+  if (!sem) return false;
+  var dia = (sem.dias || sem.agenda || []).find(function(d) { return d.dia === m[2]; });
+  return !!(dia && dia.serie === 'D');
+}
+
+function _bikeTemDia(dayKey) {
+  if (!state.plano) return false;
+  var m = dayKey.match(/^sem(\d+)_(.+)$/);
+  if (!m) return false;
+  if (m[2] === 'Domingo') return false;
+  return !_bikeEhDiaDPernas(dayKey);
+}
+
+function _getBikePlano(dayKey) {
+  if (!state.plano) return null;
+  var m = dayKey.match(/^sem(\d+)_(.+)$/);
+  if (!m) return null;
+  var sem = state.plano.semanas && state.plano.semanas[parseInt(m[1])-1];
+  if (!sem) return null;
+  var dia = (sem.dias || sem.agenda || []).find(function(d) { return d.dia === m[2]; });
+  return (dia && dia.bike) ? dia.bike : null;
+}
+
+function substituirDPorBike(dayKey, diaNome, semana) {
+  aplicarRelocamento(dayKey, diaNome, semana, 'ausente');
+  if (!state.plano.diasBike) state.plano.diasBike = {};
+  state.plano.diasBike[dayKey] = { status: 'pendente', substitutoD: true };
+  saveState();
+  renderAgendaLinear();
+  toast('D→Bike: treino D relocado. Pedal no lugar!');
+}
+
+function registrarBike(dayKey, status) {
+  if (!state.plano.diasBike) state.plano.diasBike = {};
+  if (!state.plano.diasBike[dayKey]) state.plano.diasBike[dayKey] = {};
+  state.plano.diasBike[dayKey].status = status;
+  if (status === 'chuva') _verificarAntecipacaoPosChuva(dayKey);
+  saveState();
+  renderAgendaLinear();
+}
+
+function desfazerBike(dayKey) {
+  if (!state.plano.diasBike) return;
+  state.plano.diasBike[dayKey] = { status: 'pendente' };
+  saveState();
+  renderAgendaLinear();
+}
+
+function updateBikeField(dayKey, field, value) {
+  if (!state.plano.diasBike) state.plano.diasBike = {};
+  if (!state.plano.diasBike[dayKey]) state.plano.diasBike[dayKey] = { status: 'feito' };
+  state.plano.diasBike[dayKey][field] = value;
+  saveState();
+}
+
+function _verificarAntecipacaoPosChuva(dayKey) {
+  var ultimoD = state.history.find(function(h) { return h.serieLabel === 'D'; });
+  if (!ultimoD) return;
+  var horas = (Date.now() - new Date(ultimoD.date).getTime()) / 3600000;
+  if (horas < 48) toast('Chuva registrada. Ultimo treino D foi ha ' + Math.round(horas) + 'h. Considere antecipar o proximo D!');
+}
+
+function _buildBikeSection(dayKey, bikeInfo, bikePlano) {
+  var bs = bikeInfo && bikeInfo.status ? bikeInfo.status : 'pendente';
+  var html = '<div class="bike-section">';
+  html += '<div class="bike-section-title">&#128690; PEDAL DO DIA</div>';
+  if (bikePlano) {
+    html += '<div style="background:rgba(91,143,255,.06);border:1px solid rgba(91,143,255,.2);border-radius:6px;padding:8px 10px;margin-bottom:8px">';
+    html += '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px">';
+    html += '<span style="font-family:DM Mono,monospace;font-size:11px;color:var(--bike-chuva);font-weight:700">' + escHtml(bikePlano.foco||'') + '</span>';
+    html += '<span style="font-family:DM Mono,monospace;font-size:10px;color:var(--muted)">' + escHtml(bikePlano.duracao||'') + '</span>';
+    html += '</div>';
+    if (bikePlano.intensidade) html += '<div style="font-size:11px;color:var(--text);line-height:1.5;margin-bottom:4px">' + escHtml(bikePlano.intensidade) + '</div>';
+    if (bikePlano.timing) {
+      var tc = bikePlano.timing.indexOf('antes') !== -1 ? 'var(--accent2)' : 'var(--bike-chuva)';
+      html += '<div style="font-family:DM Mono,monospace;font-size:10px;color:' + tc + '">&#9201; Timing recomendado: ' + escHtml(bikePlano.timing) + '</div>';
+    }
+    if (bikePlano.obs) html += '<div style="font-family:DM Mono,monospace;font-size:10px;color:var(--muted);margin-top:3px">' + escHtml(bikePlano.obs) + '</div>';
+    html += '</div>';
+  }
+  html += '<div style="display:flex;gap:6px;margin-bottom:8px">';
+  html += '<button class="bike-action-btn feito' + (bs==='feito'?' active':'') + '" onclick="registrarBike(\'' + dayKey + '\',\'feito\')">&#10003; PEDALEI</button>';
+  html += '<button class="bike-action-btn chuva' + (bs==='chuva'?' active':'') + '" onclick="registrarBike(\'' + dayKey + '\',\'chuva\')">CHUVA</button>';
+  html += '<button class="bike-action-btn imprevisto' + (bs==='imprevisto'?' active':'') + '" onclick="registrarBike(\'' + dayKey + '\',\'imprevisto\')">IMPREVISTO</button>';
+  html += '</div>';
+  if (bs === 'feito') {
+    var dist = (bikeInfo&&bikeInfo.distancia)||'';
+    var tempo = (bikeInfo&&bikeInfo.tempo)||'';
+    var veloc = (bikeInfo&&bikeInfo.velocidade)||'';
+    var percurso = (bikeInfo&&bikeInfo.percurso)||'';
+    var tr = (bikeInfo&&bikeInfo.timingReal)||'';
+    html += '<div style="display:flex;gap:6px;margin-bottom:6px">';
+    html += '<button class="bike-action-btn' + (tr==='antes'?' feito active':'') + '" style="font-size:9px" onclick="updateBikeField(\'' + dayKey + '\',\'timingReal\',\'antes\');renderAgendaLinear()">PEDALEI ANTES</button>';
+    html += '<button class="bike-action-btn' + (tr==='depois'?' feito active':'') + '" style="font-size:9px" onclick="updateBikeField(\'' + dayKey + '\',\'timingReal\',\'depois\');renderAgendaLinear()">PEDALEI DEPOIS</button>';
+    html += '</div>';
+    html += '<div style="display:flex;gap:8px;margin-bottom:6px">';
+    html += '<div style="flex:1"><div style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted);letter-spacing:0.5px">KM</div><input class="bike-field" value="' + escHtml(dist) + '" placeholder="32" onchange="updateBikeField(\'' + dayKey + '\',\'distancia\',this.value)"></div>';
+    html += '<div style="flex:1"><div style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted);letter-spacing:0.5px">TEMPO</div><input class="bike-field" value="' + escHtml(tempo) + '" placeholder="1h20" onchange="updateBikeField(\'' + dayKey + '\',\'tempo\',this.value)"></div>';
+    html += '<div style="flex:1"><div style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted);letter-spacing:0.5px">VEL. MED.</div><input class="bike-field" value="' + escHtml(veloc) + '" placeholder="22km/h" onchange="updateBikeField(\'' + dayKey + '\',\'velocidade\',this.value)"></div>';
+    html += '</div>';
+    html += '<div style="margin-bottom:6px"><div style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted);letter-spacing:0.5px">PERCURSO</div><input class="bike-field" value="' + escHtml(percurso) + '" placeholder="ex: Parque Municipal" onchange="updateBikeField(\'' + dayKey + '\',\'percurso\',this.value)"></div>';
+    html += '<button onclick="desfazerBike(\'' + dayKey + '\')" style="font-family:DM Mono,monospace;font-size:9px;background:none;border:none;color:var(--muted);cursor:pointer;padding:0">&#8617; desfazer</button>';
+  } else if (bs === 'chuva' || bs === 'imprevisto') {
+    var col = bs==='chuva' ? 'var(--bike-chuva)' : 'var(--bike-imprevisto)';
+    var lbl = bs==='chuva' ? 'Ride cancelado por chuva' : 'Ride cancelado por imprevisto';
+    html += '<div style="font-family:DM Mono,monospace;font-size:11px;color:' + col + ';margin-bottom:6px">' + lbl + '</div>';
+    html += '<button onclick="desfazerBike(\'' + dayKey + '\')" style="font-family:DM Mono,monospace;font-size:9px;background:none;border:none;color:var(--muted);cursor:pointer;padding:0">&#8617; desfazer</button>';
+  }
+  html += '</div>';
+  return html;
+}
+
 function renderAgendaLinear() {
   const list = document.getElementById('agenda-linear-list');
   if (!list) return;
@@ -5296,6 +5559,10 @@ function renderAgendaLinear() {
         }
       }
 
+      var bikeTemDia = _bikeTemDia(dayKey);
+      var bikeInfo = state.plano.diasBike && state.plano.diasBike[dayKey];
+      var bikeStatus = (bikeInfo && bikeInfo.status) ? bikeInfo.status : 'pendente';
+      var bikeBadgeLabel = bikeStatus === 'feito' ? '&#128690; PEDAL &#10003;' : bikeStatus === 'chuva' ? 'CHUVA' : bikeStatus === 'imprevisto' ? 'IMPREVISTO' : '&#128690; PEDAL';
       var actionsHTML = '<div class="agenda-dia-actions">';
       if (status === 'pendente' || status === 'antecipado' || status === 'ausente' || status === 'disponivel') {
         if (!isRest) {
@@ -5311,6 +5578,7 @@ function renderAgendaLinear() {
         } else if (status !== 'ausente') {
           if (!isRest && !isDiaPast) actionsHTML += '<button class="agenda-action-btn done" onclick="marcarDia(\'' + dayKey + '\',\'concluido\')">✓ CONCLUÍDO</button>';
           if (!isRest) actionsHTML += '<button class="agenda-action-btn purple" onclick="pularDia(\'' + dayKey + '\',\'' + d.serie + '\')">⟶ PULAR ESTE TREINO</button>';
+          if (!isRest && d.serie === 'D') actionsHTML += '<button class="bike-action-btn feito" style="flex:1" onclick="substituirDPorBike(\'' + dayKey + '\',\'' + d.dia + '\',' + semana.semana + ')">&#128690; D&#8594;BIKE</button>';
           // Botão único "DIA PERDIDO" com submenu
           actionsHTML += '<div style="position:relative;flex:1">' +
             '<button class="agenda-action-btn danger" style="width:100%" onclick="toggleDiaPerdidoMenu(\'' + dayKey + '\')">✕ DIA PERDIDO ▾</button>' +
@@ -5347,6 +5615,7 @@ function renderAgendaLinear() {
           '<span class="agenda-dia-label">' + escHtml(d.dia) + (dateStr ? '<br><span style="font-size:10px;font-family:DM Mono,monospace;color:var(--muted)">' + dateStr + '</span>' : '') + '</span>' +
           '<span class="agenda-dia-serie">' + (status === 'pulado' ? '' : (isRest ? (tipo === 'aerobico' ? 'Aeróbico / Cardio' : 'Descanso') : (serieObj ? d.serie + ' — ' + serieObj.name : d.serie))) + '</span>' +
           '<span class="agenda-dia-tipo ' + tipoClass + '">' + tipoLabel + '</span>' +
+          (bikeTemDia ? '<span class="bike-badge bike-badge-' + bikeStatus + '">' + bikeBadgeLabel + '</span>' : '') +
         '</div>' +
         '<div class="agenda-dia-body">' +
           (status === 'pulado'
@@ -5355,6 +5624,7 @@ function renderAgendaLinear() {
               (d.orientacao || d.instrucoes ? '<div class="agenda-instrucoes">' + escHtml(d.orientacao || d.instrucoes) + '</div>' : '') +
               exHTML +
               actionsHTML +
+              (bikeTemDia && status !== 'concluido' ? _buildBikeSection(dayKey, bikeInfo, _getBikePlano(dayKey)) : '') +
               (isRest ? '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">' +
                 (expanded ? '<button class="agenda-action-btn danger" onclick="limparCacheDia(\'' + dayKey + '\')">✕ LIMPAR TREINO CANCELADO</button>' : '<span></span>') +
                 '<button class="agenda-action-btn" style="border-color:var(--accent3);color:var(--accent3)" onclick="toggleChatInline(\'' + dayKey + '\',\'\')">✦ AJUSTAR COM IA</button>' +
