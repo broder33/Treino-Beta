@@ -1117,6 +1117,9 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
   }
   .agenda-dia.hoje { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
   .agenda-dia.perdido { border-color: var(--danger); background: rgba(255,68,68,.03); }
+  .agenda-dia.bike-dia { border-color: var(--done); background: rgba(57,255,133,.03); }
+  .agenda-dia.bike-chuva { border-color: var(--bike-chuva); background: rgba(91,143,255,.03); }
+  .agenda-dia.bike-imprevisto { border-color: var(--bike-imprevisto); background: rgba(255,149,0,.03); }
   .agenda-dia.ausente-planejada { border-color: #ff9500; background: rgba(255,149,0,.03); }
   .agenda-dia.pulado { border-color: #a855f7; background: rgba(168,85,247,.03); }
   .agenda-dia.concluido { border-color: rgba(57,255,133,.3); background: rgba(57,255,133,.03); }
@@ -1153,6 +1156,8 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
   }
   .tipo-treino { background: rgba(232,255,60,.1); color: var(--accent); }
   .tipo-aerobico { background: rgba(60,170,255,.1); color: var(--accent3); }
+  .tipo-bike { background: rgba(91,143,255,.12); color: var(--bike-chuva); }
+  .tipo-bike-imprevisto { background: rgba(255,149,0,.12); color: var(--bike-imprevisto); }
   .bike-badge { font-family: 'DM Mono', monospace; font-size: 9px; letter-spacing: 0.5px; padding: 2px 6px; border-radius: 3px; font-weight: 600; white-space: nowrap; }
   .bike-badge-pendente { background: rgba(91,143,255,.12); color: var(--bike-chuva); border: 1px solid rgba(91,143,255,.3); }
   .bike-badge-feito    { background: rgba(57,255,133,.1);  color: var(--done);        border: 1px solid rgba(57,255,133,.3); }
@@ -1166,6 +1171,8 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
   .bike-action-btn.imprevisto { border-color: var(--bike-imprevisto); color: var(--bike-imprevisto); }
   .bike-action-btn.active   { font-weight: 700; }
   .bike-field { font-family: 'DM Mono', monospace; font-size: 11px; background: transparent; border: none; border-bottom: 1px solid var(--border); color: var(--text); outline: none; padding: 2px 4px; width: 100%; margin-top: 2px; }
+  .bike-field::placeholder { color: var(--muted); opacity: 0.5; }
+  .bike-field:focus { border-bottom-color: var(--bike-chuva); }
   .tipo-recuperacao { background: rgba(85,85,85,.3); color: var(--muted); }
   .tipo-perdido { background: rgba(255,68,68,.1); color: var(--danger); }
   .tipo-pulado { background: rgba(168,85,247,.1); color: #a855f7; }
@@ -1402,7 +1409,7 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
   <div class="header-actions">
     <button class="btn btn-header-only" onclick="exportData()">EXPORTAR</button>
     <button class="btn btn-header-only" onclick="importData()">IMPORTAR</button>
-    <span style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted);margin-left:4px">v0.8.8.39</span>
+    <span style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted);margin-left:4px">v0.8.9.37</span>
     <div id="auth-status" style="display:flex;align-items:center;margin-left:4px"></div>
 
     <div class="mobile-menu-wrap" id="mobile-menu-wrap">
@@ -1751,6 +1758,8 @@ function sanitizePlanoTipos(plano) {
       }
       if (d.serie && d.serie !== 'descanso') {
         d.tipo = 'treino';
+      } else if (d.tipo === 'bike') {
+        // preserve bike tipo
       } else {
         d.tipo = (d.orientacao && /aer[oó]b/i.test(d.orientacao)) ? 'aerobico' : 'recuperacao';
       }
@@ -2354,76 +2363,80 @@ function criarSerieMista(label, name, exercises) {
 // ─────────────────────────── HISTORY ───────────────────────────
 function renderHistory() {
   const list = document.getElementById('history-list');
-  if (!state.history.length) {
+  var hasBike = state.bikeHistory && state.bikeHistory.length > 0;
+  if (!state.history.length && !hasBike) {
     list.innerHTML = '<div style="color:var(--muted);font-family:DM Mono,monospace;font-size:12px;padding:20px 0">Nenhum treino registrado ainda.</div>';
     return;
   }
   const clearBtn = `<div class="history-clear-wrap">
     <button class="btn danger" onclick="clearHistory()" title="Apaga todo o histórico de treinos registrados. Esta ação não pode ser desfeita.">↺ LIMPAR HISTÓRICO</button>
   </div>`;
-  var bikeEntries = [];
-  if (state.plano && state.plano.diasBike) {
-    Object.keys(state.plano.diasBike).forEach(function(dk) {
-      var b = state.plano.diasBike[dk];
-      if (!b || b.status === 'pendente') return;
-      var parts = dk.match(/^sem(\d+)_(.+)$/);
-      if (!parts) return;
-      bikeEntries.push({ dayKey: dk, sem: parts[1], dia: parts[2], status: b.status, distancia: b.distancia||'', tempo: b.tempo||'', velocidade: b.velocidade||'', percurso: b.percurso||'' });
-    });
-  }
-  var bikeHTML = bikeEntries.length ? '<div style="margin-bottom:12px"><div style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;color:var(--bike-chuva);margin-bottom:8px">&#128690; HISTORICO DE PEDAL</div>' +
-    bikeEntries.map(function(b) {
-      var color = b.status==='feito' ? 'var(--done)' : b.status==='chuva' ? 'var(--bike-chuva)' : 'var(--bike-imprevisto)';
-      var icon = b.status==='feito' ? '&#128690;' : b.status==='chuva' ? 'CHUVA' : 'IMPREVISTO';
-      var label = b.status==='feito' ? 'Pedalei' : b.status==='chuva' ? 'Chuva' : 'Imprevisto';
-      var meta = [b.distancia ? b.distancia+'km' : '', b.tempo, b.velocidade, b.percurso].filter(Boolean).join(' · ');
-      return '<div class="history-card" style="flex-direction:column;align-items:stretch"><div style="display:flex;justify-content:space-between;align-items:center">' +
-        '<div><div style="font-family:DM Mono,monospace;font-size:13px;color:' + color + '">' + icon + ' ' + label + ' — Sem.' + b.sem + ' ' + b.dia + '</div>' +
-        (meta ? '<div style="font-family:DM Mono,monospace;font-size:11px;color:var(--muted);margin-top:3px">' + escHtml(meta) + '</div>' : '') +
-        '</div></div></div>';
-    }).join('') + '</div>' : '';
-  list.innerHTML = clearBtn + bikeHTML + state.history.map(h => {
-    const d = new Date(h.date);
-    const dataFormatada = d.toLocaleDateString('pt-BR', {day:'2-digit',month:'2-digit',year:'2-digit'});
-    const diaSemana = d.toLocaleDateString('pt-BR', {weekday:'long'});
-    const diaSemanaCapit = diaSemana.charAt(0).toUpperCase() + diaSemana.slice(1);
-    const reg = h.registeredAt ? new Date(h.registeredAt).toLocaleDateString('pt-BR', {day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : null;
+  // Unified timeline: bike + gym sorted by date desc
+  var _bikeItems = (state.bikeHistory || []).map(function(b) { return { _type: 'bike', _date: new Date(b.date), _data: b }; });
+  var _gymItems = state.history.map(function(h) { return { _type: 'gym', _date: new Date(h.date), _data: h }; });
+  var _allItems = _bikeItems.concat(_gymItems).sort(function(a, b) { return b._date - a._date; });
 
-    // Build exercise detail list if available
-    var exHTML = '';
-    if (h.exercises && h.exercises.length > 0) {
-      var rows = h.exercises.map(function(ex) {
-        var statusColor = ex.status === 'done' ? 'var(--done)' : ex.status === 'skipped' ? 'var(--danger)' : 'var(--muted)';
-        var statusDot = ex.status === 'done' ? '●' : ex.status === 'skipped' ? '✕' : '○';
-        return '<div style="display:flex;align-items:baseline;gap:8px;padding:3px 0;border-bottom:1px solid rgba(255,255,255,.04)">' +
-          '<span style="color:' + statusColor + ';font-size:10px;width:12px;flex-shrink:0">' + statusDot + '</span>' +
-          '<span style="flex:1;font-size:12px;color:var(--text)">' + escHtml(ex.name || '') + '</span>' +
-          '<span style="font-family:DM Mono,monospace;font-size:11px;color:var(--accent)">' + escHtml(ex.sets || '') + '</span>' +
-          '<span style="font-family:DM Mono,monospace;font-size:11px;color:var(--accent2);min-width:80px;text-align:right">' + escHtml(ex.weight || '') + '</span>' +
-          (ex.rest ? '<span style="font-family:DM Mono,monospace;font-size:11px;color:var(--muted);min-width:60px;text-align:right">' + escHtml(ex.rest) + '</span>' : '') +
-          '</div>';
-      }).join('');
-      exHTML = '<div id="hist-ex-' + h.id + '" style="display:none;margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">' + rows + '</div>';
+  list.innerHTML = clearBtn + _allItems.map(function(entry) {
+    if (entry._type === 'bike') {
+      var b = entry._data;
+      var bd = entry._date;
+      var dataFmt = bd.toLocaleDateString('pt-BR', {day:'2-digit',month:'2-digit',year:'2-digit'});
+      var diaSemFmt = bd.toLocaleDateString('pt-BR', {weekday:'long'});
+      diaSemFmt = diaSemFmt.charAt(0).toUpperCase() + diaSemFmt.slice(1);
+      var meta = [b.distancia ? b.distancia+'km' : '', b.tempoMov ? b.tempoMov+' mov.' : (b.tempo||''), b.tempoTotal ? b.tempoTotal+' total' : '', b.velocidade ? b.velocidade+' méd.' : '', b.elevacao ? b.elevacao+'m elev.' : '', b.kcal ? b.kcal+'kcal' : '', b.percurso].filter(Boolean).join(' · ');
+      var regHora = b.date ? new Date(b.date).toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit'}) : '';
+      var timing = b.timingReal ? ' · ' + b.timingReal + ' da musculação' : '';
+      return '<div class="history-card" style="flex-direction:column;align-items:stretch;border-color:rgba(91,143,255,.35)">' +
+        '<div style="display:flex;justify-content:space-between;align-items:flex-start">' +
+        '<div style="flex:1">' +
+        '<div style="display:flex;align-items:baseline;gap:10px;margin-bottom:2px">' +
+        '<div class="history-serie" style="color:var(--bike-chuva)">&#128690; ' + escHtml(b.foco||'Ride') + '</div>' +
+        '<div style="font-family:DM Mono,monospace;font-size:11px;color:var(--accent2)">' + dataFmt + '</div>' +
+        '<div style="font-family:DM Mono,monospace;font-size:11px;color:var(--muted)">' + diaSemFmt + '</div>' +
+        '</div>' +
+        '<div class="history-date">' + escHtml(meta) + timing + (regHora ? ' · ' + regHora : '') + '</div>' +
+        '</div>' +
+        '<button class="ex-action-btn" onclick="removeBikeHistoryEntry(\'' + b.id + '\')" title="Remover" style="flex-shrink:0;margin-left:8px">✕</button>' +
+        '</div></div>';
+    } else {
+      var h = entry._data;
+      var hd = entry._date;
+      var dataFormatada = hd.toLocaleDateString('pt-BR', {day:'2-digit',month:'2-digit',year:'2-digit'});
+      var diaSemana = hd.toLocaleDateString('pt-BR', {weekday:'long'});
+      var diaSemanaCapit = diaSemana.charAt(0).toUpperCase() + diaSemana.slice(1);
+      var reg = h.registeredAt ? new Date(h.registeredAt).toLocaleDateString('pt-BR', {day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : null;
+      var exHTML = '';
+      if (h.exercises && h.exercises.length > 0) {
+        var rows = h.exercises.map(function(ex) {
+          var statusColor = ex.status === 'done' ? 'var(--done)' : ex.status === 'skipped' ? 'var(--danger)' : 'var(--muted)';
+          var statusDot = ex.status === 'done' ? '●' : ex.status === 'skipped' ? '✕' : '○';
+          return '<div style="display:flex;align-items:baseline;gap:8px;padding:3px 0;border-bottom:1px solid rgba(255,255,255,.04)">' +
+            '<span style="color:' + statusColor + ';font-size:10px;width:12px;flex-shrink:0">' + statusDot + '</span>' +
+            '<span style="flex:1;font-size:12px;color:var(--text)">' + escHtml(ex.name || '') + '</span>' +
+            '<span style="font-family:DM Mono,monospace;font-size:11px;color:var(--accent)">' + escHtml(ex.sets || '') + '</span>' +
+            '<span style="font-family:DM Mono,monospace;font-size:11px;color:var(--accent2);min-width:80px;text-align:right">' + escHtml(ex.weight || '') + '</span>' +
+            (ex.rest ? '<span style="font-family:DM Mono,monospace;font-size:11px;color:var(--muted);min-width:60px;text-align:right">' + escHtml(ex.rest) + '</span>' : '') +
+            '</div>';
+        }).join('');
+        exHTML = '<div id="hist-ex-' + h.id + '" style="display:none;margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">' + rows + '</div>';
+      }
+      var hasEx = h.exercises && h.exercises.length > 0;
+      return '<div class="history-card" style="flex-direction:column;align-items:stretch">' +
+        '<div style="display:flex;justify-content:space-between;align-items:center">' +
+        '<div style="cursor:' + (hasEx ? 'pointer' : 'default') + '" onclick="' + (hasEx ? 'toggleHistoryEx(\'' + h.id + '\')' : '') + '">' +
+        '<div style="display:flex;align-items:baseline;gap:10px">' +
+        '<div class="history-serie">' + escHtml(h.serieLabel) + ' — ' + escHtml(h.serieName) + '</div>' +
+        '<div style="font-family:DM Mono,monospace;font-size:11px;color:var(--accent2)">' + dataFormatada + '</div>' +
+        '<div style="font-family:DM Mono,monospace;font-size:11px;color:var(--muted)">' + diaSemanaCapit + '</div>' +
+        '</div>' +
+        '<div class="history-date">' + escHtml(h.variant) + (reg ? ' · registrado ' + reg : '') + (hasEx ? ' · ver exercícios' : '') + '</div>' +
+        '</div>' +
+        '<div style="display:flex;align-items:center;gap:10px">' +
+        '<span class="history-badge">' + h.done + '/' + h.total + ' exercícios</span>' +
+        '<button class="ex-action-btn" onclick="removeHistoryEntry(\'' + h.id + '\')" title="Remover este treino do histórico" style="flex-shrink:0">✕</button>' +
+        '</div></div>' +
+        exHTML + '</div>';
     }
-
-    var hasEx = h.exercises && h.exercises.length > 0;
-    return `<div class="history-card" style="flex-direction:column;align-items:stretch">
-      <div style="display:flex;justify-content:space-between;align-items:center">
-        <div style="cursor:${hasEx ? 'pointer' : 'default'}" onclick="${hasEx ? 'toggleHistoryEx(\'' + h.id + '\')' : ''}">
-          <div style="display:flex;align-items:baseline;gap:10px">
-            <div class="history-serie">${escHtml(h.serieLabel)} — ${escHtml(h.serieName)}</div>
-            <div style="font-family:DM Mono,monospace;font-size:11px;color:var(--accent2)">${dataFormatada}</div>
-            <div style="font-family:DM Mono,monospace;font-size:11px;color:var(--muted)">${diaSemanaCapit}</div>
-          </div>
-          <div class="history-date">${escHtml(h.variant)}${reg ? ' · registrado ' + reg : ''}${hasEx ? ' · <span style="color:var(--accent3)">ver exercícios ▾</span>' : ''}</div>
-        </div>
-        <div style="display:flex;align-items:center;gap:10px">
-          <span class="history-badge">${h.done}/${h.total} exercícios</span>
-          <button class="ex-action-btn" onclick="removeHistoryEntry('${h.id}')" title="Remover este treino do histórico" style="flex-shrink:0">✕</button>
-        </div>
-      </div>
-      ${exHTML}
-    </div>`;
   }).join('');
 }
 
@@ -3009,12 +3022,28 @@ function desfazerRelocamento() {
       expandidosAtuais[k] = state.plano.diasExpandidos[k];
     });
   }
+  // Preserve current d.bike fields before restoring snapshot
+  var bikeFieldsAtuais = {};
+  state.plano.semanas.forEach(function(sem) {
+    (sem.dias || sem.agenda || []).forEach(function(d) {
+      if (d.bike) bikeFieldsAtuais['sem' + sem.semana + '_' + d.dia] = d.bike;
+    });
+  });
+
   var snapshot = state.plano._historico.pop();
   var historico = state.plano._historico;
   state.plano.semanas = JSON.parse(JSON.stringify(snapshot.semanas));
   state.plano.diasStatus = JSON.parse(JSON.stringify(snapshot.diasStatus));
   state.plano.diasExpandidos = JSON.parse(JSON.stringify(snapshot.diasExpandidos));
   state.plano._historico = historico;
+
+  // Re-apply bike fields to restored days where they existed
+  state.plano.semanas.forEach(function(sem) {
+    (sem.dias || sem.agenda || []).forEach(function(d) {
+      var key = 'sem' + sem.semana + '_' + d.dia;
+      if (!d.bike && bikeFieldsAtuais[key]) d.bike = bikeFieldsAtuais[key];
+    });
+  });
   // Merge all diasExpandidos from current state into restored snapshot
   Object.keys(expandidosAtuais).forEach(function(k) {
     if (!state.plano.diasExpandidos[k]) {
@@ -3290,16 +3319,16 @@ function buildPerfilTexto() {
     '- Lesões/restrições: ' + p.lesoes +
     (p.obs ? '\n- Obs: ' + p.obs : '') +
     bikeCtx + '\n' +
-    (p.bikeModelo || p.bikeGps || p.bikeRides ? '\nCICLISMO:\n' +
-    (p.bikeModelo ? '- Bike: ' + p.bikeModelo + '\n' : '') +
-    (p.bikeGps ? '- GPS: ' + p.bikeGps + ' (registra distância, tempo, velocidade média)\n' : '') +
+    '\nCICLISMO:\n' +
+    (p.bikeModelo ? '- Bike: ' + p.bikeModelo + '\n' : '- Bike: Colnago\n') +
+    (p.bikeGps ? '- GPS: ' + p.bikeGps + ' (registra distância, tempo, velocidade média)\n' : '- GPS: GEOID CC-700\n') +
     '- Meta: ' + (p.bikeRides || '4') + ' rides/semana, ' + (p.bikeDuracao || '1-2h') + ' cada. Z2 predominante, Z4 1x/semana.\n' +
     (p.bikeObjetivo ? '- Objetivo ciclismo: ' + p.bikeObjetivo + '\n' : '') +
     '- Timing preferido: ' + (p.bikeTiming === 'manha' ? 'manhã' : p.bikeTiming === 'noite' ? 'noite' : 'flexível (manhã ou noite)') + '.\n' +
-    '- REGRAS: bike NUNCA em dia D (pernas). Bike antes da musculação: reduza intensidade da musculação. Bike após A/B/C: Z2 apenas, nunca Z4.\n' +
-    '- "D trocado por bike": usuário pode substituir dia D por bike (D é relocado). Pode combinar com A/B/C no mesmo dia.\n' +
-    (p.bikeObs ? '- Obs ciclismo: ' + p.bikeObs : '')
-    : '- Bike: sem dados configurados no perfil.\n') +
+    '- REGRAS ABSOLUTAS: bike NUNCA em dia D (pernas). Sábado e Domingo são elegíveis para bike. Tendão patelar direito: sem sprints, cadência alta.\n' +
+    '- Bike antes da musculação: reduza intensidade da musculação. Bike após A/B/C: Z2 apenas, nunca Z4.\n' +
+    '- "D trocado por bike": usuário substitui dia D por bike (D relocado). Pode combinar com A/B/C no mesmo dia.\n' +
+    (p.bikeObs ? '- Obs ciclismo: ' + p.bikeObs + '\n' : '') +
     bikeCtx;
 }
 
@@ -3342,9 +3371,9 @@ CAPACIDADES:
 1. ${temPlano ? 'MODIFICAR DIAS DO PLANO ATUAL (use isso quando já existe um plano ativo — NUNCA gere um plano completo novo)' : 'GERAR PLANO MACRO COMPLETO (use apenas quando não há plano ativo)'}
 ${temPlano ?
 `Retorne os dias modificados no formato abaixo. Se o usuário pedir um replano completo de várias semanas, inclua TODOS os dias de TODAS as semanas afetadas — não omita nenhum dia. Para semanas novas ou com foco alterado, inclua uma ação de tipo "semana" com foco e intensidade. IMPORTANTE: sempre que alterar o número de dias de treino de uma semana (ex: de 1 para 2 dias, ou de 3 para 1 dia), inclua obrigatoriamente uma ação "semana" para atualizar o foco e intensidade da semana afetada de forma coerente com a nova estrutura:
-{"modificacoes":{"serieLabel":"planoMacro","acoes":[{"tipo":"semana","semana":2,"foco":"Acumulação","intensidade":"70-80%"},{"tipo":"alterar","semana":2,"dia":"Segunda","serie":"A","orientacao":"instrução específica"},{"tipo":"alterar","semana":2,"dia":"Terça","serie":"D","orientacao":"instrução"}]}}` :
+{"modificacoes":{"serieLabel":"planoMacro","acoes":[{"tipo":"semana","semana":2,"foco":"Acumulação","intensidade":"70-80%"},{"tipo":"alterar","semana":2,"dia":"Segunda","serie":"A","orientacao":"instrução específica","bike":{"foco":"Z2 Endurance","duracao":"1h30","timing":"após musculação","intensidade":"Ritmo confortável — FC ~65-75% FCmax.","obs":"Cadência alta — joelho direito."}},{"tipo":"alterar","semana":2,"dia":"Terça","serie":"D","orientacao":"instrução"}]}}` :
 `Retorne APENAS este JSON (sem markdown, sem texto extra):
-{"planoMacro":{"objetivo":"descrição do ciclo","semanas":[{"semana":1,"foco":"Adaptação","intensidade":"60-70%","progressao":"semana de referência","dias":[{"dia":"Segunda","serie":"A","tipo":"treino","intensidade":"moderada","orientacao":"instrução específica"},{"dia":"Terça","serie":"D","tipo":"treino","intensidade":"moderada","orientacao":"instrução"},{"dia":"Quarta","serie":"descanso","tipo":"aerobico","orientacao":"instrução concreta"},{"dia":"Quinta","serie":"B","tipo":"treino","intensidade":"moderada","orientacao":"instrução"},{"dia":"Sexta","serie":"C","tipo":"treino","intensidade":"moderada","orientacao":"instrução"},{"dia":"Sábado","serie":"D","tipo":"treino","intensidade":"leve","orientacao":"instrução"},{"dia":"Domingo","serie":"descanso","tipo":"recuperacao","orientacao":"instrução"}]},{"semana":2,"foco":"...","intensidade":"...","progressao":"...","dias":[...]},{"semana":3,"foco":"...","intensidade":"...","progressao":"...","dias":[...]},{"semana":4,"foco":"Deload","intensidade":"50-60%","progressao":"recuperação","dias":[...]}],"observacoes":"orientações gerais"}}`}
+{"planoMacro":{"objetivo":"descrição do ciclo","semanas":[{"semana":1,"foco":"Adaptação","intensidade":"60-70%","progressao":"semana de referência","dias":[{"dia":"Segunda","serie":"A","tipo":"treino","intensidade":"moderada","orientacao":"instrução específica","bike":{"foco":"Z2 Endurance","duracao":"1h30","timing":"após musculação","intensidade":"Ritmo confortável — FC ~65-75% FCmax.","obs":"Cadência alta — joelho direito."}},{"dia":"Terça","serie":"D","tipo":"treino","intensidade":"moderada","orientacao":"instrução"},{"dia":"Quarta","serie":"descanso","tipo":"aerobico","orientacao":"instrução concreta"},{"dia":"Quinta","serie":"B","tipo":"treino","intensidade":"moderada","orientacao":"instrução"},{"dia":"Sexta","serie":"C","tipo":"treino","intensidade":"moderada","orientacao":"instrução"},{"dia":"Sábado","serie":"D","tipo":"treino","intensidade":"leve","orientacao":"instrução"},{"dia":"Domingo","serie":"descanso","tipo":"recuperacao","orientacao":"instrução"}]},{"semana":2,"foco":"...","intensidade":"...","progressao":"...","dias":[...]},{"semana":3,"foco":"...","intensidade":"...","progressao":"...","dias":[...]},{"semana":4,"foco":"Deload","intensidade":"50-60%","progressao":"recuperação","dias":[...]}],"observacoes":"orientações gerais"}}`}
 
 2. EXPANDIR DIA (exercícios completos com sets e cargas)
 {"diaExpandido":{"semana":1,"dia":"Segunda","serie":"A","foco":"foco do dia","exercicios":[{"id":"e1","nome":"Overhead Press Sentado","sets":"3x5","weight":"24kg cada lado","rest":"90-120s","notes":""}]}}
@@ -3356,8 +3385,8 @@ ${temPlano ?
 {"replanejamento":{"diaPerdido":"Quarta","motivoPerdido":"viagem","ajustes":[{"dia":"Quinta","serie":"C","orientacao":"ajuste"}],"observacao":"explicação"}}
 
 5. BIKE — planejamento de ciclismo integrado ao plano
-Inclua o campo "bike" em todo dia que NÃO seja D e NÃO seja Domingo. Formato:
-{"bike":{"foco":"Z2 Endurance","duracao":"1h30","timing":"após musculação","intensidade":"Ritmo confortável, consegue falar frases completas. FC ~65-75% FCmax.","obs":"Cadência alta, sem força excessiva — joelho direito."}}
+Inclua o campo "bike" em todo dia que NÃO seja D. Sábado e Domingo são elegíveis — ótimos para ride longo Z2. Formato:
+{"bike":{"foco":"Z2 Endurance","duracao":"1h30","timing":"após musculação","intensidade":"Ritmo confortável, consegue falar frases completas. FC ~65-75% FCmax.","distSugerida":"30-40km","tempoSugerido":"1h-1h30","obs":"Cadência alta, sem força excessiva — joelho direito."}}
 Zonas: Z2=confortável (frases completas), Z3=moderado (frases curtas), Z4=forte (palavras isoladas).
 Regras: nunca bike em dia D. Tendão patelar direito: sem sprints longos. Timing "antes": reduza intensidade da musculação. Timing "após": Z2 apenas. Meta ~4 rides/semana: Z2 (3x) + Z4 (1x em dia leve). "D trocado por bike": bike.foco="Ride substituto de D", Z2-Z3, D é relocado.
 
@@ -3599,14 +3628,13 @@ function gerarOrientacoesDiasFuturos() {
   var dataInicio = state.plano.dataInicio ? new Date(state.plano.dataInicio) : null;
   if (dataInicio) dataInicio.setHours(0,0,0,0);
 
-  // Build list of future pending training days
+  // Build list of future days (training + rest/bike eligible)
   var diasFuturos = [];
   state.plano.semanas.forEach(function(sem) {
     (sem.dias || sem.agenda || []).forEach(function(d) {
       var key = 'sem' + sem.semana + '_' + d.dia;
       var status = diasStatus[key] || 'pendente';
       if (status === 'concluido' || status === 'perdido' || status === 'ausente' || status === 'pulado') return;
-      if (d.serie === 'descanso' || !d.serie) return;
       // Check if future
       if (dataInicio) {
         var diaIdx = ordemDias.indexOf(d.dia);
@@ -3617,7 +3645,8 @@ function gerarOrientacoesDiasFuturos() {
           if (diaDate < hoje) return;
         }
       }
-      var info = 'Semana ' + sem.semana + ', ' + d.dia + ': Série ' + d.serie;
+      var isDescanso = d.serie === 'descanso' || !d.serie;
+      var info = 'Semana ' + sem.semana + ', ' + d.dia + ': ' + (isDescanso ? 'Descanso (bike elegível — Z2 longo recomendado)' : 'Série ' + d.serie);
       if (status === 'antecipado') info += ' (treino antecipado)';
       if (status === 'disponivel') info += ' (sábado disponível)';
       diasFuturos.push(info);
@@ -3645,6 +3674,10 @@ function gerarOrientacoesDiasFuturos() {
     'Resumo das semanas:\n' + semanasSummary.join('\n') + '\n\n' +
     'Para cada dia, defina: foco do treino, intensidade, orientações específicas de execução e exercícios de core recomendados. ' +
     'Considere a progressão entre semanas e as restrições do perfil. ' +
+    'CICLISMO OBRIGATÓRIO: inclua o campo "bike" em CADA dia listado acima que NÃO seja série D. ' +
+    'Formato exato para dia de treino: {"tipo":"alterar","semana":7,"dia":"Sexta","serie":"C","orientacao":"...","bike":{"foco":"Z2 Endurance","duracao":"1h","timing":"após musculação","intensidade":"Ritmo confortável FC 65-75%.","obs":"Cadência alta."}} ' +
+    'Formato exato para dia de descanso: {"tipo":"alterar","semana":7,"dia":"Sábado","serie":"descanso","orientacao":"Descanso","bike":{"foco":"Z2 Longo","duracao":"1h30","timing":"qualquer","intensidade":"Ritmo confortável FC 65-75%.","obs":"Sem musculação — ótimo para ride mais longo."}} ' +
+    'Distribuição: ~4 rides/semana, Z2 (3x) + Z4 (1x em dia leve A ou B). Nunca D. Tendão patelar: sem sprints, cadência alta. ' +
     'IMPORTANTE: para cada semana que aparecer nos dias acima, inclua obrigatoriamente uma ação {"tipo":"semana"} com foco e intensidade coerentes com o número real de treinos da semana. ' +
     'Retorne no formato JSON de modificacoes.';
 
@@ -4439,7 +4472,20 @@ function toggleChatInline(dayKey, serieLabel) {
         var expanded = state.plano.diasExpandidos && state.plano.diasExpandidos[dayKey];
         var exCount = expanded ? expanded.exercicios.length : 0;
         var msgInicial;
-        if (!serieLabel || serieLabel === 'descanso' || serieLabel === 'aerobico') {
+        var _bikeInfoInline = state.plano.diasBike && state.plano.diasBike[dayKey];
+        var _isDiaBike = !!(_bikeInfoInline && _bikeInfoInline.substitutoD) || (function() {
+          var _parts = dayKey.match(/^sem(\d+)_(.+)$/);
+          if (!_parts) return false;
+          var _sem = state.plano.semanas && state.plano.semanas.find(function(s) { return s.semana === parseInt(_parts[1]); });
+          if (!_sem) return false;
+          var _d = (_sem.dias || _sem.agenda || []).find(function(d) { return d.dia === _parts[2]; });
+          return !!(_d && _d.tipo === 'bike');
+        })();
+        if (_isDiaBike) {
+          var _bikePlanoInline = _getBikePlano(dayKey);
+          var _focoInline = _bikePlanoInline ? _bikePlanoInline.foco : 'Pedal';
+          msgInicial = 'Dia de bike — ' + _focoInline + '. Pode me perguntar sobre o treino de pedal, ajustar intensidade, distância ou estrutura.';
+        } else if (!serieLabel || serieLabel === 'descanso' || serieLabel === 'aerobico') {
           msgInicial = 'Este é um dia de ' + (serieLabel === 'aerobico' ? 'aeróbico/cardio' : 'descanso') + '. Pode me perguntar sobre recomendações para este dia.';
         } else {
           msgInicial = 'Treino atual: ' + exCount + ' exercícios' + (s ? ' de ' + s.name : '') + '. Pode me perguntar sobre qualquer exercício, pedir substituições, ajustar volume ou carga, ou pedir para eu explicar as escolhas.';
@@ -5249,7 +5295,6 @@ function _bikeTemDia(dayKey) {
   if (!state.plano) return false;
   var m = dayKey.match(/^sem(\d+)_(.+)$/);
   if (!m) return false;
-  if (m[2] === 'Domingo') return false;
   return !_bikeEhDiaDPernas(dayKey);
 }
 
@@ -5263,8 +5308,160 @@ function _getBikePlano(dayKey) {
   return (dia && dia.bike) ? dia.bike : null;
 }
 
+function gerarOrientacaoBike(dayKey) {
+  var bikePlano = _getBikePlano(dayKey);
+  var foco = bikePlano ? bikePlano.foco : 'Z2 Endurance';
+  var duracao = bikePlano ? bikePlano.duracao : '1h';
+  var intensidade = bikePlano ? bikePlano.intensidade : 'Ritmo confortável.';
+  var obs = bikePlano ? (bikePlano.obs || '') : '';
+
+  // Bike history — last 5 rides
+  var bikeHist = (state.bikeHistory || []).slice(0, 5);
+  var bikeHistStr = bikeHist.length ? bikeHist.map(function(b) {
+    return b.dia + ': ' + [b.distancia ? b.distancia+'km' : '', b.tempoMov ? b.tempoMov+' mov' : '', b.velocidade || ''].filter(Boolean).join(', ');
+  }).join('\n') : 'Nenhum ride registrado ainda.';
+
+  // Recent gym sessions
+  var recentGym = (state.history || []).slice(0, 3).map(function(h) {
+    return h.serieLabel + ' ' + (h.date || '').slice(0,10);
+  }).join(', ') || 'Nenhum';
+
+  // Semana foco
+  var semParts = dayKey.match(/^sem(\d+)_/);
+  var semFoco = '';
+  if (semParts) {
+    var semObj = state.plano.semanas && state.plano.semanas.find(function(s) { return s.semana === parseInt(semParts[1]); });
+    if (semObj) semFoco = semObj.foco || '';
+  }
+
+  // Perfil bike
+  var p = state.perfil || {};
+  var metaRides = p.bikeRides || '4';
+  var bikeObj = p.bikeObjetivo || '';
+  var bikeTiming = p.bikeTiming || 'flexivel';
+
+  var prompt = 'Gere uma orientação detalhada para o treino de bike de hoje.\n\n' +
+    'PLANO DO DIA:\n' +
+    'Foco: ' + foco + '\n' +
+    'Duração sugerida: ' + duracao + '\n' +
+    'Intensidade: ' + intensidade + '\n' +
+    (obs ? 'Obs: ' + obs + '\n' : '') +
+    '\nCONTEXTO DA SEMANA: ' + semFoco + '\n' +
+    '\nHISTÓRICO DE RIDES RECENTES:\n' + bikeHistStr + '\n' +
+    '\nTREINOS DE MUSCULAÇÃO RECENTES: ' + recentGym + '\n' +
+    '\nPERFIL:\n' +
+    '- Meta: ' + metaRides + ' rides/semana\n' +
+    (bikeObj ? '- Objetivo: ' + bikeObj + '\n' : '') +
+    '- Timing preferido: ' + bikeTiming + '\n' +
+    '- Restrição: tendão patelar direito — sem sprints, cadência alta (>85rpm)\n' +
+    '\nIncluir na orientação: distância sugerida, tempo total, estrutura (aquecimento/desenvolvimento/volta à calma), zona FC alvo, cadência recomendada, pontos de atenção.';
+
+  toggleChatInline(dayKey, '');
+  setTimeout(function() {
+    var input = document.getElementById('chat-inline-input-' + dayKey);
+    if (input) {
+      input.value = prompt;
+      enviarChatInline(dayKey, '');
+    }
+  }, 200);
+}
+
+function desfazerSubstitutoD(dayKey, diaNome, semana) {
+  // Remove diasBike entry
+  if (state.plano.diasBike) delete state.plano.diasBike[dayKey];
+  // Restore day to D via desfazerRelocamento
+  desfazerRelocamento();
+  toast('D→Bike desfeito.');
+}
+
+function gerarOrientacaoBike(dayKey) {
+  var bikePlano = _getBikePlano(dayKey);
+  var foco = bikePlano ? bikePlano.foco : 'Z2 Endurance';
+  var duracao = bikePlano ? bikePlano.duracao : '1h';
+  var intensidade = bikePlano ? bikePlano.intensidade : 'Ritmo confortável.';
+  var obs = bikePlano ? (bikePlano.obs || '') : '';
+
+  // Bike history — last 5 rides
+  var bikeHist = (state.bikeHistory || []).slice(0, 5);
+  var bikeHistStr = bikeHist.length ? bikeHist.map(function(b) {
+    return b.dia + ': ' + [b.distancia ? b.distancia+'km' : '', b.tempoMov ? b.tempoMov+' mov' : '', b.velocidade || ''].filter(Boolean).join(', ');
+  }).join('\n') : 'Nenhum ride registrado ainda.';
+
+  // Recent gym sessions
+  var recentGym = (state.history || []).slice(0, 3).map(function(h) {
+    return h.serieLabel + ' ' + (h.date || '').slice(0,10);
+  }).join(', ') || 'Nenhum';
+
+  // Semana foco
+  var semParts = dayKey.match(/^sem(\d+)_/);
+  var semFoco = '';
+  if (semParts) {
+    var semObj = state.plano.semanas && state.plano.semanas.find(function(s) { return s.semana === parseInt(semParts[1]); });
+    if (semObj) semFoco = semObj.foco || '';
+  }
+
+  // Perfil bike
+  var p = state.perfil || {};
+  var metaRides = p.bikeRides || '4';
+  var bikeObj = p.bikeObjetivo || '';
+  var bikeTiming = p.bikeTiming || 'flexivel';
+
+  var prompt = 'Gere uma orientação detalhada para o treino de bike de hoje.\n\n' +
+    'PLANO DO DIA:\n' +
+    'Foco: ' + foco + '\n' +
+    'Duração sugerida: ' + duracao + '\n' +
+    'Intensidade: ' + intensidade + '\n' +
+    (obs ? 'Obs: ' + obs + '\n' : '') +
+    '\nCONTEXTO DA SEMANA: ' + semFoco + '\n' +
+    '\nHISTÓRICO DE RIDES RECENTES:\n' + bikeHistStr + '\n' +
+    '\nTREINOS DE MUSCULAÇÃO RECENTES: ' + recentGym + '\n' +
+    '\nPERFIL:\n' +
+    '- Meta: ' + metaRides + ' rides/semana\n' +
+    (bikeObj ? '- Objetivo: ' + bikeObj + '\n' : '') +
+    '- Timing preferido: ' + bikeTiming + '\n' +
+    '- Restrição: tendão patelar direito — sem sprints, cadência alta (>85rpm)\n' +
+    '\nIncluir na orientação: distância sugerida, tempo total, estrutura (aquecimento/desenvolvimento/volta à calma), zona FC alvo, cadência recomendada, pontos de atenção.';
+
+  toggleChatInline(dayKey, '');
+  setTimeout(function() {
+    var input = document.getElementById('chat-inline-input-' + dayKey);
+    if (input) {
+      input.value = prompt;
+      enviarChatInline(dayKey, '');
+    }
+  }, 200);
+}
+
+function desfazerSubstitutoD(dayKey, diaNome, semana) {
+  // Desfaz o relocamento via snapshot
+  desfazerRelocamento();
+  // Remove entrada de bike
+  if (state.plano.diasBike && state.plano.diasBike[dayKey]) {
+    delete state.plano.diasBike[dayKey];
+  }
+  saveState();
+  renderAgendaLinear();
+  toast('D→Bike desfeito. Treino D restaurado.');
+}
+
 function substituirDPorBike(dayKey, diaNome, semana) {
   aplicarRelocamento(dayKey, diaNome, semana, 'ausente');
+  // Corrige o dia: tira o status de ausente, vira dia de bike
+  if (!state.plano.diasStatus) state.plano.diasStatus = {};
+  delete state.plano.diasStatus[dayKey];
+  // Atualiza o dia no plano macro para tipo bike
+  var parts = dayKey.match(/^sem(\d+)_(.+)$/);
+  if (parts) {
+    var semObj = state.plano.semanas && state.plano.semanas.find(function(s) { return s.semana === parseInt(parts[1]); });
+    if (semObj) {
+      var diaObj = (semObj.dias || semObj.agenda || []).find(function(d) { return d.dia === parts[2]; });
+      if (diaObj) {
+        diaObj.serie = 'descanso';
+        diaObj.tipo = 'bike';
+        diaObj.orientacao = 'D trocado por Bike — treino D relocado.';
+      }
+    }
+  }
   if (!state.plano.diasBike) state.plano.diasBike = {};
   state.plano.diasBike[dayKey] = { status: 'pendente', substitutoD: true };
   saveState();
@@ -5274,7 +5471,19 @@ function substituirDPorBike(dayKey, diaNome, semana) {
 
 function registrarBike(dayKey, status) {
   if (!state.plano.diasBike) state.plano.diasBike = {};
-  if (!state.plano.diasBike[dayKey]) state.plano.diasBike[dayKey] = {};
+  if (!state.plano.diasBike[dayKey]) {
+    // Check if this is a D->BIKE day
+    var isDParts = dayKey.match(/^sem(\d+)_(.+)$/);
+    var isDiaBike = false;
+    if (isDParts) {
+      var isSem = state.plano.semanas && state.plano.semanas.find(function(s) { return s.semana === parseInt(isDParts[1]); });
+      if (isSem) {
+        var iDia = (isSem.dias || isSem.agenda || []).find(function(d) { return d.dia === isDParts[2]; });
+        isDiaBike = !!(iDia && iDia.tipo === 'bike');
+      }
+    }
+    state.plano.diasBike[dayKey] = isDiaBike ? { substitutoD: true } : {};
+  }
   state.plano.diasBike[dayKey].status = status;
   if (status === 'chuva') _verificarAntecipacaoPosChuva(dayKey);
   saveState();
@@ -5283,7 +5492,7 @@ function registrarBike(dayKey, status) {
 
 function desfazerBike(dayKey) {
   if (!state.plano.diasBike) return;
-  state.plano.diasBike[dayKey] = { status: 'pendente' };
+  delete state.plano.diasBike[dayKey];
   saveState();
   renderAgendaLinear();
 }
@@ -5302,12 +5511,111 @@ function _verificarAntecipacaoPosChuva(dayKey) {
   if (horas < 48) toast('Chuva registrada. Ultimo treino D foi ha ' + Math.round(horas) + 'h. Considere antecipar o proximo D!');
 }
 
-function _buildBikeSection(dayKey, bikeInfo, bikePlano) {
-  var bs = bikeInfo && bikeInfo.status ? bikeInfo.status : 'pendente';
+function registrarBikeHistorico(dayKey) {
+  var bikeInfo = state.plano.diasBike && state.plano.diasBike[dayKey];
+  if (!bikeInfo || bikeInfo.status !== 'feito') return;
+  var bikePlano = _getBikePlano(dayKey);
+  var m = dayKey.match(/^sem(\d+)_(.+)$/);
+  var entry = {
+    id: uid(),
+    type: 'bike',
+    date: new Date().toISOString(),
+    dayKey: dayKey,
+    semana: m ? m[1] : '?',
+    dia: m ? m[2] : '?',
+    foco: (bikePlano && bikePlano.foco) || '',
+    duracao: (bikePlano && bikePlano.duracao) || '',
+    distancia: bikeInfo.distancia || '',
+    tempo: bikeInfo.tempo || '',
+    velocidade: bikeInfo.velocidade || '',
+    elevacao: bikeInfo.elevacao || '',
+    percurso: bikeInfo.percurso || '',
+    timingReal: bikeInfo.timingReal || ''
+  };
+  if (!state.bikHistory) state.bikeHistory = [];
+  state.bikeHistory.unshift(entry);
+  bikeInfo.registrado = true;
+  saveState();
+  renderAgendaLinear();
+  renderHistory();
+  toast('Ride registrado no histórico ✓');
+}
+
+function corrigirDiaComoBike(dayKey, serieLabel, bikeData) {
+  // 1. Desfaz conclusao — remove status e entrada do historico
+  if (state.plano.diasStatus) delete state.plano.diasStatus[dayKey];
+  var ordemDias = ['Segunda','Terça','Quarta','Quinta','Sexta','Sábado','Domingo'];
+  var inicio = state.plano.dataInicio ? new Date(state.plano.dataInicio) : null;
+  var parts = dayKey.match(/^sem(\d+)_(.+)$/);
+  if (parts && inicio) {
+    inicio.setHours(0,0,0,0);
+    var semNum = parseInt(parts[1]);
+    var diaNome = parts[2];
+    var diaIdx = ordemDias.indexOf(diaNome);
+    if (diaIdx !== -1) {
+      var diaDate = new Date(inicio);
+      diaDate.setDate(inicio.getDate() + (semNum - 1) * 7 + diaIdx);
+      var dateStr = diaDate.toISOString().slice(0, 10);
+      var idx = state.history.findIndex(function(h) {
+        return h.serieLabel === serieLabel && h.date && h.date.slice(0, 10) === dateStr;
+      });
+      if (idx !== -1) state.history.splice(idx, 1);
+    }
+  }
+  // 2. Marca dia como perdido sem relocamento
+  state.plano.diasStatus[dayKey] = 'perdido';
+  // Remove expanded workout if any
+  if (state.plano.diasExpandidos) delete state.plano.diasExpandidos[dayKey];
+  // 3. Cria entrada de bike no historico
+  if (!state.bikeHistory) state.bikeHistory = [];
+  var bikePlano = _getBikePlano(dayKey);
+  var entry = {
+    id: uid(),
+    type: 'bike',
+    date: bikeData.date || new Date().toISOString(),
+    dayKey: dayKey,
+    semana: parts ? parts[1] : '?',
+    dia: parts ? parts[2] : '?',
+    foco: (bikePlano && bikePlano.foco) || bikeData.foco || 'Ride',
+    duracao: bikeData.duracao || '',
+    distancia: bikeData.distancia || '',
+    tempo: bikeData.tempo || '',
+    velocidade: bikeData.velocidade || '',
+    elevacao: bikeData.elevacao || '',
+    percurso: bikeData.percurso || '',
+    timingReal: bikeData.timingReal || '',
+    retroativo: true
+  };
+  state.bikeHistory.unshift(entry);
+  // 4. Marca diasBike
+  if (!state.plano.diasBike) state.plano.diasBike = {};
+  state.plano.diasBike[dayKey] = { status: 'feito', registrado: true,
+    distancia: bikeData.distancia || '', tempo: bikeData.tempo || '',
+    velocidade: bikeData.velocidade || '', elevacao: bikeData.elevacao || '',
+    percurso: bikeData.percurso || '' };
+  saveState();
+  renderAgendaLinear();
+  renderHistory();
+  toast('Dia corrigido: bike registrado retroativamente ✓');
+}
+
+function removeBikeHistoryEntry(id) {
+  if (!state.bikeHistory) return;
+  state.bikeHistory = state.bikeHistory.filter(function(b) { return b.id !== id; });
+  saveState();
+  renderHistory();
+}
+
+function _buildBikeSection(dayKey, bikeInfo, bikePlano, diaChegou) {
+  var bs = (bikeInfo && bikeInfo.status && bikeInfo.status !== 'pendente') ? bikeInfo.status : 'pendente';
+  var bikeInfoClean = bs !== 'pendente' ? bikeInfo : null;
+  var registrado = bikeInfo && bikeInfo.registrado && bs === 'feito';
   var html = '<div class="bike-section">';
   html += '<div class="bike-section-title">&#128690; PEDAL DO DIA</div>';
+
+  // ── Treino planejado pelo macro ──
   if (bikePlano) {
-    html += '<div style="background:rgba(91,143,255,.06);border:1px solid rgba(91,143,255,.2);border-radius:6px;padding:8px 10px;margin-bottom:8px">';
+    html += '<div style="background:rgba(91,143,255,.06);border:1px solid rgba(91,143,255,.2);border-radius:6px;padding:8px 10px;margin-bottom:10px">';
     html += '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px">';
     html += '<span style="font-family:DM Mono,monospace;font-size:11px;color:var(--bike-chuva);font-weight:700">' + escHtml(bikePlano.foco||'') + '</span>';
     html += '<span style="font-family:DM Mono,monospace;font-size:10px;color:var(--muted)">' + escHtml(bikePlano.duracao||'') + '</span>';
@@ -5315,39 +5623,80 @@ function _buildBikeSection(dayKey, bikeInfo, bikePlano) {
     if (bikePlano.intensidade) html += '<div style="font-size:11px;color:var(--text);line-height:1.5;margin-bottom:4px">' + escHtml(bikePlano.intensidade) + '</div>';
     if (bikePlano.timing) {
       var tc = bikePlano.timing.indexOf('antes') !== -1 ? 'var(--accent2)' : 'var(--bike-chuva)';
-      html += '<div style="font-family:DM Mono,monospace;font-size:10px;color:' + tc + '">&#9201; Timing recomendado: ' + escHtml(bikePlano.timing) + '</div>';
+      html += '<div style="font-family:DM Mono,monospace;font-size:10px;color:' + tc + '">&#9201; ' + escHtml(bikePlano.timing) + '</div>';
+    }
+    if (bikePlano.distSugerida || bikePlano.tempoSugerido) {
+      html += '<div style="display:flex;gap:12px;margin-top:5px">';
+      if (bikePlano.distSugerida) html += '<div style="font-family:DM Mono,monospace;font-size:10px"><span style="color:var(--muted)">DIST: </span><span style="color:var(--text)">' + escHtml(bikePlano.distSugerida) + '</span></div>';
+      if (bikePlano.tempoSugerido) html += '<div style="font-family:DM Mono,monospace;font-size:10px"><span style="color:var(--muted)">TEMPO: </span><span style="color:var(--text)">' + escHtml(bikePlano.tempoSugerido) + '</span></div>';
+      html += '</div>';
     }
     if (bikePlano.obs) html += '<div style="font-family:DM Mono,monospace;font-size:10px;color:var(--muted);margin-top:3px">' + escHtml(bikePlano.obs) + '</div>';
     html += '</div>';
+  } else {
+    html += '<div style="font-family:DM Mono,monospace;font-size:10px;color:var(--muted);margin-bottom:10px">Treino de bike será definido quando o plano macro incluir bike neste dia.</div>';
   }
-  html += '<div style="display:flex;gap:6px;margin-bottom:8px">';
-  html += '<button class="bike-action-btn feito' + (bs==='feito'?' active':'') + '" onclick="registrarBike(\'' + dayKey + '\',\'feito\')">&#10003; PEDALEI</button>';
-  html += '<button class="bike-action-btn chuva' + (bs==='chuva'?' active':'') + '" onclick="registrarBike(\'' + dayKey + '\',\'chuva\')">CHUVA</button>';
-  html += '<button class="bike-action-btn imprevisto' + (bs==='imprevisto'?' active':'') + '" onclick="registrarBike(\'' + dayKey + '\',\'imprevisto\')">IMPREVISTO</button>';
-  html += '</div>';
-  if (bs === 'feito') {
+
+  // ── Botões CHUVA/IMPREVISTO — sempre visíveis ──
+  if (bs !== 'chuva' && bs !== 'imprevisto') {
+    html += '<div style="display:flex;gap:6px;margin-bottom:8px">';
+    html += '<button class="bike-action-btn chuva" onclick="registrarBike(\'' + dayKey + '\',\'chuva\')">&#127783; CHUVA</button>';
+    html += '<button class="bike-action-btn imprevisto" onclick="registrarBike(\'' + dayKey + '\',\'imprevisto\')">&#9888; IMPREVISTO</button>';
+    html += '</div>';
+  }
+  // ── Campos e timing — sempre visíveis (exceto cancelamentos) ──
+  if (bs !== 'chuva' && bs !== 'imprevisto') {
     var dist = (bikeInfo&&bikeInfo.distancia)||'';
-    var tempo = (bikeInfo&&bikeInfo.tempo)||'';
+    var tempoMov = (bikeInfo&&bikeInfo.tempoMov)||'';
+    var tempoTotal = (bikeInfo&&bikeInfo.tempoTotal)||'';
     var veloc = (bikeInfo&&bikeInfo.velocidade)||'';
+    var elev = (bikeInfo&&bikeInfo.elevacao)||'';
+    var kcal = (bikeInfo&&bikeInfo.kcal)||'';
     var percurso = (bikeInfo&&bikeInfo.percurso)||'';
     var tr = (bikeInfo&&bikeInfo.timingReal)||'';
-    html += '<div style="display:flex;gap:6px;margin-bottom:6px">';
-    html += '<button class="bike-action-btn' + (tr==='antes'?' feito active':'') + '" style="font-size:9px" onclick="updateBikeField(\'' + dayKey + '\',\'timingReal\',\'antes\');renderAgendaLinear()">PEDALEI ANTES</button>';
-    html += '<button class="bike-action-btn' + (tr==='depois'?' feito active':'') + '" style="font-size:9px" onclick="updateBikeField(\'' + dayKey + '\',\'timingReal\',\'depois\');renderAgendaLinear()">PEDALEI DEPOIS</button>';
+
+    // Timing real — só quando há musculação no mesmo dia
+    if (bikeInfo && bikeInfo.musculacaoExtra) {
+      html += '<div style="margin-bottom:8px">';
+      html += '<div style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted);letter-spacing:0.5px;margin-bottom:4px">PEDALEI...</div>';
+      html += '<div style="display:flex;gap:6px">';
+      html += '<button class="bike-action-btn' + (tr==='antes'?' feito active':'') + '" onclick="updateBikeField(\'' + dayKey + '\',\'timingReal\',\'antes\');renderAgendaLinear()">ANTES DO TREINO</button>';
+      html += '<button class="bike-action-btn' + (tr==='depois'?' feito active':'') + '" onclick="updateBikeField(\'' + dayKey + '\',\'timingReal\',\'depois\');renderAgendaLinear()">APÓS O TREINO</button>';
+      html += '</div></div>';
+    }
+
+    // Campos principais — KM e tempos em destaque
+    html += '<div style="display:flex;gap:8px;margin-bottom:6px;flex-wrap:wrap">';
+    html += '<div style="flex:2;min-width:80px"><div style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted);letter-spacing:0.5px">KM</div><input class="bike-field" style="font-size:14px" value="' + escHtml(dist) + '" placeholder="km" onchange="updateBikeField(\'' + dayKey + '\',\'distancia\',this.value)"></div>';
+    html += '<div style="flex:2;min-width:80px"><div style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted);letter-spacing:0.5px">T. MOVIMENTO</div><input class="bike-field" style="font-size:14px" value="' + escHtml(tempoMov) + '" placeholder="hh:mm" onchange="updateBikeField(\'' + dayKey + '\',\'tempoMov\',this.value)"></div>';
+    html += '<div style="flex:2;min-width:80px"><div style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted);letter-spacing:0.5px">T. TOTAL</div><input class="bike-field" style="font-size:14px" value="' + escHtml(tempoTotal) + '" placeholder="hh:mm" onchange="updateBikeField(\'' + dayKey + '\',\'tempoTotal\',this.value)"></div>';
     html += '</div>';
-    html += '<div style="display:flex;gap:8px;margin-bottom:6px">';
-    html += '<div style="flex:1"><div style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted);letter-spacing:0.5px">KM</div><input class="bike-field" value="' + escHtml(dist) + '" placeholder="32" onchange="updateBikeField(\'' + dayKey + '\',\'distancia\',this.value)"></div>';
-    html += '<div style="flex:1"><div style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted);letter-spacing:0.5px">TEMPO</div><input class="bike-field" value="' + escHtml(tempo) + '" placeholder="1h20" onchange="updateBikeField(\'' + dayKey + '\',\'tempo\',this.value)"></div>';
-    html += '<div style="flex:1"><div style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted);letter-spacing:0.5px">VEL. MED.</div><input class="bike-field" value="' + escHtml(veloc) + '" placeholder="22km/h" onchange="updateBikeField(\'' + dayKey + '\',\'velocidade\',this.value)"></div>';
+    html += '<div style="display:flex;gap:8px;margin-bottom:6px;flex-wrap:wrap">';
+    html += '<div style="flex:1;min-width:60px"><div style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted);letter-spacing:0.5px">VEL. MÉD.</div><input class="bike-field" value="' + escHtml(veloc) + '" placeholder="km/h" onchange="updateBikeField(\'' + dayKey + '\',\'velocidade\',this.value)"></div>';
+    html += '<div style="flex:1;min-width:60px"><div style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted);letter-spacing:0.5px">ELEV. (m)</div><input class="bike-field" value="' + escHtml(elev) + '" placeholder="m" onchange="updateBikeField(\'' + dayKey + '\',\'elevacao\',this.value)"></div>';
+    html += '<div style="flex:1;min-width:60px"><div style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted);letter-spacing:0.5px">KCAL</div><input class="bike-field" value="' + escHtml(kcal) + '" placeholder="kcal" onchange="updateBikeField(\'' + dayKey + '\',\'kcal\',this.value)"></div>';
     html += '</div>';
-    html += '<div style="margin-bottom:6px"><div style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted);letter-spacing:0.5px">PERCURSO</div><input class="bike-field" value="' + escHtml(percurso) + '" placeholder="ex: Parque Municipal" onchange="updateBikeField(\'' + dayKey + '\',\'percurso\',this.value)"></div>';
-    html += '<button onclick="desfazerBike(\'' + dayKey + '\')" style="font-family:DM Mono,monospace;font-size:9px;background:none;border:none;color:var(--muted);cursor:pointer;padding:0">&#8617; desfazer</button>';
-  } else if (bs === 'chuva' || bs === 'imprevisto') {
+    html += '<div style="margin-bottom:8px"><div style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted);letter-spacing:0.5px">PERCURSO</div><input class="bike-field" value="' + escHtml(percurso) + '" placeholder="percurso" onchange="updateBikeField(\'' + dayKey + '\',\'percurso\',this.value)"></div>';
+
+
+
+    // Registrar no histórico — só quando dia chegou
+    if (diaChegou) {
+      if (!registrado) {
+        html += '<button class="agenda-action-btn done" onclick="registrarBikeHistorico(\'' + dayKey + '\')" style="width:100%;margin-top:2px">&#10003; REGISTRAR NO HISTÓRICO</button>';
+      } else {
+        html += '<div style="font-family:DM Mono,monospace;font-size:10px;color:var(--done);margin-top:4px">&#10003; Ride registrado no histórico</div>';
+        html += '<button onclick="desfazerBike(\'' + dayKey + '\')" style="font-family:DM Mono,monospace;font-size:9px;background:none;border:none;color:var(--muted);cursor:pointer;padding:2px 0">&#8617; desfazer</button>';
+      }
+    }
+  } else if (diaChegou) {
+    // Cancelado — só mostra se o dia já chegou
     var col = bs==='chuva' ? 'var(--bike-chuva)' : 'var(--bike-imprevisto)';
-    var lbl = bs==='chuva' ? 'Ride cancelado por chuva' : 'Ride cancelado por imprevisto';
+    var lbl = bs==='chuva' ? '&#127783; Ride cancelado por chuva' : '&#9888; Ride cancelado por imprevisto';
     html += '<div style="font-family:DM Mono,monospace;font-size:11px;color:' + col + ';margin-bottom:6px">' + lbl + '</div>';
     html += '<button onclick="desfazerBike(\'' + dayKey + '\')" style="font-family:DM Mono,monospace;font-size:9px;background:none;border:none;color:var(--muted);cursor:pointer;padding:0">&#8617; desfazer</button>';
   }
+
   html += '</div>';
   return html;
 }
@@ -5449,8 +5798,23 @@ function renderAgendaLinear() {
       '<div class="agenda-semana-body" style="' + (semOpen ? '' : 'display:none') + '">';
 
     var dias = semana.dias || semana.agenda || [];
-    dias.forEach(function(d) {
+    // Compute index of last treino day in this plan
+    var _allPlanDias = [];
+    state.plano.semanas.forEach(function(s) {
+      (s.dias || s.agenda || []).forEach(function(dd) { _allPlanDias.push(dd); });
+    });
+    var _lastTreinoIdx = -1;
+    for (var _ti = _allPlanDias.length - 1; _ti >= 0; _ti--) {
+      if (_allPlanDias[_ti].serie && _allPlanDias[_ti].serie !== 'descanso') { _lastTreinoIdx = _ti; break; }
+    }
+    var _semDiaOffset = 0;
+    for (var _si = 0; _si < state.plano.semanas.indexOf(semana); _si++) {
+      _semDiaOffset += (state.plano.semanas[_si].dias || state.plano.semanas[_si].agenda || []).length;
+    }
+    dias.forEach(function(d, _dIdx) {
       const dayKey = 'sem' + semana.semana + '_' + d.dia;
+      var _thisDiaGlobalIdx = _semDiaOffset + _dIdx;
+      var hasTreinoAfter = _thisDiaGlobalIdx <= _lastTreinoIdx;
       const status = diasStatus[dayKey] || 'pendente';
       const isDiaHoje = isHojeDate(dayKey);
       const dateStr = formatDate(dayKey);
@@ -5458,23 +5822,34 @@ function renderAgendaLinear() {
       const serieObj = state.series.find(function(s) { return s.label === d.serie; });
       const tipo = isRest ? (d.tipo || 'recuperacao') : 'treino';
 
+
+      var bikeFeito = !!(state.plano.diasBike && state.plano.diasBike[dayKey] && state.plano.diasBike[dayKey].registrado);
       let cardClass = 'agenda-dia';
       if (isDiaHoje && (status === 'pendente' || status === 'disponivel')) cardClass += ' hoje';
-      if (status === 'perdido') cardClass += ' perdido';
+      if (status === 'perdido' && bikeFeito) cardClass += ' bike-dia';
+      else if (status === 'perdido') cardClass += ' perdido';
+      if (isRest && bikeStatus === 'chuva') cardClass += ' bike-chuva';
+      else if (isRest && bikeStatus === 'imprevisto') cardClass += ' bike-imprevisto';
       if (status === 'concluido') cardClass += ' concluido';
       if (status === 'ausente') cardClass += ' ausente-planejada';
       if (status === 'pulado') cardClass += ' pulado';
 
       let tipoLabel = '', tipoClass = '';
       if (status === 'concluido') { tipoLabel = '✓ CONCLUÍDO'; tipoClass = 'tipo-concluido'; }
+      else if (status === 'perdido' && bikeFeito) { tipoLabel = '&#128690; BIKE'; tipoClass = 'tipo-concluido'; }
       else if (status === 'perdido') { tipoLabel = '✕ PERDIDO'; tipoClass = 'tipo-perdido'; }
+      if (isRest && bikeStatus === 'chuva') { tipoLabel = '&#127783; CHUVA'; tipoClass = 'tipo-bike'; }
+      else if (isRest && bikeStatus === 'imprevisto') { tipoLabel = '&#9888; IMPREVISTO'; tipoClass = 'tipo-bike-imprevisto'; }
       else if (status === 'pulado') { tipoLabel = '⟶ PULADO'; tipoClass = 'tipo-pulado'; }
       else if (status === 'antecipado') { tipoLabel = '↑ ANTECIPADO'; tipoClass = 'tipo-pulado'; }
       else if (status === 'ausente') { tipoLabel = '⚑ AUSÊNCIA PLANEJADA'; tipoClass = 'tipo-ausente'; }
       else if (status === 'disponivel') { tipoLabel = '✦ DISPONÍVEL'; tipoClass = 'tipo-aerobico'; }
+      else if (isRest && tipo === 'bike') { tipoLabel = '&#128690; BIKE'; tipoClass = 'tipo-bike'; }
       else if (isRest && tipo === 'aerobico') { tipoLabel = 'AERÓBICO'; tipoClass = 'tipo-aerobico'; }
+      else if (isRest && d.bike && d.serie !== 'D' && hasTreinoAfter) { tipoLabel = '&#128690; BIKE'; tipoClass = 'tipo-bike'; }
       else if (isRest) { tipoLabel = 'DESCANSO'; tipoClass = 'tipo-recuperacao'; }
       else { tipoLabel = 'TREINO'; tipoClass = 'tipo-treino'; }
+
 
       var expanded = state.plano.diasExpandidos && state.plano.diasExpandidos[dayKey];
 
@@ -5567,10 +5942,11 @@ function renderAgendaLinear() {
         }
       }
 
-      var bikeTemDia = _bikeTemDia(dayKey);
+      var bikeTemDia = !_bikeEhDiaDPernas(dayKey) && (d.bike || (bikeInfo && bikeInfo.substitutoD) || (isRest && d.tipo === 'bike'));
       var bikeInfo = state.plano.diasBike && state.plano.diasBike[dayKey];
       var bikeStatus = (bikeInfo && bikeInfo.status) ? bikeInfo.status : 'pendente';
       var bikeBadgeLabel = bikeStatus === 'feito' ? '&#128690; PEDAL &#10003;' : bikeStatus === 'chuva' ? 'CHUVA' : bikeStatus === 'imprevisto' ? 'IMPREVISTO' : '&#128690; PEDAL';
+      var isSubstitutoD = !!(bikeInfo && bikeInfo.substitutoD) || (isRest && d.tipo === 'bike');
       var actionsHTML = '<div class="agenda-dia-actions">';
       if (status === 'pendente' || status === 'antecipado' || status === 'ausente' || status === 'disponivel') {
         if (!isRest) {
@@ -5587,14 +5963,15 @@ function renderAgendaLinear() {
           if (!isRest && !isDiaPast) actionsHTML += '<button class="agenda-action-btn done" onclick="marcarDia(\'' + dayKey + '\',\'concluido\')">✓ CONCLUÍDO</button>';
           if (!isRest) actionsHTML += '<button class="agenda-action-btn purple" onclick="pularDia(\'' + dayKey + '\',\'' + d.serie + '\')">⟶ PULAR ESTE TREINO</button>';
           if (!isRest && d.serie === 'D') actionsHTML += '<button class="bike-action-btn feito" style="flex:1" onclick="substituirDPorBike(\'' + dayKey + '\',\'' + d.dia + '\',' + semana.semana + ')">&#128690; D&#8594;BIKE</button>';
-          // Botão único "DIA PERDIDO" com submenu
-          actionsHTML += '<div style="position:relative;flex:1">' +
-            '<button class="agenda-action-btn danger" style="width:100%" onclick="toggleDiaPerdidoMenu(\'' + dayKey + '\')">✕ DIA PERDIDO ▾</button>' +
-            '<div class="dia-perdido-menu" id="dia-perdido-menu-' + dayKey + '">' +
-              '<button class="dia-perdido-menu-btn danger" onclick="toggleDiaPerdidoMenu(\'' + dayKey + '\');marcarDiaPerdido(\'' + dayKey + '\',\'' + d.dia + '\',' + semana.semana + ')">✕ PERDI ESTE DIA — reagenda o treino</button>' +
-              '<button class="dia-perdido-menu-btn warning" onclick="toggleDiaPerdidoMenu(\'' + dayKey + '\');marcarAusente(\'' + dayKey + '\',\'' + d.dia + '\',' + semana.semana + ')">⚑ PERDA PROGRAMADA — reagenda o treino</button>' +
-            '</div>' +
-          '</div>';
+          if (!isSubstitutoD) {
+            actionsHTML += '<div style="position:relative;flex:1">' +
+              '<button class="agenda-action-btn danger" style="width:100%" onclick="toggleDiaPerdidoMenu(\'' + dayKey + '\')">✕ DIA PERDIDO ▾</button>' +
+              '<div class="dia-perdido-menu" id="dia-perdido-menu-' + dayKey + '">' +
+                '<button class="dia-perdido-menu-btn danger" onclick="toggleDiaPerdidoMenu(\'' + dayKey + '\');marcarDiaPerdido(\'' + dayKey + '\',\'' + d.dia + '\',' + semana.semana + ')">✕ PERDI ESTE DIA — reagenda o treino</button>' +
+                '<button class="dia-perdido-menu-btn warning" onclick="toggleDiaPerdidoMenu(\'' + dayKey + '\');marcarAusente(\'' + dayKey + '\',\'' + d.dia + '\',' + semana.semana + ')">⚑ PERDA PROGRAMADA — reagenda o treino</button>' +
+              '</div>' +
+            '</div>';
+          }
           // Sábado: show "VOU TREINAR NESTE DIA" button if not already confirmed
           if (d.dia === 'Sábado' && status !== 'disponivel' && !isDiaPast) {
             actionsHTML += '<button class="agenda-action-btn" style="border-color:var(--accent3);color:var(--accent3)" onclick="marcarSabadoDisponivel(\'' + dayKey + '\',\'' + d.dia + '\',' + semana.semana + ')">✦ VOU TREINAR NESTE DIA</button>';
@@ -5621,20 +5998,28 @@ function renderAgendaLinear() {
       html += '<div class="' + cardClass + '" id="agendadia-' + dayKey + '">' +
         '<div class="agenda-dia-head" onclick="toggleAgendaDia(\'' + dayKey + '\')">' +
           '<span class="agenda-dia-label">' + escHtml(d.dia) + (dateStr ? '<br><span style="font-size:10px;font-family:DM Mono,monospace;color:var(--muted)">' + dateStr + '</span>' : '') + '</span>' +
-          '<span class="agenda-dia-serie">' + (status === 'pulado' ? '' : (isRest ? (tipo === 'aerobico' ? 'Aeróbico / Cardio' : 'Descanso') : (serieObj ? d.serie + ' — ' + serieObj.name : d.serie))) + '</span>' +
+          '<span class="agenda-dia-serie">' + (status === 'pulado' ? '' : (isRest ? ((tipo === 'bike' && (bikeStatus === 'chuva' || bikeStatus === 'imprevisto')) ? 'Descanso' : (tipo === 'bike' && bikeInfo && bikeInfo.musculacaoExtra) ? bikeInfo.musculacaoExtra.serie + ' — ' + (state.series.find(function(s){return s.label===bikeInfo.musculacaoExtra.serie;}) || {name:''}).name : tipo === 'bike' ? '&#128690; Pedal' : tipo === 'aerobico' ? 'Aeróbico / Cardio' : (d.bike && d.serie !== 'D' && hasTreinoAfter) ? '&#128690; Pedal' : 'Descanso') : (serieObj ? d.serie + ' — ' + serieObj.name : d.serie))) + '</span>' +
           '<span class="agenda-dia-tipo ' + tipoClass + '">' + tipoLabel + '</span>' +
-          (bikeTemDia ? '<span class="bike-badge bike-badge-' + bikeStatus + '">' + bikeBadgeLabel + '</span>' : '') +
+          (d.bike && d.serie !== 'D' && tipo !== 'bike' && !isRest && !bikeFeito && status !== 'perdido' && status !== 'concluido' && hasTreinoAfter ? '<span class="agenda-dia-tipo tipo-bike" style="margin-left:4px">&#128690; BIKE</span>' : '') +
+
+
         '</div>' +
         '<div class="agenda-dia-body">' +
           (status === 'pulado'
             ? actionsHTML
             : (
               (d.orientacao || d.instrucoes ? '<div class="agenda-instrucoes">' + escHtml(d.orientacao || d.instrucoes) + '</div>' : '') +
+              (bikeInfo && bikeInfo.musculacaoExtra ? '<div class="agenda-instrucoes" style="color:var(--accent3)">✦ ' + bikeInfo.musculacaoExtra.serie + ' — ' + escHtml(bikeInfo.musculacaoExtra.orientacao || '') + '</div>' : '') +
+              (bikeInfo && bikeInfo.musculacaoExtra ? '<button class="agenda-action-btn accent3" style="margin-bottom:6px" onclick="expandirDia(' + semana.semana + ',\'' + d.dia + '\',\'' + bikeInfo.musculacaoExtra.serie + '\')">✦ GERAR TREINO ' + bikeInfo.musculacaoExtra.serie + '</button>' : '') +
               exHTML +
               actionsHTML +
-              (bikeTemDia && status !== 'concluido' ? _buildBikeSection(dayKey, bikeInfo, _getBikePlano(dayKey)) : '') +
+              (!expanded && bikeTemDia && status !== 'concluido' ? _buildBikeSection(dayKey, bikeInfo, _getBikePlano(dayKey), isDiaHoje || (dataMap && dataMap[dayKey] && dataMap[dayKey] < hoje)) : '') +
               (isRest ? '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">' +
+                (isSubstitutoD && !(bikeInfo && bikeInfo.musculacaoExtra) ? '<button class="agenda-action-btn accent3" onclick="anteciparABCParaDiaBike(\'' + dayKey + '\')" style="flex:1">✦ ANTECIPAR TREINO ABC</button>' : '') +
+                (isSubstitutoD && (bikeInfo && bikeInfo.musculacaoExtra) ? '<button class="agenda-action-btn" onclick="desfazerSubstitutoD(\'' + dayKey + '\',\'' + d.dia + '\',' + semana.semana + ')">↺ DESFAZER ANTECIPAÇÃO DO TREINO</button>' : '') +
+                (isSubstitutoD && !(bikeInfo && bikeInfo.musculacaoExtra) ? '<button class="agenda-action-btn" onclick="desfazerSubstitutoD(\'' + dayKey + '\',\'' + d.dia + '\',' + semana.semana + ')">↺ DESFAZER D→BIKE</button>' : '') +
                 (expanded ? '<button class="agenda-action-btn danger" onclick="limparCacheDia(\'' + dayKey + '\')">✕ LIMPAR TREINO CANCELADO</button>' : '<span></span>') +
+                '<button class="agenda-action-btn accent3" onclick="gerarOrientacaoBike(\'' + dayKey + '\')" style="flex:1">✦ GERAR TREINO DE BIKE</button>' +
                 '<button class="agenda-action-btn" style="border-color:var(--accent3);color:var(--accent3)" onclick="toggleChatInline(\'' + dayKey + '\',\'\')">✦ AJUSTAR COM IA</button>' +
                 '</div>' +
                 '<div id="chat-inline-' + dayKey + '" style="display:none;margin-top:12px;border-top:1px solid var(--border);padding-top:10px">' +
@@ -5908,6 +6293,32 @@ function irParaTreino(dayKey, serieLabel, callbackOrChatOpen) {
     '</div>';
 
   container.querySelector('.agenda-dia-body').appendChild(div);
+
+  // Append bike section after expanded workout
+  var existingBike = container.querySelector('.bike-section-wrap');
+  if (existingBike) existingBike.remove();
+  var bikeTemDia = _bikeTemDia(dayKey);
+  var status = (state.plano.diasStatus && state.plano.diasStatus[dayKey]) || 'pendente';
+  if (bikeTemDia && status !== 'concluido') {
+    var bikeInfo = state.plano.diasBike && state.plano.diasBike[dayKey];
+    var hoje2 = new Date(); hoje2.setHours(0,0,0,0);
+    var diaChegouBike = false;
+    if (state.plano.dataInicio) {
+      var _ordemB = ['Segunda','Terça','Quarta','Quinta','Sexta','Sábado','Domingo'];
+      var _inicioB = new Date(state.plano.dataInicio); _inicioB.setHours(0,0,0,0);
+      var _parts = dayKey.match(/^sem(\d+)_(.+)$/);
+      if (_parts) {
+        var _mon = getMondayOf(_inicioB);
+        var _dd = new Date(_mon);
+        _dd.setDate(_mon.getDate() + (parseInt(_parts[1])-1)*7 + _ordemB.indexOf(_parts[2]));
+        diaChegouBike = _dd <= hoje2;
+      }
+    }
+    var bikeWrap = document.createElement('div');
+    bikeWrap.className = 'bike-section-wrap';
+    bikeWrap.innerHTML = _buildBikeSection(dayKey, bikeInfo, _getBikePlano(dayKey), diaChegouBike);
+    container.querySelector('.agenda-dia-body').appendChild(bikeWrap);
+  }
 
   // If chat was open, restore history
   if (chatOpen) {
@@ -6872,6 +7283,82 @@ function pularDia(dayKey, serie) {
 
 function desfazerPularDia(dayKey) {
   desfazerRelocamento();
+}
+
+function anteciparABCParaDiaBike(dayKey) {
+  if (!state.plano || !state.plano.semanas) return;
+  if (!state.plano.diasStatus) state.plano.diasStatus = {};
+
+  if (!state.plano._historico) state.plano._historico = [];
+  state.plano._historico.push(JSON.parse(JSON.stringify({
+    semanas: state.plano.semanas,
+    diasStatus: state.plano.diasStatus,
+    diasExpandidos: state.plano.diasExpandidos || {}
+  })));
+  if (state.plano._historico.length > 5) state.plano._historico.shift();
+
+  var todosDias = [];
+  state.plano.semanas.forEach(function(sem) {
+    (sem.dias || sem.agenda || []).forEach(function(d) {
+      todosDias.push({ key: 'sem' + sem.semana + '_' + d.dia, diaObj: d, diaNome: d.dia, semana: sem.semana });
+    });
+  });
+
+  var pulIdx = todosDias.findIndex(function(d) { return d.key === dayKey; });
+  if (pulIdx === -1) return;
+
+  var diasStatus = state.plano.diasStatus;
+  var fila = (state.plano.configTreino && state.plano.configTreino.filaPrincipal) || ['A','B','C'];
+
+  // Collect ALL pending ABC slots after current day, in order
+  var abcSlots = [];
+  for (var i = pulIdx + 1; i < todosDias.length; i++) {
+    var c = todosDias[i];
+    var cStatus = diasStatus[c.key] || 'pendente';
+    if (!c.diaObj.serie || c.diaObj.serie === 'descanso' || c.diaObj.serie === 'D') continue;
+    if (cStatus === 'perdido' || cStatus === 'concluido' || cStatus === 'pulado' || cStatus === 'ausente') continue;
+    abcSlots.push({ idx: i, slot: c });
+  }
+
+  if (abcSlots.length === 0) { toast('Nenhum treino A/B/C encontrado para antecipar.'); return; }
+
+  // First ABC (C) goes to bike day as extra
+  var serieAntecipar = abcSlots[0].slot.diaObj.serie;
+  if (!state.plano.diasBike) state.plano.diasBike = {};
+  if (!state.plano.diasBike[dayKey]) state.plano.diasBike[dayKey] = { substitutoD: true };
+  state.plano.diasBike[dayKey].musculacaoExtra = { serie: serieAntecipar, orientacao: abcSlots[0].slot.diaObj.orientacao || '' };
+
+  // Shift: each slot takes the value of the next
+  // slot[0]=C gets slot[1]=A, slot[1]=A gets slot[2]=... etc.
+  // Last slot gets next in circular rotation
+  for (var j = 0; j < abcSlots.length - 1; j++) {
+    var cur = abcSlots[j].slot;
+    var nxt = abcSlots[j + 1].slot;
+    cur.diaObj.serie = nxt.diaObj.serie;
+    cur.diaObj.tipo = nxt.diaObj.tipo;
+    cur.diaObj.orientacao = nxt.diaObj.orientacao;
+    if (state.plano.diasExpandidos) {
+      var nxtExp = state.plano.diasExpandidos[nxt.key];
+      if (nxtExp) state.plano.diasExpandidos[cur.key] = JSON.parse(JSON.stringify(Object.assign({}, nxtExp, { _dayKey: cur.key })));
+      else delete state.plano.diasExpandidos[cur.key];
+    }
+  }
+
+  // Last slot in abcSlots: its content was moved to previous slot
+  // It now gets the next in circular rotation after its original value
+  var lastSlot = abcSlots[abcSlots.length - 1];
+  var lastSerie = lastSlot.slot.diaObj.serie; // still has original value (A)
+  var nextNeeded = fila[(fila.indexOf(lastSerie) + 1) % fila.length]; // B
+  var nextNeededObj = state.series.find(function(s) { return s.label === nextNeeded; });
+  lastSlot.slot.diaObj.serie = nextNeeded;
+  lastSlot.slot.diaObj.tipo = 'treino';
+  lastSlot.slot.diaObj.orientacao = nextNeededObj ? nextNeededObj.name + ' — adicionado para manter sequência.' : '';
+  if (!lastSlot.slot.diaObj.bike) lastSlot.slot.diaObj.bike = { foco: 'Z2 Endurance', duracao: '1h', timing: 'após musculação', intensidade: 'Ritmo confortável.', obs: '' };
+  if (state.plano.diasExpandidos) delete state.plano.diasExpandidos[lastSlot.key];
+
+  saveState();
+  renderAgendaLinear();
+  toast('Treino ' + serieAntecipar + ' antecipado para o dia de bike!');
 }
 
 function anteciparProximoTreino(dayKey) {
@@ -7847,20 +8334,15 @@ function importData() {
             !imported.perfil && !imported.planoChatMessages) {
           throw new Error('Formato inválido');
         }
-        // Merge imported over defaults to fill any missing fields
-        state = Object.assign(loadState(), imported);
+        // Replace state entirely with imported data
+        state = JSON.parse(JSON.stringify(imported));
+        // Fill any missing fields with defaults
+        if (!state.series) state.series = loadState().series;
+        if (!state.history) state.history = [];
+        if (!state.bikeHistory) state.bikeHistory = [];
+        // Clear storage and save fresh
+        try { localStorage.removeItem(STORAGE_KEY); } catch(e) {}
         planoChatHistory = state.planoChatHistory || [];
-        // DEBUG
-        var _dbg = document.createElement('div');
-        _dbg.id = '_importDebug';
-        _dbg.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:#111;color:#0f0;font-family:monospace;font-size:11px;padding:10px;z-index:9999;max-height:40vh;overflow-y:auto;border-top:2px solid #0f0';
-        _dbg.innerHTML = '<button onclick="document.getElementById(\'_importDebug\').remove()" style="background:#333;color:#fff;border:none;padding:4px 8px;border-radius:4px;margin-bottom:6px;cursor:pointer">FECHAR</button><pre>' +
-          'state.perfil.bikeModelo: ' + (state.perfil ? state.perfil.bikeModelo : 'NO PERFIL') + '\n' +
-          'state.perfil.bikeGps: ' + (state.perfil ? state.perfil.bikeGps : 'NO PERFIL') + '\n' +
-          'state.perfil.bikeRides: ' + (state.perfil ? state.perfil.bikeRides : 'NO PERFIL') + '\n' +
-          'state.perfil keys: ' + (state.perfil ? Object.keys(state.perfil).join(', ') : 'none') +
-          '</pre>';
-        document.body.appendChild(_dbg);
         saveState();
         render();
         loadPerfil();
@@ -7871,6 +8353,14 @@ function importData() {
         switchTab('agenda');
         setTimeout(autoResizeAll, 100);
         toast('Dados importados ✓');
+        // DEBUG diasBike
+        (function() {
+          var _dbg = document.createElement('div');
+          _dbg.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:#111;color:#0f0;font-family:monospace;font-size:11px;padding:10px;z-index:9999;border-top:2px solid #0f0';
+          _dbg.innerHTML = '<button onclick="this.parentNode.remove()" style="margin-bottom:6px;background:#333;color:#fff;border:none;padding:4px 8px;border-radius:4px;cursor:pointer">FECHAR</button><textarea readonly style="width:100%;height:120px;background:#111;color:#0f0;font-family:monospace;font-size:11px;border:none;outline:none;box-sizing:border-box">' +
+            'diasBike: ' + JSON.stringify(state.plano && state.plano.diasBike, null, 2) + '</textarea>';
+          document.body.appendChild(_dbg);
+        })();
       } catch(e) {
         toast('Erro: ' + e.message);
       }
