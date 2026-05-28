@@ -1409,7 +1409,7 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
   <div class="header-actions">
     <button class="btn btn-header-only" onclick="exportData()">EXPORTAR</button>
     <button class="btn btn-header-only" onclick="importData()">IMPORTAR</button>
-    <span style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted);margin-left:4px">v0.8.9.41</span>
+    <span style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted);margin-left:4px">v0.8.9.42</span>
     <div id="auth-status" style="display:flex;align-items:center;margin-left:4px"></div>
 
     <div class="mobile-menu-wrap" id="mobile-menu-wrap">
@@ -6036,13 +6036,13 @@ function renderAgendaLinear() {
               exHTML +
               actionsHTML +
               (!expanded && bikeTemDia && status !== 'concluido' ? _buildBikeSection(dayKey, bikeInfo, _getBikePlano(dayKey), isDiaHoje || (dataMap && dataMap[dayKey] && dataMap[dayKey] < hoje)) : '') +
-              (isRest ? '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">' +
-                (isSubstitutoD && !(bikeInfo && bikeInfo.musculacaoExtra) ? '<button class="agenda-action-btn accent3" onclick="anteciparABCParaDiaBike(\'' + dayKey + '\')" style="flex:1">✦ ANTECIPAR TREINO ABC</button>' : '') +
-                (isSubstitutoD && (bikeInfo && bikeInfo.musculacaoExtra) ? '<button class="agenda-action-btn" onclick="desfazerSubstitutoD(\'' + dayKey + '\',\'' + d.dia + '\',' + semana.semana + ')">↺ DESFAZER ANTECIPAÇÃO DO TREINO</button>' : '') +
+              (isRest ? '<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:8px">' +
+                (isSubstitutoD && !(bikeInfo && bikeInfo.musculacaoExtra) ? '<button class="agenda-action-btn accent3" onclick="anteciparABCParaDiaBike(\'' + dayKey + '\')" style="flex:1">✦ ANTECIPAR ABC</button>' : '') +
+                (isSubstitutoD && (bikeInfo && bikeInfo.musculacaoExtra) ? '<button class="agenda-action-btn" onclick="desfazerSubstitutoD(\'' + dayKey + '\',\'' + d.dia + '\',' + semana.semana + ')">↺ DESFAZER ANTECIP.</button>' : '') +
                 (isSubstitutoD && !(bikeInfo && bikeInfo.musculacaoExtra) ? '<button class="agenda-action-btn" onclick="desfazerSubstitutoD(\'' + dayKey + '\',\'' + d.dia + '\',' + semana.semana + ')">↺ DESFAZER D→BIKE</button>' : '') +
-                (expanded ? '<button class="agenda-action-btn danger" onclick="limparCacheDia(\'' + dayKey + '\')">✕ LIMPAR TREINO CANCELADO</button>' : '<span></span>') +
-                '<button class="agenda-action-btn accent3" onclick="gerarOrientacaoBike(\'' + dayKey + '\')" style="flex:1" id="btn-gerar-bike-' + dayKey + '">✦ GERAR TREINO DE BIKE</button>' +
-                '<button class="agenda-action-btn" style="border-color:var(--accent3);color:var(--accent3)" onclick="toggleChatInline(\'' + dayKey + '\',\'\')">✦ AJUSTAR COM IA</button>' +
+                (expanded ? '<button class="agenda-action-btn danger" onclick="limparCacheDia(\'' + dayKey + '\')">✕ LIMPAR</button>' : '<span></span>') +
+                '<button class="agenda-action-btn accent3" onclick="gerarOrientacaoBike(\'' + dayKey + '\')" style="flex:1" id="btn-gerar-bike-' + dayKey + '">✦ GERAR BIKE</button>' +
+                '<button class="agenda-action-btn" style="border-color:var(--accent3);color:var(--accent3)" onclick="toggleChatInline(\'' + dayKey + '\',\'\')">✦ AJUSTAR IA</button>' +
                 '</div>' +
                 '<div id="chat-inline-' + dayKey + '" style="display:none;margin-top:12px;border-top:1px solid var(--border);padding-top:10px">' +
                   '<div id="chat-inline-msgs-' + dayKey + '" style="max-height:200px;overflow-y:auto;display:flex;flex-direction:column;gap:6px;margin-bottom:8px"></div>' +
@@ -6299,7 +6299,7 @@ function irParaTreino(dayKey, serieLabel, callbackOrChatOpen) {
     '<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">' +
       '<button id="btn-marcar-todos-' + dayKey + '" class="agenda-action-btn done" onclick="marcarTodosInline(\'' + dayKey + '\',\'' + serieLabel + '\')">✓ MARCAR TODOS</button>' +
       '<button class="agenda-action-btn" onclick="finishSerieFromAgenda(\'' + dayKey + '\',\'' + s.id + '\')">⬤ REGISTRAR NO HISTÓRICO</button>' +
-      '<button class="agenda-action-btn" style="border-color:var(--accent3);color:var(--accent3);margin-left:auto" onclick="toggleChatInline(\'' + dayKey + '\',\'' + serieLabel + '\')">✦ AJUSTAR COM IA</button>' +
+      '<button class="agenda-action-btn" style="border-color:var(--accent3);color:var(--accent3);margin-left:auto" onclick="toggleChatInline(\'' + dayKey + '\',\'' + serieLabel + '\')">✦ AJUSTAR IA</button>' +
     '</div>' +
     '<div id="chat-inline-' + dayKey + '" style="display:' + (chatOpen ? 'block' : 'none') + ';margin-top:12px;border-top:1px solid var(--border);padding-top:10px">' +
       '<div style="display:flex;justify-content:flex-end;margin-bottom:6px">' +
