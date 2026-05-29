@@ -2405,48 +2405,48 @@
           },
           {
             "dia": "Sexta",
-            "tipo": "treino",
-            "serie": "D",
-            "orientacao": "Sessão D em transição — encerramento do ciclo de pernas. Volume e carga moderados: 3 séries por exercício. Leg press conservador respeitando o tendão direito: 3 séries com carga confortável — não ultrapassar 70% do pico. Stiff com halteres no lugar de leg curl: 3 séries, sem flexão de joelho com carga. Avanço com halteres como complemento: 3 séries. Sem exercícios de alto risco. Avaliar sensação geral do tendão direito e registrar evolução para o próximo mesociclo. Core: crunch 3x15 + elevação de pernas deitado 3x12. (Treino D realocado de Quinta)",
             "bike": {
+              "obs": "Cadência alta, sem força excessiva — tendão patelar direito. Z2 apenas após musculação.",
               "foco": "Z2 Endurance",
-              "duracao": "1h",
               "timing": "após musculação",
+              "duracao": "1h",
               "intensidade": "Ritmo confortável — FC ~65-75% FCmax. Consegue falar frases completas.",
               "distSugerida": "20-25km",
-              "tempoSugerido": "1h",
-              "obs": "Cadência alta, sem força excessiva — tendão patelar direito. Z2 apenas após musculação."
-            }
+              "tempoSugerido": "1h"
+            },
+            "tipo": "treino",
+            "serie": "D",
+            "orientacao": "Sessão D em transição — encerramento do ciclo de pernas. Volume e carga moderados: 3 séries por exercício. Leg press conservador respeitando o tendão direito: 3 séries com carga confortável — não ultrapassar 70% do pico. Stiff com halteres no lugar de leg curl: 3 séries, sem flexão de joelho com carga. Avanço com halteres como complemento: 3 séries. Sem exercícios de alto risco. Avaliar sensação geral do tendão direito e registrar evolução para o próximo mesociclo. Core: crunch 3x15 + elevação de pernas deitado 3x12. (Treino D realocado de Quinta)"
           },
           {
             "dia": "Sábado",
-            "tipo": "recuperacao",
-            "serie": "descanso",
-            "orientacao": "Descanso ativo — ótimo para ride Z2 longo sem compromisso de musculação.",
             "bike": {
+              "obs": "Sem musculação — aproveitar para ride mais longo. Cadência alta, sem sprints — tendão patelar direito.",
               "foco": "Z2 Longo",
-              "duracao": "1h30",
               "timing": "qualquer",
+              "duracao": "1h30",
               "intensidade": "Ritmo confortável — FC ~65-75% FCmax. Consegue falar frases completas.",
               "distSugerida": "35-45km",
-              "tempoSugerido": "1h30",
-              "obs": "Sem musculação — aproveitar para ride mais longo. Cadência alta, sem sprints — tendão patelar direito."
-            }
+              "tempoSugerido": "1h30"
+            },
+            "tipo": "recuperacao",
+            "serie": "descanso",
+            "orientacao": "Descanso ativo — ótimo para ride Z2 longo sem compromisso de musculação."
           },
           {
             "dia": "Domingo",
-            "tipo": "recuperacao",
-            "serie": "descanso",
-            "orientacao": "Descanso ativo ou descanso completo conforme sensação. Bike elegível se sábado não tiver sido aproveitado para ride longo.",
             "bike": {
+              "obs": "Apenas se não pedalar no sábado. Cadência alta, sem sprints — tendão patelar direito.",
               "foco": "Z2 Endurance",
-              "duracao": "1h",
               "timing": "qualquer",
+              "duracao": "1h",
               "intensidade": "Ritmo confortável — FC ~65-75% FCmax. Consegue falar frases completas.",
               "distSugerida": "20-30km",
-              "tempoSugerido": "1h",
-              "obs": "Apenas se não pedalar no sábado. Cadência alta, sem sprints — tendão patelar direito."
-            }
+              "tempoSugerido": "1h"
+            },
+            "tipo": "recuperacao",
+            "serie": "descanso",
+            "orientacao": "Descanso ativo ou descanso completo conforme sensação. Bike elegível se sábado não tiver sido aproveitado para ride longo."
           }
         ],
         "foco": "Transição — Encerramento do ciclo com volume moderado",
@@ -2458,18 +2458,18 @@
         "dias": [
           {
             "dia": "Segunda",
-            "tipo": "treino",
-            "serie": "C",
-            "orientacao": "Peito/Tríceps em transição — encerramento do ciclo. Volume e carga moderados: 3 séries por exercício. Supino inclinado com halteres: 3 séries com carga intermediária entre deload e pico. Crucifixo com halteres como complemento: 2-3 séries. Sem barra. Tríceps: pushdown no cabo ou tríceps testa com halteres — 2-3 séries com carga moderada. Foco em amplitude e qualidade de execução. Descanso 90s nos compostos, 75s nos isolamentos. Registrar referências de carga e sensações para o próximo mesociclo. Core: crunch bicicleta 3x12 cada lado + prancha frontal 3x35s.",
             "bike": {
+              "obs": "Cadência alta, sem sprints — tendão patelar direito. Z2 apenas após musculação.",
               "foco": "Z2 Endurance",
-              "duracao": "1h",
               "timing": "após musculação",
+              "duracao": "1h",
               "intensidade": "Ritmo confortável — FC ~65-75% FCmax. Consegue falar frases completas.",
               "distSugerida": "20-25km",
-              "tempoSugerido": "1h",
-              "obs": "Cadência alta, sem sprints — tendão patelar direito. Z2 apenas após musculação."
-            }
+              "tempoSugerido": "1h"
+            },
+            "tipo": "treino",
+            "serie": "C",
+            "orientacao": "Peito/Tríceps em transição — encerramento do ciclo. Volume e carga moderados: 3 séries por exercício. Supino inclinado com halteres: 3 séries com carga intermediária entre deload e pico. Crucifixo com halteres como complemento: 2-3 séries. Sem barra. Tríceps: pushdown no cabo ou tríceps testa com halteres — 2-3 séries com carga moderada. Foco em amplitude e qualidade de execução. Descanso 90s nos compostos, 75s nos isolamentos. Registrar referências de carga e sensações para o próximo mesociclo. Core: crunch bicicleta 3x12 cada lado + prancha frontal 3x35s."
           },
           {
             "dia": "Terça",
@@ -2479,78 +2479,78 @@
           },
           {
             "dia": "Quarta",
-            "tipo": "treino",
-            "serie": "D",
-            "orientacao": "Última sessão D do ciclo — encerramento definitivo de pernas. Volume e carga moderados: 3 séries por exercício. Leg press conservador respeitando o tendão direito: 3 séries com carga confortável. Agachamento ou avanço com halteres como foco principal: 3 séries. Stiff com halteres no lugar de leg curl — sem flexão de joelho com carga: 3 séries. Sem exercícios de alto risco. Avaliar evolução geral do tendão direito ao longo do ciclo. Registrar observações gerais de pernas para calibrar progressão no próximo mesociclo. Core: crunch 3x15 + elevação de pernas deitado 3x12.",
             "bike": {
+              "obs": "Cadência alta, sem sprints — tendão patelar direito. Recuperação ativa no encerramento do ciclo.",
               "foco": "Z2 Endurance",
-              "duracao": "1h",
               "timing": "qualquer",
+              "duracao": "1h",
               "intensidade": "Ritmo confortável — FC ~65-75% FCmax. Consegue falar frases completas.",
               "distSugerida": "20-30km",
-              "tempoSugerido": "1h",
-              "obs": "Cadência alta, sem sprints — tendão patelar direito. Recuperação ativa no encerramento do ciclo."
-            }
+              "tempoSugerido": "1h"
+            },
+            "tipo": "treino",
+            "serie": "D",
+            "orientacao": "Última sessão D do ciclo — encerramento definitivo de pernas. Volume e carga moderados: 3 séries por exercício. Leg press conservador respeitando o tendão direito: 3 séries com carga confortável. Agachamento ou avanço com halteres como foco principal: 3 séries. Stiff com halteres no lugar de leg curl — sem flexão de joelho com carga: 3 séries. Sem exercícios de alto risco. Avaliar evolução geral do tendão direito ao longo do ciclo. Registrar observações gerais de pernas para calibrar progressão no próximo mesociclo. Core: crunch 3x15 + elevação de pernas deitado 3x12."
           },
           {
             "dia": "Quinta",
-            "tipo": "recuperacao",
-            "serie": "descanso",
-            "orientacao": "Descanso ativo — bike Z2 elegível. Distribuir rides ao longo da semana para atingir meta de 4 rides.",
             "bike": {
+              "obs": "Cadência alta, sem sprints — tendão patelar direito.",
               "foco": "Z2 Endurance",
-              "duracao": "1h",
               "timing": "qualquer",
+              "duracao": "1h",
               "intensidade": "Ritmo confortável — FC ~65-75% FCmax. Consegue falar frases completas.",
               "distSugerida": "20-30km",
-              "tempoSugerido": "1h",
-              "obs": "Cadência alta, sem sprints — tendão patelar direito."
-            }
+              "tempoSugerido": "1h"
+            },
+            "tipo": "recuperacao",
+            "serie": "descanso",
+            "orientacao": "Descanso ativo — bike Z2 elegível. Distribuir rides ao longo da semana para atingir meta de 4 rides."
           },
           {
             "dia": "Sexta",
-            "tipo": "recuperacao",
-            "serie": "descanso",
-            "orientacao": "Descanso ativo — bike Z2 elegível. Boa oportunidade para ride de encerramento da semana antes do fim de semana.",
             "bike": {
+              "obs": "Cadência alta, sem sprints — tendão patelar direito.",
               "foco": "Z2 Endurance",
-              "duracao": "1h",
               "timing": "qualquer",
+              "duracao": "1h",
               "intensidade": "Ritmo confortável — FC ~65-75% FCmax. Consegue falar frases completas.",
               "distSugerida": "20-30km",
-              "tempoSugerido": "1h",
-              "obs": "Cadência alta, sem sprints — tendão patelar direito."
-            }
+              "tempoSugerido": "1h"
+            },
+            "tipo": "recuperacao",
+            "serie": "descanso",
+            "orientacao": "Descanso ativo — bike Z2 elegível. Boa oportunidade para ride de encerramento da semana antes do fim de semana."
           },
           {
             "dia": "Sábado",
-            "tipo": "recuperacao",
-            "serie": "descanso",
-            "orientacao": "Descanso ativo — ótimo para ride Z2 longo no fim de semana de encerramento do ciclo.",
             "bike": {
+              "obs": "Sem musculação — aproveitar para ride mais longo. Cadência alta, sem sprints — tendão patelar direito.",
               "foco": "Z2 Longo",
-              "duracao": "1h30",
               "timing": "qualquer",
+              "duracao": "1h30",
               "intensidade": "Ritmo confortável — FC ~65-75% FCmax. Consegue falar frases completas.",
               "distSugerida": "35-45km",
-              "tempoSugerido": "1h30",
-              "obs": "Sem musculação — aproveitar para ride mais longo. Cadência alta, sem sprints — tendão patelar direito."
-            }
+              "tempoSugerido": "1h30"
+            },
+            "tipo": "recuperacao",
+            "serie": "descanso",
+            "orientacao": "Descanso ativo — ótimo para ride Z2 longo no fim de semana de encerramento do ciclo."
           },
           {
             "dia": "Domingo",
-            "tipo": "recuperacao",
-            "serie": "descanso",
-            "orientacao": "Descanso completo ou descanso ativo leve. Encerramento do ciclo — avaliar progressos gerais e preparar o próximo mesociclo.",
             "bike": {
+              "obs": "Opcional — apenas se houver disposição. Não forçar no encerramento do ciclo. Cadência alta, sem sprints.",
               "foco": "Z2 Leve",
-              "duracao": "45min",
               "timing": "qualquer",
+              "duracao": "45min",
               "intensidade": "Ritmo muito confortável — FC ~60-70% FCmax.",
               "distSugerida": "15-20km",
-              "tempoSugerido": "45min",
-              "obs": "Opcional — apenas se houver disposição. Não forçar no encerramento do ciclo. Cadência alta, sem sprints."
-            }
+              "tempoSugerido": "45min"
+            },
+            "tipo": "recuperacao",
+            "serie": "descanso",
+            "orientacao": "Descanso completo ou descanso ativo leve. Encerramento do ciclo — avaliar progressos gerais e preparar o próximo mesociclo."
           }
         ],
         "foco": "Transição — Encerramento definitivo do ciclo",
@@ -2559,6 +2559,31 @@
         "intensidade": "65-70%"
       }
     ],
+    "diasBike": {
+      "sem7_Quinta": {
+        "kcal": "716",
+        "status": "pendente",
+        "elevacao": "200",
+        "percurso": "Caçique - Igapó",
+        "tempoMov": "1:10",
+        "distancia": "23.74",
+        "tempoTotal": "1:54",
+        "velocidade": "20.2",
+        "substitutoD": true,
+        "registrado": true
+      },
+      "sem7_Segunda": {
+        "kcal": "626",
+        "status": "feito",
+        "elevacao": "188",
+        "percurso": "Lago Igapó",
+        "tempoMov": "57:14",
+        "distancia": "20.52",
+        "registrado": true,
+        "tempoTotal": "1:06:40",
+        "velocidade": "21.5km/h"
+      }
+    },
     "_historico": [
       {
         "semanas": [
@@ -9052,48 +9077,48 @@
               },
               {
                 "dia": "Sexta",
-                "tipo": "treino",
-                "serie": "C",
-                "orientacao": "Peito/Tríceps em transição — encerramento do ciclo. Volume e carga moderados: 3 séries por exercício. Supino inclinado com halteres: 3 séries com carga intermediária entre deload e pico. Crucifixo com halteres como complemento: 2-3 séries. Sem barra. Tríceps: pushdown no cabo ou tríceps testa com halteres — 2-3 séries com carga moderada. Foco em amplitude e qualidade de execução. Descanso 90s nos compostos, 75s nos isolamentos. Registrar referências de carga e sensações para o próximo mesociclo. Core: crunch bicicleta 3x12 cada lado + prancha frontal 3x35s.",
                 "bike": {
+                  "obs": "Cadência alta, sem força excessiva — tendão patelar direito. Z2 apenas após musculação.",
                   "foco": "Z2 Endurance",
-                  "duracao": "1h",
                   "timing": "após musculação",
+                  "duracao": "1h",
                   "intensidade": "Ritmo confortável — FC ~65-75% FCmax. Consegue falar frases completas.",
                   "distSugerida": "20-25km",
-                  "tempoSugerido": "1h",
-                  "obs": "Cadência alta, sem força excessiva — tendão patelar direito. Z2 apenas após musculação."
-                }
+                  "tempoSugerido": "1h"
+                },
+                "tipo": "treino",
+                "serie": "C",
+                "orientacao": "Peito/Tríceps em transição — encerramento do ciclo. Volume e carga moderados: 3 séries por exercício. Supino inclinado com halteres: 3 séries com carga intermediária entre deload e pico. Crucifixo com halteres como complemento: 2-3 séries. Sem barra. Tríceps: pushdown no cabo ou tríceps testa com halteres — 2-3 séries com carga moderada. Foco em amplitude e qualidade de execução. Descanso 90s nos compostos, 75s nos isolamentos. Registrar referências de carga e sensações para o próximo mesociclo. Core: crunch bicicleta 3x12 cada lado + prancha frontal 3x35s."
               },
               {
                 "dia": "Sábado",
-                "tipo": "recuperacao",
-                "serie": "descanso",
-                "orientacao": "Descanso ativo — ótimo para ride Z2 longo sem compromisso de musculação.",
                 "bike": {
+                  "obs": "Sem musculação — aproveitar para ride mais longo. Cadência alta, sem sprints — tendão patelar direito.",
                   "foco": "Z2 Longo",
-                  "duracao": "1h30",
                   "timing": "qualquer",
+                  "duracao": "1h30",
                   "intensidade": "Ritmo confortável — FC ~65-75% FCmax. Consegue falar frases completas.",
                   "distSugerida": "35-45km",
-                  "tempoSugerido": "1h30",
-                  "obs": "Sem musculação — aproveitar para ride mais longo. Cadência alta, sem sprints — tendão patelar direito."
-                }
+                  "tempoSugerido": "1h30"
+                },
+                "tipo": "recuperacao",
+                "serie": "descanso",
+                "orientacao": "Descanso ativo — ótimo para ride Z2 longo sem compromisso de musculação."
               },
               {
                 "dia": "Domingo",
-                "tipo": "recuperacao",
-                "serie": "descanso",
-                "orientacao": "Descanso ativo ou descanso completo conforme sensação. Bike elegível se sábado não tiver sido aproveitado para ride longo.",
                 "bike": {
+                  "obs": "Apenas se não pedalar no sábado. Cadência alta, sem sprints — tendão patelar direito.",
                   "foco": "Z2 Endurance",
-                  "duracao": "1h",
                   "timing": "qualquer",
+                  "duracao": "1h",
                   "intensidade": "Ritmo confortável — FC ~65-75% FCmax. Consegue falar frases completas.",
                   "distSugerida": "20-30km",
-                  "tempoSugerido": "1h",
-                  "obs": "Apenas se não pedalar no sábado. Cadência alta, sem sprints — tendão patelar direito."
-                }
+                  "tempoSugerido": "1h"
+                },
+                "tipo": "recuperacao",
+                "serie": "descanso",
+                "orientacao": "Descanso ativo ou descanso completo conforme sensação. Bike elegível se sábado não tiver sido aproveitado para ride longo."
               }
             ],
             "foco": "Transição — Encerramento do ciclo com volume moderado",
@@ -9105,18 +9130,18 @@
             "dias": [
               {
                 "dia": "Segunda",
-                "tipo": "treino",
-                "serie": "A",
-                "orientacao": "Última sessão de Ombros do ciclo — encerramento definitivo. Volume e carga moderados: 3 séries por exercício. Overhead press sentado com halteres: 3 séries com carga ligeiramente acima da última sessão A se a sensação estiver boa — nunca forçar. Elevação lateral: 3 séries. Deltóide posterior: 2-3 séries. Sem shrug. Descanso 90s. Registrar observações finais sobre ombros, sensação articular e referências de carga para iniciar o próximo mesociclo com clareza. Core: crunch 3x15 + rotação de tronco leve sem carga 2x10 cada lado. Encerramento suave do ciclo.",
                 "bike": {
+                  "obs": "Cadência alta, sem sprints — tendão patelar direito. Z2 apenas após musculação.",
                   "foco": "Z2 Endurance",
-                  "duracao": "1h",
                   "timing": "após musculação",
+                  "duracao": "1h",
                   "intensidade": "Ritmo confortável — FC ~65-75% FCmax. Consegue falar frases completas.",
                   "distSugerida": "20-25km",
-                  "tempoSugerido": "1h",
-                  "obs": "Cadência alta, sem sprints — tendão patelar direito. Z2 apenas após musculação."
-                }
+                  "tempoSugerido": "1h"
+                },
+                "tipo": "treino",
+                "serie": "A",
+                "orientacao": "Última sessão de Ombros do ciclo — encerramento definitivo. Volume e carga moderados: 3 séries por exercício. Overhead press sentado com halteres: 3 séries com carga ligeiramente acima da última sessão A se a sensação estiver boa — nunca forçar. Elevação lateral: 3 séries. Deltóide posterior: 2-3 séries. Sem shrug. Descanso 90s. Registrar observações finais sobre ombros, sensação articular e referências de carga para iniciar o próximo mesociclo com clareza. Core: crunch 3x15 + rotação de tronco leve sem carga 2x10 cada lado. Encerramento suave do ciclo."
               },
               {
                 "dia": "Terça",
@@ -9126,78 +9151,78 @@
               },
               {
                 "dia": "Quarta",
-                "tipo": "aerobico",
-                "serie": "descanso",
-                "orientacao": "Descanso ativo — bike Z2 recomendado para manutenção aeróbica no encerramento do ciclo.",
                 "bike": {
+                  "obs": "Cadência alta, sem sprints — tendão patelar direito. Recuperação ativa no encerramento do ciclo.",
                   "foco": "Z2 Endurance",
-                  "duracao": "1h",
                   "timing": "qualquer",
+                  "duracao": "1h",
                   "intensidade": "Ritmo confortável — FC ~65-75% FCmax. Consegue falar frases completas.",
                   "distSugerida": "20-30km",
-                  "tempoSugerido": "1h",
-                  "obs": "Cadência alta, sem sprints — tendão patelar direito. Recuperação ativa no encerramento do ciclo."
-                }
+                  "tempoSugerido": "1h"
+                },
+                "tipo": "aerobico",
+                "serie": "descanso",
+                "orientacao": "Descanso ativo — bike Z2 recomendado para manutenção aeróbica no encerramento do ciclo."
               },
               {
                 "dia": "Quinta",
-                "tipo": "recuperacao",
-                "serie": "descanso",
-                "orientacao": "Descanso ativo — bike Z2 elegível. Distribuir rides ao longo da semana para atingir meta de 4 rides.",
                 "bike": {
+                  "obs": "Cadência alta, sem sprints — tendão patelar direito.",
                   "foco": "Z2 Endurance",
-                  "duracao": "1h",
                   "timing": "qualquer",
+                  "duracao": "1h",
                   "intensidade": "Ritmo confortável — FC ~65-75% FCmax. Consegue falar frases completas.",
                   "distSugerida": "20-30km",
-                  "tempoSugerido": "1h",
-                  "obs": "Cadência alta, sem sprints — tendão patelar direito."
-                }
+                  "tempoSugerido": "1h"
+                },
+                "tipo": "recuperacao",
+                "serie": "descanso",
+                "orientacao": "Descanso ativo — bike Z2 elegível. Distribuir rides ao longo da semana para atingir meta de 4 rides."
               },
               {
                 "dia": "Sexta",
-                "tipo": "recuperacao",
-                "serie": "descanso",
-                "orientacao": "Descanso ativo — bike Z2 elegível. Boa oportunidade para ride de encerramento da semana antes do fim de semana.",
                 "bike": {
+                  "obs": "Cadência alta, sem sprints — tendão patelar direito.",
                   "foco": "Z2 Endurance",
-                  "duracao": "1h",
                   "timing": "qualquer",
+                  "duracao": "1h",
                   "intensidade": "Ritmo confortável — FC ~65-75% FCmax. Consegue falar frases completas.",
                   "distSugerida": "20-30km",
-                  "tempoSugerido": "1h",
-                  "obs": "Cadência alta, sem sprints — tendão patelar direito."
-                }
+                  "tempoSugerido": "1h"
+                },
+                "tipo": "recuperacao",
+                "serie": "descanso",
+                "orientacao": "Descanso ativo — bike Z2 elegível. Boa oportunidade para ride de encerramento da semana antes do fim de semana."
               },
               {
                 "dia": "Sábado",
-                "tipo": "recuperacao",
-                "serie": "descanso",
-                "orientacao": "Descanso ativo — ótimo para ride Z2 longo no fim de semana de encerramento do ciclo.",
                 "bike": {
+                  "obs": "Sem musculação — aproveitar para ride mais longo. Cadência alta, sem sprints — tendão patelar direito.",
                   "foco": "Z2 Longo",
-                  "duracao": "1h30",
                   "timing": "qualquer",
+                  "duracao": "1h30",
                   "intensidade": "Ritmo confortável — FC ~65-75% FCmax. Consegue falar frases completas.",
                   "distSugerida": "35-45km",
-                  "tempoSugerido": "1h30",
-                  "obs": "Sem musculação — aproveitar para ride mais longo. Cadência alta, sem sprints — tendão patelar direito."
-                }
+                  "tempoSugerido": "1h30"
+                },
+                "tipo": "recuperacao",
+                "serie": "descanso",
+                "orientacao": "Descanso ativo — ótimo para ride Z2 longo no fim de semana de encerramento do ciclo."
               },
               {
                 "dia": "Domingo",
-                "tipo": "recuperacao",
-                "serie": "descanso",
-                "orientacao": "Descanso completo ou descanso ativo leve. Encerramento do ciclo — avaliar progressos gerais e preparar o próximo mesociclo.",
                 "bike": {
+                  "obs": "Opcional — apenas se houver disposição. Não forçar no encerramento do ciclo. Cadência alta, sem sprints.",
                   "foco": "Z2 Leve",
-                  "duracao": "45min",
                   "timing": "qualquer",
+                  "duracao": "45min",
                   "intensidade": "Ritmo muito confortável — FC ~60-70% FCmax.",
                   "distSugerida": "15-20km",
-                  "tempoSugerido": "45min",
-                  "obs": "Opcional — apenas se houver disposição. Não forçar no encerramento do ciclo. Cadência alta, sem sprints."
-                }
+                  "tempoSugerido": "45min"
+                },
+                "tipo": "recuperacao",
+                "serie": "descanso",
+                "orientacao": "Descanso completo ou descanso ativo leve. Encerramento do ciclo — avaliar progressos gerais e preparar o próximo mesociclo."
               }
             ],
             "foco": "Transição — Encerramento definitivo do ciclo",
@@ -11337,6 +11362,16 @@
           "content": "Sim, \"L-Sit na Parede\" é o nome correto que está na sua biblioteca (c7). É o exercício onde você fica encostado na parede e eleva as pernas formando um \"L\" com o corpo - trabalha muito bem o core, especialmente a musculatura abdominal profunda.\n\nAlguns também chamam informalmente de \"L-sit wall\" ou variações, mas o nome técnico é L-Sit na Parede mesmo."
         }
       ],
+      "sem7_Quinta": [
+        {
+          "role": "user",
+          "content": "Gere uma orientação detalhada para o treino de bike de hoje.\n\nPLANO DO DIA:\nFoco: Z2 Endurance\nDuração sugerida: 1h\nIntensidade: Ritmo confortável.\n\nCONTEXTO DA SEMANA: Transição — Encerramento do ciclo com volume moderado\n\nHISTÓRICO DE RIDES RECENTES:\nSegunda: 20.52km, 57:14 mov, 21.5km/h\n\nTREINOS DE MUSCULAÇÃO RECENTES: B 2026-05-27, A 2026-05-26, C 2026-05-21\n\nPERFIL:\n- Meta: 4 rides/semana\n- Objetivo: Perda de gordura, resistência, cardio e ganho de força\n- Timing preferido: flexivel\n- Restrição: tendão patelar direito — sem sprints, cadência alta (>85rpm)\n\nIncluir na orientação: distância sugerida, tempo total, estrutura (aquecimento/desenvolvimento/volta à calma), zona FC alvo, cadência recomendada, pontos de atenção."
+        },
+        {
+          "role": "assistant",
+          "content": "## Orientação de Treino — Bike Quinta-feira, 28/05\n\n**Série do dia:** Z2 Endurance | Semana de Transição\n\n---\n\n### Visão Geral\n\nVocê está no encerramento do ciclo, com musculação pesada acumulada esta semana (C → A → B nos últimos dias). O objetivo hoje é mover o corpo sem agredir a recuperação — o Z2 aqui serve como estímulo aeróbico e flush ativo de fadiga, não como carga adicional.\n\n**Distância sugerida:** 22–25km\n**Tempo total:** 60–65 minutos (movimento) + ~5 min parado em semáforos\n**Referência do último ride:** 20.5km em 57min a 21.5km/h — hoje, mesma velocidade ou ligeiramente abaixo está ótimo\n\n---\n\n### Estrutura do Ride\n\n**Aquecimento — 10 minutos**\nSaída tranquila da academia (ou de casa). Não force pedal nos primeiros 5km. Deixe a musculatura aquecer naturalmente. Cadência livre, marcha leve. FC deve subir gradualmente até ~120–130bpm.\n\n**Desenvolvimento — 40–45 minutos**\nSustente Z2 estável. O critério prático: você consegue falar frases completas sem ofegar. Se estiver respondendo em palavras isoladas, reduza a marcha. FC alvo entre 130–145bpm (aproximadamente 65–72% da FCmax estimada para 40 anos, ~180bpm).\n\nFoque em manter **cadência acima de 85rpm** — isso protege o tendão patelar direito ao distribuir força ao longo do ciclo em vez de concentrar no empurrão. Se sentir qualquer tensão no joelho direito, suba uma marcha (menor desenvolvimento), não force torque.\n\n**Volta à calma — 10 minutos**\nReduza progressivamente. Nos últimos 3–4km, diminua a marcha e deixe as pernas girarem leve. Não pare abruptamente.\n\n---\n\n### Zona de FC Alvo\n\n| Fase | FC alvo | Percepção |\n|---|---|---|\n| Aquecimento | até 130bpm | Muito fácil |\n| Desenvolvimento | 130–145bpm | Confortável, conversa fluida |\n| Pico eventual | máx 150bpm | Não ultrapassar hoje |\n\n---\n\n### Pontos de Atenção\n\n**Tendão patelar direito:** cadência alta é a principal proteção. Se o joelho começar a falar, reduza carga imediatamente — hoje não há meta de potência.\n\n**Fadiga acumulada:** você treinou musculação três vezes nos últimos quatro dias. Se nos primeiros 10 minutos a FC já subir acima de 140bpm com esforço mínimo, é sinal de fadiga do SNC — reduza o ritmo sem culpa, o ride ainda vale.\n\n**Hidratação:** saindo da academia ou indo antes, garanta pelo menos 500ml antes de pedalar. Mesmo em Z2, o calor pode acelerar desidratação.\n\n**Meta da semana:** você está em 1 ride no ciclo. Esse ride coloca você em 2. Para chegar a 4, ainda há sábado e domingo disponíveis — ambos ótimos para um ride mais longo se as pernas responderem bem.\n\n---\n\nBom treino. Pedala com calma hoje — o ciclo agradece."
+        }
+      ],
       "sem7_Terça": [
         {
           "role": "user",
@@ -11684,16 +11719,6 @@
           "role": "assistant",
           "content": "{\"diaExpandido\":{\"semana\":7,\"dia\":\"Segunda\",\"serie\":\"D\",\"foco\":\"Aeróbico — Ciclismo\",\"exercicios\":[{\"id\":\"e1\",\"nome\":\"Ciclismo\",\"sets\":\"1x20km\",\"weight\":\"—\",\"rest\":\"—\",\"notes\":\"Ritmo contínuo moderado. Mantenha cadência estável. Hidratação constante.\"}]}}"
         }
-      ],
-      "sem7_Quinta": [
-        {
-          "role": "user",
-          "content": "Gere uma orientação detalhada para o treino de bike de hoje.\n\nPLANO DO DIA:\nFoco: Z2 Endurance\nDuração sugerida: 1h\nIntensidade: Ritmo confortável.\n\nCONTEXTO DA SEMANA: Transição — Encerramento do ciclo com volume moderado\n\nHISTÓRICO DE RIDES RECENTES:\nSegunda: 20.52km, 57:14 mov, 21.5km/h\n\nTREINOS DE MUSCULAÇÃO RECENTES: B 2026-05-27, A 2026-05-26, C 2026-05-21\n\nPERFIL:\n- Meta: 4 rides/semana\n- Objetivo: Perda de gordura, resistência, cardio e ganho de força\n- Timing preferido: flexivel\n- Restrição: tendão patelar direito — sem sprints, cadência alta (>85rpm)\n\nIncluir na orientação: distância sugerida, tempo total, estrutura (aquecimento/desenvolvimento/volta à calma), zona FC alvo, cadência recomendada, pontos de atenção."
-        },
-        {
-          "role": "assistant",
-          "content": "## Orientação de Treino — Bike Quinta-feira, 28/05\n\n**Série do dia:** Z2 Endurance | Semana de Transição\n\n---\n\n### Visão Geral\n\nVocê está no encerramento do ciclo, com musculação pesada acumulada esta semana (C → A → B nos últimos dias). O objetivo hoje é mover o corpo sem agredir a recuperação — o Z2 aqui serve como estímulo aeróbico e flush ativo de fadiga, não como carga adicional.\n\n**Distância sugerida:** 22–25km\n**Tempo total:** 60–65 minutos (movimento) + ~5 min parado em semáforos\n**Referência do último ride:** 20.5km em 57min a 21.5km/h — hoje, mesma velocidade ou ligeiramente abaixo está ótimo\n\n---\n\n### Estrutura do Ride\n\n**Aquecimento — 10 minutos**\nSaída tranquila da academia (ou de casa). Não force pedal nos primeiros 5km. Deixe a musculatura aquecer naturalmente. Cadência livre, marcha leve. FC deve subir gradualmente até ~120–130bpm.\n\n**Desenvolvimento — 40–45 minutos**\nSustente Z2 estável. O critério prático: você consegue falar frases completas sem ofegar. Se estiver respondendo em palavras isoladas, reduza a marcha. FC alvo entre 130–145bpm (aproximadamente 65–72% da FCmax estimada para 40 anos, ~180bpm).\n\nFoque em manter **cadência acima de 85rpm** — isso protege o tendão patelar direito ao distribuir força ao longo do ciclo em vez de concentrar no empurrão. Se sentir qualquer tensão no joelho direito, suba uma marcha (menor desenvolvimento), não force torque.\n\n**Volta à calma — 10 minutos**\nReduza progressivamente. Nos últimos 3–4km, diminua a marcha e deixe as pernas girarem leve. Não pare abruptamente.\n\n---\n\n### Zona de FC Alvo\n\n| Fase | FC alvo | Percepção |\n|---|---|---|\n| Aquecimento | até 130bpm | Muito fácil |\n| Desenvolvimento | 130–145bpm | Confortável, conversa fluida |\n| Pico eventual | máx 150bpm | Não ultrapassar hoje |\n\n---\n\n### Pontos de Atenção\n\n**Tendão patelar direito:** cadência alta é a principal proteção. Se o joelho começar a falar, reduza carga imediatamente — hoje não há meta de potência.\n\n**Fadiga acumulada:** você treinou musculação três vezes nos últimos quatro dias. Se nos primeiros 10 minutos a FC já subir acima de 140bpm com esforço mínimo, é sinal de fadiga do SNC — reduza o ritmo sem culpa, o ride ainda vale.\n\n**Hidratação:** saindo da academia ou indo antes, garanta pelo menos 500ml antes de pedalar. Mesmo em Z2, o calor pode acelerar desidratação.\n\n**Meta da semana:** você está em 1 ride no ciclo. Esse ride coloca você em 2. Para chegar a 4, ainda há sábado e domingo disponíveis — ambos ótimos para um ride mais longo se as pernas responderem bem.\n\n---\n\nBom treino. Pedala com calma hoje — o ciclo agradece."
-        }
       ]
     },
     "dataInicio": "2026-04-14",
@@ -11746,7 +11771,7 @@
       "sem5": false,
       "sem6": false,
       "sem7": true,
-      "sem8": true
+      "sem8": false
     },
     "seriesData": {
       "s1": {
@@ -13422,50 +13447,72 @@
           }
         ]
       }
-    },
-    "diasBike": {
-      "sem7_Segunda": {
-        "status": "feito",
-        "registrado": true,
-        "distancia": "20.52",
-        "velocidade": "21.5km/h",
-        "elevacao": "188",
-        "percurso": "Lago Igapó",
-        "kcal": "626",
-        "tempoMov": "57:14",
-        "tempoTotal": "1:06:40"
-      },
-      "sem7_Quinta": {
-        "status": "pendente",
-        "substitutoD": true
-      }
     }
   },
   "perfil": {
-    "altura": "176",
+    "fds": "ocasionalmente",
+    "obs": "A Biblioteca possui uma lista de exercícios que eu já sei executar e sou familiarizado - é preferível montar a lista de exercícios priorizando exercícios que eu já sei executar. Exemplo: se houverem duas formas distintas de fazer um exercício que aciona um determinado músculo ou grupo muscular - mas uma dessas formas já está na minha biblioteca enquanto outro não está, evidentemente, devemos priorizar o exercício da forma que eu já sei fazer.",
+    "dias": "5",
     "peso": "72",
     "idade": "40",
-    "pesoobj": "75",
-    "objetivos": "Hipertrofia e ganho de massa muscular (objetivo: 75kg).\nAlta prioridade: Perda de gordura abdominal.",
-    "prioridades": "Ombros e costas são prioritários. Exercícios para trapézio (shrug) não são necessários, pois tenho trapézios naturalmente hipertrofiados. Pernas precisam de mais atenção — tenho tendência a evitá-las, mas reconheço a necessidade - por isso, o treino de pernas (D) ocorre uma vez a cada dois treinos de membros superiores.\n\nEvitar: Exercícios com barra que podem ser realizados com halteres (ex: supino). Utilizar barra somente em situações em que não há outra alternativa.\n\nOs treinos possuem uma Biblioteca, dividida em 4 grupos A (Ombros), B (Costas/Bíceps), C (Peito/Tríceps) e D (Pernas). Esses grupos costumam ser treinados em dias distintos (embora não há problema se houver um pouco de overlap). Além dos grupos A/B/C/D, há também o Core (abdominal/lombar) que NÃO POSSUI UM DIA EXCLUSIVO - os exercícios de Core devem ser encaixados nos dias de treino (A/B/C/D) conforme forem mais eficientes para a distribuição de cargas e periodização/descanso.\n\nExercícios de core: preferência por peso corporal e pesos soltos. Realizar no chão ou no banco. Utilizar máquinas apenas em último caso (quando não é possível ter o mesmo efeito sem máquina).",
-    "dias": "5",
-    "fds": "ocasionalmente",
+    "altura": "176",
     "estilo": "Treino explosivo com cargas altas para o porte. Necessita de moderação para evitar novas lesões.\n\nSábado: Treino leve, aeróbico ou descanso.\nDomingo: Aeróbico ou descanso.\n\n*Descanso ativo* (caminhada acelerada 4.4km ou 20–25min de elíptico leve) é preferível a descanso passivo nos dias sem treino de força.",
-    "aerobico": "Academia fica a 2.2km de casa (4.4km ida+volta a pé, mesmo ritmo). Esse cardio já está embutido em todo dia de treino. Academia tem equipamentos de cardio disponíveis (não usa atualmente mas pode). Nos dias de descanso/aeróbico, preferir variações concretas: caminhada acelerada, elíptico leve.",
-    "bikeModelo": "Colnago Concept",
-    "bikeGps": "GEOID CC-700",
-    "bikeRides": "4",
-    "bikeDuracao": "1-2h",
-    "bikeObjetivo": "Perda de gordura, resistência, cardio e ganho de força",
-    "bikeTiming": "flexivel",
-    "bikeObs": "Tendão patelar direito lesionado. Em dia de treino de perna (D), não pedalar e vice-versa.",
     "lesoes": "Tendão bíceps distal bilateral — APENAS pegada neutra para bíceps, sem exceção. Tendão perna direita - cautela no leg press com carga elevada. NÃO realizar exercícios como leg curl (e qualquer exercício similar) até que o tendão esteja recuperado. Ombro direito: lesão por acidente mecânico (não pelo overhead), overhead press é SEGURO e prioritário. Histórico de treino explosivo — moderar progressão de carga.",
-    "obs": "A Biblioteca possui uma lista de exercícios que eu já sei executar e sou familiarizado - é preferível montar a lista de exercícios priorizando exercícios que eu já sei executar. Exemplo: se houverem duas formas distintas de fazer um exercício que aciona um determinado músculo ou grupo muscular - mas uma dessas formas já está na minha biblioteca enquanto outro não está, evidentemente, devemos priorizar o exercício da forma que eu já sei fazer.",
-    "diasCiclo": ""
+    "bikeGps": "GEOID CC-700",
+    "bikeObs": "Tendão patelar direito lesionado. Em dia de treino de perna (D), não pedalar e vice-versa.",
+    "pesoobj": "75",
+    "aerobico": "Academia fica a 2.2km de casa (4.4km ida+volta a pé, mesmo ritmo). Esse cardio já está embutido em todo dia de treino. Academia tem equipamentos de cardio disponíveis (não usa atualmente mas pode). Nos dias de descanso/aeróbico, preferir variações concretas: caminhada acelerada, elíptico leve.",
+    "bikeRides": "4",
+    "diasCiclo": "",
+    "objetivos": "Hipertrofia e ganho de massa muscular (objetivo: 75kg).\nAlta prioridade: Perda de gordura abdominal.",
+    "bikeModelo": "Colnago Concept",
+    "bikeTiming": "flexivel",
+    "bikeDuracao": "1-2h",
+    "prioridades": "Ombros e costas são prioritários. Exercícios para trapézio (shrug) não são necessários, pois tenho trapézios naturalmente hipertrofiados. Pernas precisam de mais atenção — tenho tendência a evitá-las, mas reconheço a necessidade - por isso, o treino de pernas (D) ocorre uma vez a cada dois treinos de membros superiores.\n\nEvitar: Exercícios com barra que podem ser realizados com halteres (ex: supino). Utilizar barra somente em situações em que não há outra alternativa.\n\nOs treinos possuem uma Biblioteca, dividida em 4 grupos A (Ombros), B (Costas/Bíceps), C (Peito/Tríceps) e D (Pernas). Esses grupos costumam ser treinados em dias distintos (embora não há problema se houver um pouco de overlap). Além dos grupos A/B/C/D, há também o Core (abdominal/lombar) que NÃO POSSUI UM DIA EXCLUSIVO - os exercícios de Core devem ser encaixados nos dias de treino (A/B/C/D) conforme forem mais eficientes para a distribuição de cargas e periodização/descanso.\n\nExercícios de core: preferência por peso corporal e pesos soltos. Realizar no chão ou no banco. Utilizar máquinas apenas em último caso (quando não é possível ter o mesmo efeito sem máquina).",
+    "bikeObjetivo": "Perda de gordura, resistência, cardio e ganho de força"
   },
   "planoDia": 0,
-  "_updatedAt": "2026-05-28T22:58:25.138Z",
+  "_updatedAt": "2026-05-29T06:20:13.510Z",
   "lastBibTab": "workout-core",
+  "bikeHistory": [
+    {
+      "id": "xqj3wmwx",
+      "type": "bike",
+      "date": "2026-05-29T06:20:13.510Z",
+      "dayKey": "sem7_Quinta",
+      "semana": "7",
+      "dia": "Quinta",
+      "foco": "",
+      "duracao": "",
+      "distancia": "23.74",
+      "tempoMov": "1:10",
+      "tempoTotal": "1:54",
+      "velocidade": "20.2",
+      "elevacao": "200",
+      "kcal": "716",
+      "percurso": "Caçique - Igapó",
+      "timingReal": ""
+    },
+    {
+      "id": "xbike26maio",
+      "dia": "Segunda",
+      "date": "2026-05-26T02:31:00.000Z",
+      "foco": "Ride",
+      "kcal": "626",
+      "type": "bike",
+      "dayKey": "sem7_Segunda",
+      "semana": "7",
+      "duracao": "",
+      "elevacao": "188",
+      "percurso": "Lago Igapó",
+      "tempoMov": "57:14",
+      "distancia": "20.52",
+      "retroativo": true,
+      "tempoTotal": "1:06:40",
+      "timingReal": "",
+      "velocidade": "21.5km/h"
+    }
+  ],
   "planoInicio": "2026-04-14T16:59:22.025Z",
   "planoSemana": 0,
   "planoRascunho": null,
@@ -13515,6 +13562,10 @@
       "chatOpen": false
     },
     "sem6_Sexta": {
+      "open": false,
+      "chatOpen": false
+    },
+    "sem7_Sexta": {
       "open": false,
       "chatOpen": false
     },
@@ -13570,6 +13621,10 @@
       "open": false,
       "chatOpen": true
     },
+    "sem7_Quinta": {
+      "open": true,
+      "chatOpen": true
+    },
     "sem7_Terça": {
       "open": false,
       "chatOpen": true
@@ -13597,14 +13652,6 @@
     "sem7_Segunda": {
       "open": false,
       "chatOpen": false
-    },
-    "sem7_Sexta": {
-      "open": true,
-      "chatOpen": false
-    },
-    "sem7_Quinta": {
-      "open": false,
-      "chatOpen": true
     }
   },
   "planoChatHistory": [
@@ -13891,26 +13938,5 @@
       "text": "✓ Modificações aplicadas ao plano."
     }
   ],
-  "_duplicatasPendentes": [],
-  "bikeHistory": [
-    {
-      "id": "xbike26maio",
-      "type": "bike",
-      "date": "2026-05-26T02:31:00.000Z",
-      "dayKey": "sem7_Segunda",
-      "semana": "7",
-      "dia": "Segunda",
-      "foco": "Ride",
-      "duracao": "",
-      "distancia": "20.52",
-      "velocidade": "21.5km/h",
-      "elevacao": "188",
-      "percurso": "Lago Igapó",
-      "timingReal": "",
-      "retroativo": true,
-      "kcal": "626",
-      "tempoMov": "57:14",
-      "tempoTotal": "1:06:40"
-    }
-  ]
+  "_duplicatasPendentes": []
 }

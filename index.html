@@ -1117,7 +1117,7 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
   }
   .agenda-dia.hoje { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
   .agenda-dia.perdido { border-color: var(--danger); background: rgba(255,68,68,.03); }
-  .agenda-dia.bike-dia { border-color: var(--done); background: rgba(57,255,133,.03); }
+  .agenda-dia.bike-dia { border-color: rgba(57,255,133,.3); background: rgba(57,255,133,.03); }
   .agenda-dia.bike-chuva { border-color: var(--bike-chuva); background: rgba(91,143,255,.03); }
   .agenda-dia.bike-imprevisto { border-color: var(--bike-imprevisto); background: rgba(255,149,0,.03); }
   .agenda-dia.ausente-planejada { border-color: #ff9500; background: rgba(255,149,0,.03); }
@@ -1409,7 +1409,7 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
   <div class="header-actions">
     <button class="btn btn-header-only" onclick="exportData()">EXPORTAR</button>
     <button class="btn btn-header-only" onclick="importData()">IMPORTAR</button>
-    <span style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted);margin-left:4px">v0.8.9.42</span>
+    <span style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted);margin-left:4px">v0.8.9.47</span>
     <div id="auth-status" style="display:flex;align-items:center;margin-left:4px"></div>
 
     <div class="mobile-menu-wrap" id="mobile-menu-wrap">
@@ -5535,7 +5535,7 @@ function _verificarAntecipacaoPosChuva(dayKey) {
 
 function registrarBikeHistorico(dayKey) {
   var bikeInfo = state.plano.diasBike && state.plano.diasBike[dayKey];
-  if (!bikeInfo || bikeInfo.status !== 'feito') return;
+  if (!bikeInfo) return;
   var bikePlano = _getBikePlano(dayKey);
   var m = dayKey.match(/^sem(\d+)_(.+)$/);
   var entry = {
@@ -5548,15 +5548,18 @@ function registrarBikeHistorico(dayKey) {
     foco: (bikePlano && bikePlano.foco) || '',
     duracao: (bikePlano && bikePlano.duracao) || '',
     distancia: bikeInfo.distancia || '',
-    tempo: bikeInfo.tempo || '',
+    tempoMov: bikeInfo.tempoMov || '',
+    tempoTotal: bikeInfo.tempoTotal || '',
     velocidade: bikeInfo.velocidade || '',
     elevacao: bikeInfo.elevacao || '',
+    kcal: bikeInfo.kcal || '',
     percurso: bikeInfo.percurso || '',
     timingReal: bikeInfo.timingReal || ''
   };
-  if (!state.bikHistory) state.bikeHistory = [];
+  if (!state.bikeHistory) state.bikeHistory = [];
   state.bikeHistory.unshift(entry);
   bikeInfo.registrado = true;
+  bikeInfo.status = 'feito';
   saveState();
   renderAgendaLinear();
   renderHistory();
@@ -5845,10 +5848,11 @@ function renderAgendaLinear() {
       const tipo = isRest ? (d.tipo || 'recuperacao') : 'treino';
 
 
-      var bikeFeito = !!(state.plano.diasBike && state.plano.diasBike[dayKey] && state.plano.diasBike[dayKey].registrado);
+      var bikeFeito = !!(state.plano.diasBike && state.plano.diasBike[dayKey] && state.plano.diasBike[dayKey].registrado) ||
+        !!(state.bikeHistory && state.bikeHistory.some(function(b) { return b.dayKey === dayKey; }));
       let cardClass = 'agenda-dia';
       if (isDiaHoje && (status === 'pendente' || status === 'disponivel')) cardClass += ' hoje';
-      if (status === 'perdido' && bikeFeito) cardClass += ' bike-dia';
+      if (bikeFeito) cardClass += ' concluido';
       else if (status === 'perdido') cardClass += ' perdido';
       if (isRest && bikeStatus === 'chuva') cardClass += ' bike-chuva';
       else if (isRest && bikeStatus === 'imprevisto') cardClass += ' bike-imprevisto';
@@ -5858,7 +5862,7 @@ function renderAgendaLinear() {
 
       let tipoLabel = '', tipoClass = '';
       if (status === 'concluido') { tipoLabel = '✓ CONCLUÍDO'; tipoClass = 'tipo-concluido'; }
-      else if (status === 'perdido' && bikeFeito) { tipoLabel = '&#128690; BIKE'; tipoClass = 'tipo-concluido'; }
+      else if (bikeFeito) { tipoLabel = '&#128690; BIKE'; tipoClass = 'tipo-concluido'; }
       else if (status === 'perdido') { tipoLabel = '✕ PERDIDO'; tipoClass = 'tipo-perdido'; }
       if (isRest && bikeStatus === 'chuva') { tipoLabel = '&#127783; CHUVA'; tipoClass = 'tipo-bike'; }
       else if (isRest && bikeStatus === 'imprevisto') { tipoLabel = '&#9888; IMPREVISTO'; tipoClass = 'tipo-bike-imprevisto'; }
