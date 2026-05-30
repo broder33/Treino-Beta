@@ -2562,7 +2562,7 @@
     "diasBike": {
       "sem7_Quinta": {
         "kcal": "716",
-        "status": "pendente",
+        "status": "feito",
         "elevacao": "200",
         "percurso": "Caçique - Igapó",
         "tempoMov": "1:10",
@@ -11771,7 +11771,7 @@
       "sem5": false,
       "sem6": false,
       "sem7": true,
-      "sem8": false
+      "sem8": true
     },
     "seriesData": {
       "s1": {
@@ -11958,17 +11958,89 @@
         ]
       },
       "s4": {
-        "foco": "Aeróbico — Ciclismo",
-        "semana": "SEMANA 7",
         "serieId": "s4",
+        "semana": "SEMANA 7",
+        "foco": "",
         "exercises": [
           {
-            "id": "e1",
-            "name": "Ciclismo",
-            "rest": "—",
-            "sets": "1x20km",
+            "id": "x7br59qy",
+            "name": "Leg Press Inclinado",
+            "sets": "3x8",
+            "weight": "84kg cada lado",
+            "rest": "75-90s",
             "status": "undone",
-            "weight": "—",
+            "skippedLast": false
+          },
+          {
+            "id": "x0j7fz9u",
+            "name": "Stiff com Halteres",
+            "sets": "3x10",
+            "weight": "14kg cada lado",
+            "rest": "60-75s",
+            "status": "undone",
+            "skippedLast": false
+          },
+          {
+            "id": "x8uueqvm",
+            "name": "Avanço com Halteres",
+            "sets": "3x6",
+            "weight": "8kg cada lado",
+            "rest": "60-75s",
+            "status": "undone",
+            "skippedLast": false
+          },
+          {
+            "id": "x58a7864",
+            "name": "Leg Extension",
+            "sets": "3x7",
+            "weight": "36kg",
+            "rest": "45-60s",
+            "status": "undone",
+            "skippedLast": false
+          },
+          {
+            "id": "x9ut8ihy",
+            "name": "Adutor na Máquina",
+            "sets": "3x10",
+            "weight": "47kg",
+            "rest": "45-60s",
+            "status": "undone",
+            "skippedLast": false
+          },
+          {
+            "id": "xwpuau9j",
+            "name": "Calf Raise no Banco",
+            "sets": "3x15",
+            "weight": "28kg",
+            "rest": "45-60s",
+            "status": "undone",
+            "skippedLast": false
+          },
+          {
+            "id": "xq6s24py",
+            "name": "Crunch",
+            "sets": "3x15",
+            "weight": "Peso corporal",
+            "rest": "45-60s",
+            "status": "undone",
+            "skippedLast": false
+          },
+          {
+            "id": "x1q5q5ll",
+            "name": "Elevação de Pernas Deitado",
+            "sets": "3x12",
+            "weight": "Peso corporal",
+            "rest": "45-60s",
+            "status": "undone",
+            "skippedLast": false
+          },
+          {
+            "id": "x52hhdsy",
+            "name": "Hiperextensão no Banco",
+            "sets": "3x10",
+            "weight": "Anilha 5kg",
+            "rest": "45-60s",
+            "status": "undone",
             "skippedLast": false
           }
         ]
@@ -13446,6 +13518,96 @@
             "weight": "Peso corporal"
           }
         ]
+      },
+      "sem7_Sexta": {
+        "semana": 7,
+        "dia": "Sexta",
+        "serie": "D",
+        "foco": "",
+        "exercicios": [
+          {
+            "id": "x7br59qy",
+            "nome": "Leg Press Inclinado",
+            "sets": "3x8",
+            "weight": "84kg cada lado",
+            "rest": "75-90s",
+            "notes": "",
+            "status": "undone"
+          },
+          {
+            "id": "x0j7fz9u",
+            "nome": "Stiff com Halteres",
+            "sets": "3x10",
+            "weight": "14kg cada lado",
+            "rest": "60-75s",
+            "notes": "",
+            "status": "undone"
+          },
+          {
+            "id": "x8uueqvm",
+            "nome": "Avanço com Halteres",
+            "sets": "3x6",
+            "weight": "8kg cada lado",
+            "rest": "60-75s",
+            "notes": "",
+            "status": "undone"
+          },
+          {
+            "id": "x58a7864",
+            "nome": "Leg Extension",
+            "sets": "3x7",
+            "weight": "36kg",
+            "rest": "45-60s",
+            "notes": "",
+            "status": "undone"
+          },
+          {
+            "id": "x9ut8ihy",
+            "nome": "Adutor na Máquina",
+            "sets": "3x10",
+            "weight": "47kg",
+            "rest": "45-60s",
+            "notes": "",
+            "status": "undone"
+          },
+          {
+            "id": "xwpuau9j",
+            "nome": "Calf Raise no Banco",
+            "sets": "3x15",
+            "weight": "28kg",
+            "rest": "45-60s",
+            "notes": "",
+            "status": "undone"
+          },
+          {
+            "id": "xq6s24py",
+            "nome": "Crunch",
+            "sets": "3x15",
+            "weight": "Peso corporal",
+            "rest": "45-60s",
+            "notes": "",
+            "status": "undone"
+          },
+          {
+            "id": "x1q5q5ll",
+            "nome": "Elevação de Pernas Deitado",
+            "sets": "3x12",
+            "weight": "Peso corporal",
+            "rest": "45-60s",
+            "notes": "",
+            "status": "undone"
+          },
+          {
+            "id": "x52hhdsy",
+            "nome": "Hiperextensão no Banco",
+            "sets": "3x10",
+            "weight": "Anilha 5kg",
+            "rest": "45-60s",
+            "notes": "",
+            "status": "undone"
+          }
+        ],
+        "_dayKey": "sem7_Sexta"
       }
     }
   },
@@ -13472,13 +13634,13 @@
     "bikeObjetivo": "Perda de gordura, resistência, cardio e ganho de força"
   },
   "planoDia": 0,
-  "_updatedAt": "2026-05-29T06:20:13.510Z",
+  "_updatedAt": "2026-05-29T22:36:50.280Z",
   "lastBibTab": "workout-core",
   "bikeHistory": [
     {
       "id": "xqj3wmwx",
       "type": "bike",
-      "date": "2026-05-29T06:20:13.510Z",
+      "date": "2026-05-29T01:27:35.000Z",
       "dayKey": "sem7_Quinta",
       "semana": "7",
       "dia": "Quinta",
@@ -13622,8 +13784,8 @@
       "chatOpen": true
     },
     "sem7_Quinta": {
-      "open": true,
-      "chatOpen": true
+      "open": false,
+      "chatOpen": false
     },
     "sem7_Terça": {
       "open": false,
@@ -13737,10 +13899,6 @@
     }
   ],
   "planoChatMessages": [
-    {
-      "role": "system",
-      "text": "✓ Terça semana 3 expandido com 10 exercícios."
-    },
     {
       "role": "user",
       "text": "Gere orientações de periodização para os seguintes dias futuros do plano:\n\nSemana 3, Terça: Série D\nSemana 3, Quarta: Série B\nSemana 3, Quinta: Série C\nSemana 3, Sexta: Série D\nSemana 4, Segunda: Série A\nSemana 4, Terça: Série B\nSemana 4, Quarta: Série D\nSemana 4, Quinta: Série C\nSemana 4, Sexta: Série A\nSemana 5, Segunda: Série D\nSemana 5, Terça: Série B\nSemana 5, Quarta: Série C\nSemana 5, Quinta: Série D\nSemana 5, Sexta: Série A\nSemana 6, Segunda: Série B\nSemana 6, Terça: Série D\nSemana 6, Quarta: Série C\nSemana 6, Quinta: Série A\nSemana 6, Sexta: Série D\n\nPara cada dia, defina: foco do treino, intensidade, orientações específicas de execução e exercícios de core recomendados. Considere a progressão entre semanas e as restrições do perfil. Retorne no formato JSON de modificacoes."
@@ -13936,6 +14094,10 @@
     {
       "role": "system",
       "text": "✓ Modificações aplicadas ao plano."
+    },
+    {
+      "role": "system",
+      "text": "✓ Sexta semana 7 expandido com 9 exercícios."
     }
   ],
   "_duplicatasPendentes": []
