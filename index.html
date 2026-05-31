@@ -1407,9 +1407,10 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
 <header>
   <div class="logo">TREINO</div>
   <div class="header-actions">
+    <button id="undo-btn" onclick="undoAction()" title="Nada para desfazer" disabled style="font-family:'DM Mono',monospace;font-size:11px;background:none;border:1px solid var(--border);color:var(--muted);border-radius:4px;padding:3px 10px;cursor:default;opacity:0.3;transition:opacity .2s">↩</button>
     <button class="btn btn-header-only" onclick="exportData()">EXPORTAR</button>
     <button class="btn btn-header-only" onclick="importData()">IMPORTAR</button>
-    <span style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted);margin-left:4px">v0.8.9.47</span>
+    <span style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted);margin-left:4px">v0.8.9.51</span>
     <div id="auth-status" style="display:flex;align-items:center;margin-left:4px"></div>
 
     <div class="mobile-menu-wrap" id="mobile-menu-wrap">
@@ -2050,6 +2051,7 @@ function cycleStatus(serieId, exId) {
   const ex = getEx(serieId, exId);
   if (!ex) return;
   const cycle = { undone: 'partial', partial: 'done', done: 'skipped', skipped: 'undone' };
+  _pendingUndoLabel = 'Status: ' + (ex.name || 'exercício');
   ex.status = cycle[ex.status] || 'undone';
   saveState();
   rerenderSerie(serieId);
@@ -2058,6 +2060,7 @@ function cycleStatus(serieId, exId) {
 function setExStatus(serieId, exId, status) {
   const ex = getEx(serieId, exId);
   if (!ex) return;
+  _pendingUndoLabel = 'Status: ' + (ex.name || 'exercício');
   ex.status = status;
   saveState();
   rerenderSerie(serieId);
@@ -2066,6 +2069,7 @@ function setExStatus(serieId, exId, status) {
 function updateExField(serieId, exId, field, value) {
   const ex = getEx(serieId, exId);
   if (!ex) return;
+  _pendingUndoLabel = 'Editar ' + field + ': ' + (ex.name || 'exercício');
   ex[field] = value;
   saveState();
 }
@@ -2178,6 +2182,7 @@ function addExercise(serieId) {
     { label:'NOTAS', key:'notes', type:'text', placeholder:'Configurações da máquina…' },
   ], data => {
     const s = state.series.find(s => s.id === serieId);
+    _pendingUndoLabel = 'Adicionar exercício';
     s.exercises.push({ id: uid(), name: data.name||'Novo Exercício', sets: data.sets||'3x10', weight: data.weight||'—', notes: data.notes||'', status: 'undone' });
     saveState();
     rerenderSerie(serieId);
@@ -2192,6 +2197,7 @@ function removeEx(serieId, exId) {
   openModal('REMOVER EXERCÍCIO', [
     { label: 'Remover "' + ex.name + '"?', key: '_', type: 'hidden', placeholder: '' }
   ], function() {
+    _pendingUndoLabel = 'Remover: ' + ex.name;
     s.exercises = s.exercises.filter(e => e.id !== exId);
     saveState();
     rerenderSerie(serieId);
@@ -2204,6 +2210,7 @@ function moveEx(serieId, exId, dir) {
   const idx = s.exercises.findIndex(e => e.id === exId);
   const newIdx = idx + dir;
   if (newIdx < 0 || newIdx >= s.exercises.length) return;
+  _pendingUndoLabel = 'Mover exercício';
   [s.exercises[idx], s.exercises[newIdx]] = [s.exercises[newIdx], s.exercises[idx]];
   saveState();
   rerenderSerie(serieId);
@@ -3080,6 +3087,9 @@ function aplicarRelocamento(dayKey, diaNome, semana, tipo) {
   if (!state.plano || !state.plano.semanas) return;
   if (!state.plano.diasStatus) state.plano.diasStatus = {};
 
+  // Captura snapshot ANTES de qualquer mutação
+  pushUndo((tipo === 'perdido' ? 'Perder dia: ' : tipo === 'ausente' ? 'Ausência: ' : 'Relocar: ') + diaNome);
+
   // Save snapshot before modifying (keep last 5)
   if (!state.plano._historico) state.plano._historico = [];
   var snapshot = JSON.parse(JSON.stringify({
@@ -3124,6 +3134,7 @@ function aplicarRelocamento(dayKey, diaNome, semana, tipo) {
   todosDias[perdidoIdx].diaObj.serie = 'descanso';
   todosDias[perdidoIdx].diaObj.tipo = 'recuperacao';
   todosDias[perdidoIdx].diaObj.orientacao = tipo === 'ausente' ? 'Ausencia planejada' : 'Dia perdido';
+  todosDias[perdidoIdx].diaObj.bike = false; // dia perdido não herda bike do D
   if (state.plano.diasExpandidos) delete state.plano.diasExpandidos[dayKey];
 
   if (!seriePerdida || seriePerdida === 'descanso') {
@@ -5174,6 +5185,7 @@ function normalizarDiaExpandido(parsed, semana, dia) {
 function aplicarDiaExpandido(diaExp, fromChat) {
   if (!state.plano) { toast('Aplique um plano primeiro'); return; }
   var key = diaExp._dayKey || ('sem' + diaExp.semana + '_' + diaExp.dia);
+  pushUndo('Expandir dia: ' + (diaExp.dia || key));
 
   // Ensure serie is set — fall back to plan data if missing
   if (!diaExp.serie && key) {
@@ -6518,6 +6530,7 @@ function reordenarExercicioAgenda(dayKey, fromIdx, toIdx) {
 function finishSerieFromAgenda(dayKey, serieId) {
   var s = state.series.find(function(s) { return s.id === serieId; });
   if (!s) return;
+  pushUndo('Concluir treino: ' + s.label);
 
   var expanded = state.plano.diasExpandidos && state.plano.diasExpandidos[dayKey];
   var pd = state.plano.seriesData && state.plano.seriesData[serieId];
@@ -6598,6 +6611,7 @@ function finishSerieFromAgenda(dayKey, serieId) {
 }
 
 function desfazerConclusao(dayKey, serieLabel) {
+  pushUndo('Desfazer conclusão: ' + serieLabel);
   // Revert status to pendente
   if (state.plano.diasStatus) {
     delete state.plano.diasStatus[dayKey];
@@ -7250,7 +7264,7 @@ function limparCacheDia(dayKey) {
 function marcarDia(dayKey, status) {
   if (!state.plano.diasStatus) state.plano.diasStatus = {};
   state.plano.diasStatus[dayKey] = status;
-  saveState();
+  saveState(false, false); // subroutine — undo captured by caller
   renderAgendaLinear();
 }
 
@@ -7281,6 +7295,7 @@ document.addEventListener('click', function(e) {
 function pularDia(dayKey, serie) {
   if (!state.plano || !state.plano.semanas) return;
   if (!state.plano.diasStatus) state.plano.diasStatus = {};
+  pushUndo('Pular dia: ' + (serie || dayKey));
 
   // Save snapshot for undo
   if (!state.plano._historico) state.plano._historico = [];
@@ -7314,14 +7329,7 @@ function desfazerPularDia(dayKey) {
 function anteciparABCParaDiaBike(dayKey) {
   if (!state.plano || !state.plano.semanas) return;
   if (!state.plano.diasStatus) state.plano.diasStatus = {};
-
-  if (!state.plano._historico) state.plano._historico = [];
-  state.plano._historico.push(JSON.parse(JSON.stringify({
-    semanas: state.plano.semanas,
-    diasStatus: state.plano.diasStatus,
-    diasExpandidos: state.plano.diasExpandidos || {}
-  })));
-  if (state.plano._historico.length > 5) state.plano._historico.shift();
+  pushUndo('Antecipar ABC para bike');
 
   var todosDias = [];
   state.plano.semanas.forEach(function(sem) {
@@ -7487,6 +7495,7 @@ function anteciparProximoTreino(dayKey) {
 }
 function marcarDiaDescansoNeutro(dayKey) {
   if (!state.plano.diasStatus) state.plano.diasStatus = {};
+  pushUndo('Marcar descanso: ' + dayKey);
   state.plano.diasStatus[dayKey] = 'pendente';
   // Mark the day as descanso without triggering relocation
   state.plano.semanas.forEach(function(sem) {
@@ -7496,11 +7505,16 @@ function marcarDiaDescansoNeutro(dayKey) {
         d.serie = 'descanso';
         d.tipo = 'recuperacao';
         d.orientacao = 'Descanso';
+        d.bike = false; // limpa flag de bike
         if (state.plano.diasExpandidos) delete state.plano.diasExpandidos[k];
       }
     });
   });
-  saveState();
+  // Limpa registro de bike do dia
+  if (state.plano.diasBike && state.plano.diasBike[dayKey]) {
+    delete state.plano.diasBike[dayKey];
+  }
+  saveState(false, false);
   renderAgendaLinear();
   toast('Dia marcado como descanso ✓');
 }
@@ -8277,6 +8291,57 @@ function renderAuthUI() {
     el.appendChild(btnLogin);
   }
 }
+// ─────────────────────────── UNDO ───────────────────────────
+var undoStack = [];
+var UNDO_MAX = 20;
+var _pendingUndoLabel = null;
+
+function pushUndo(label) {
+  // Called BEFORE a mutation — saves current state as snapshot
+  try {
+    if (state.plano) sanitizePlanoTipos(state.plano);
+    var snapshot = JSON.parse(JSON.stringify(state));
+    undoStack.push({ label: label || 'Ação', snapshot: snapshot });
+    if (undoStack.length > UNDO_MAX) undoStack.shift();
+    renderUndoBtn();
+  } catch(e) { console.warn('pushUndo error:', e); }
+}
+
+function undoAction() {
+  if (!undoStack.length) return;
+  var entry = undoStack.pop();
+  state = entry.snapshot;
+  saveState(false, false); // restore: save without pushing new undo entry
+  render();
+  if (state.plano) {
+    renderAgendaLinear && renderAgendaLinear();
+    renderPlanoMacro && renderPlanoMacro(state.planoRascunho || state.plano);
+  }
+  renderPlanoChatMessages && renderPlanoChatMessages();
+  loadPerfil && loadPerfil();
+  renderUndoBtn();
+  toast('Desfeito: ' + entry.label);
+}
+
+function renderUndoBtn() {
+  var btn = document.getElementById('undo-btn');
+  if (!btn) return;
+  if (undoStack.length === 0) {
+    btn.disabled = true;
+    btn.style.opacity = '0.3';
+    btn.style.cursor = 'default';
+    btn.title = 'Nada para desfazer';
+    btn.textContent = '↩';
+  } else {
+    btn.disabled = false;
+    btn.style.opacity = '1';
+    btn.style.cursor = 'pointer';
+    var last = undoStack[undoStack.length - 1];
+    btn.title = 'Desfazer: ' + last.label + ' (' + undoStack.length + '/' + UNDO_MAX + ')';
+    btn.textContent = '↩ ' + undoStack.length;
+  }
+}
+
 var _db = null;
 var DB_NAME = 'treino_db';
 var DB_STORE = 'state';
@@ -8298,7 +8363,15 @@ function openDB(cb) {
   } catch(e) { cb(null); }
 }
 
-function saveState(fromCloud) {
+function saveState(fromCloud, undoLabel) {
+  if (!fromCloud && undoLabel !== false) {
+    if (_pendingUndoLabel !== null) {
+      pushUndo(_pendingUndoLabel);
+      _pendingUndoLabel = null;
+    } else if (undoLabel) {
+      pushUndo(undoLabel);
+    }
+  }
   if (state.plano) sanitizePlanoTipos(state.plano);
   if (!fromCloud) state._updatedAt = new Date().toISOString();
   var json = JSON.stringify(state);
@@ -8422,6 +8495,11 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Enter' && document.getElementById('modal').classList.contains('open') && e.target.tagName === 'INPUT') {
     if (modalCallback) modalCallback();
   }
+  // Ctrl+Z / Cmd+Z = undo
+  if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+    e.preventDefault();
+    undoAction();
+  }
 });
 
 // ─────────────────────────── INIT ───────────────────────────
@@ -8430,6 +8508,7 @@ loadPersistedState(function() {
   // Migração: planMode removido — zerar em todas as séries
   state.series.forEach(function(s) { if (s.planMode) { s.planMode = false; } });
   render();
+  renderUndoBtn();
   if (state.plano) {
     switchTab('agenda');
   } else {
