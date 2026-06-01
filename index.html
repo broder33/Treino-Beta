@@ -55,7 +55,6 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
     gap: 8px;
     padding: 18px 24px 14px;
     border-bottom: 1px solid var(--border);
-    position: sticky; top: 0; z-index: 100;
     background: var(--bg);
   }
   .logo {
@@ -1404,13 +1403,14 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
 </head>
 <body>
 
+<div id="sticky-nav" style="position:sticky;top:0;z-index:200;background:var(--bg)">
 <header>
   <div class="logo">TREINO</div>
   <div class="header-actions">
     <button id="undo-btn" onclick="undoAction()" title="Nada para desfazer" disabled style="font-family:'DM Mono',monospace;font-size:11px;background:none;border:1px solid var(--border);color:var(--muted);border-radius:4px;padding:3px 10px;cursor:default;opacity:0.3;transition:opacity .2s">↩</button>
     <button class="btn btn-header-only" onclick="exportData()">EXPORTAR</button>
     <button class="btn btn-header-only" onclick="importData()">IMPORTAR</button>
-    <span style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted);margin-left:4px">v0.8.9.51</span>
+    <span style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted);margin-left:4px">v0.8.9.54</span>
     <div id="auth-status" style="display:flex;align-items:center;margin-left:4px"></div>
 
     <div class="mobile-menu-wrap" id="mobile-menu-wrap">
@@ -1428,6 +1428,7 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
 </header>
 
 <div class="tabs" id="tabs"></div>
+</div>
 
 <div id="views-container"></div>
 
@@ -3403,72 +3404,175 @@ Regras: nunca bike em dia D. Tendão patelar direito: sem sprints longos. Timing
 
 6. CONVERSA NORMAL — responda em português, direto e técnico.
 
-REGRA DE FORMATO: quando retornar JSON, retorne APENAS o JSON — sem texto antes, sem texto depois, sem markdown, sem explicações. Se precisar explicar algo, faça em uma mensagem separada antes do JSON.`;
+REGRA DE FORMATO: quando retornar JSON, retorne APENAS o JSON — sem texto antes, sem texto depois, sem markdown, sem explicações. Se precisar explicar algo, faça em uma mensagem separada antes do JSON.
+
+${getToolsInstrucoes()}`;
 }
 
-function buildContextoTreino() {
-  const skippedAll = [];
-  state.series.forEach(s => {
-    s.exercises.filter(e => e.skippedLast).forEach(e => skippedAll.push(s.label + ': ' + e.name));
-  });
+// ─────────────────────────── TOOL SYSTEM ───────────────────────────
+// Tools are resolved on-demand: the model requests data only when needed.
+// Available tools: get_historico(n?), get_plano_macro, get_serie(label), get_bike
 
-  const histSummary = state.history.slice(0, 10).map(h => {
-    const d = new Date(h.date).toLocaleDateString('pt-BR', {weekday:'short', day:'2-digit', month:'2-digit'});
-    return d + ': Série ' + h.serieLabel + ' (' + h.done + '/' + h.total + ')';
-  }).join('\n') || 'Sem histórico registrado ainda.';
+var TOOL_LABELS = {
+  get_historico: 'histórico de treinos',
+  get_plano_macro: 'plano macro',
+  get_serie: 'biblioteca da série',
+  get_bike: 'dados de ciclismo'
+};
 
-  // Include current plan macro if active
-  var planoAtual = '';
-  if (state.plano && state.plano.semanas) {
+function executarTool(toolName, params) {
+  if (toolName === 'get_historico') {
+    var n = params && params.n ? parseInt(params.n) : 20;
+    if (isNaN(n) || n < 1) n = 20;
+    var hist = state.history.slice(0, n);
+    if (!hist.length) return 'Sem histórico registrado ainda.';
+    return 'HISTÓRICO DE TREINOS (' + hist.length + ' sessões):\n' +
+      hist.map(function(h) {
+        var d = new Date(h.date).toLocaleDateString('pt-BR', {weekday:'short', day:'2-digit', month:'2-digit', year:'2-digit'});
+        var linha = d + ': Série ' + h.serieLabel + ' (' + h.done + '/' + h.total + ')';
+        if (h.exercises && h.exercises.length) {
+          linha += '\n' + h.exercises.map(function(e) {
+            var p = [e.name];
+            if (e.sets) p.push(e.sets);
+            if (e.weight) p.push(e.weight);
+            if (e.status && e.status !== 'done') p.push('[' + e.status + ']');
+            return '  ' + p.join(' | ');
+          }).join('\n');
+        }
+        return linha;
+      }).join('\n');
+  }
+
+  if (toolName === 'get_plano_macro') {
+    if (!state.plano || !state.plano.semanas) return 'Nenhum plano ativo.';
     var diasStatus = state.plano.diasStatus || {};
     var linhas = [];
     state.plano.semanas.forEach(function(sem) {
-      var dias = sem.dias || sem.agenda || [];
-      dias.forEach(function(d) {
+      linhas.push('── Semana ' + sem.semana + ' (' + (sem.foco||'') + ', ' + (sem.intensidade||'') + ') ──');
+      (sem.dias || sem.agenda || []).forEach(function(d) {
         var key = 'sem' + sem.semana + '_' + d.dia;
         var status = diasStatus[key] || 'pendente';
-        linhas.push('Sem' + sem.semana + ' ' + d.dia + ': ' + (d.serie || 'descanso') + (d.orientacao ? ' — ' + d.orientacao : '') + ' [' + status + ']');
+        linhas.push('  ' + d.dia + ': ' + (d.serie||'descanso') + (d.orientacao ? ' — ' + d.orientacao : '') + ' [' + status + ']');
       });
     });
-    planoAtual = '\n\nPLANO MACRO ATUAL (' + state.plano.semanas.length + ' semanas):\n' + linhas.join('\n') +
-      '\n\nIMPORTANTE: Este plano tem ' + state.plano.semanas.length + ' semanas. Ao gerar modificações, inclua TODAS as semanas do plano, inclusive semanas adicionais se o ciclo exigir.';
+    return 'PLANO MACRO ATUAL (' + state.plano.semanas.length + ' semanas):\n' + linhas.join('\n') +
+      '\n\nIMPORTANTE: Este plano tem ' + state.plano.semanas.length + ' semanas. Ao gerar modificações, inclua TODAS as semanas.';
   }
 
-  // Bike history
-  var bikeResumo = '';
-  if (state.plano && state.plano.diasBike) {
-    var bikeLinhas = [];
-    Object.keys(state.plano.diasBike).forEach(function(dk) {
-      var b = state.plano.diasBike[dk];
-      if (!b || b.status === 'pendente') return;
-      var parts = dk.match(/^sem(\d+)_(.+)$/);
-      if (!parts) return;
-      var linha = 'Sem' + parts[1] + ' ' + parts[2] + ': ' + b.status;
-      if (b.status === 'feito') {
-        if (b.distancia) linha += ' — ' + b.distancia + 'km';
-        if (b.tempo) linha += ', ' + b.tempo;
-        if (b.velocidade) linha += ', ' + b.velocidade + ' med.';
-        if (b.timingReal) linha += ' (' + b.timingReal + ')';
-      }
-      bikeLinhas.push(linha);
-    });
-    if (bikeLinhas.length) bikeResumo = '\n\nBIKE NESTE CICLO:\n' + bikeLinhas.join('\n');
+  if (toolName === 'get_serie') {
+    var label = params && params.label ? params.label.toUpperCase() : '';
+    var s = state.series.find(function(s) { return s.label === label; });
+    if (!s) return 'Série ' + (label||'?') + ' não encontrada.';
+    var exs = s.exercises.map(function(e) {
+      return '  ' + e.name + ' | ' + e.sets + ' | ' + e.weight + (e.notes ? ' | ' + e.notes : '');
+    }).join('\n');
+    return 'SÉRIE ' + s.label + ' — ' + s.name + ':\n' + (exs || '  (sem exercícios)');
   }
-  var bikePlanoCtx = '';
-  if (state.plano && state.plano.semanas) {
-    var bpLinhas = [];
-    state.plano.semanas.forEach(function(sem) {
-      (sem.dias || sem.agenda || []).forEach(function(d) {
-        if (d.bike) bpLinhas.push('Sem' + sem.semana + ' ' + d.dia + ': ' + (d.bike.foco||'') + ' ' + (d.bike.duracao||'') + ', timing: ' + (d.bike.timing||'') + (d.bike.timingReal ? ' (real: '+d.bike.timingReal+')' : ''));
+
+  if (toolName === 'get_bike') {
+    var linhas = [];
+    if (state.plano && state.plano.diasBike) {
+      var bikeFeitos = Object.keys(state.plano.diasBike).map(function(dk) {
+        var b = state.plano.diasBike[dk];
+        if (!b || b.status === 'pendente') return null;
+        var parts = dk.match(/^sem(\d+)_(.+)$/);
+        if (!parts) return null;
+        var l = 'Sem' + parts[1] + ' ' + parts[2] + ': ' + b.status;
+        if (b.status === 'feito') {
+          if (b.distancia) l += ' — ' + b.distancia + 'km';
+          if (b.tempo) l += ', ' + b.tempo;
+          if (b.velocidade) l += ', ' + b.velocidade + ' med.';
+          if (b.timingReal) l += ' (timing: ' + b.timingReal + ')';
+        }
+        return l;
+      }).filter(Boolean);
+      if (bikeFeitos.length) linhas.push('RIDES NESTE CICLO:\n' + bikeFeitos.join('\n'));
+    }
+    if (state.plano && state.plano.semanas) {
+      var planejados = [];
+      state.plano.semanas.forEach(function(sem) {
+        (sem.dias || sem.agenda || []).forEach(function(d) {
+          if (d.bike) planejados.push('Sem' + sem.semana + ' ' + d.dia + ': ' + (d.bike.foco||'') + ' ' + (d.bike.duracao||'') + ', timing: ' + (d.bike.timing||''));
+        });
       });
-    });
-    if (bpLinhas.length) bikePlanoCtx = '\n\nBIKE PLANEJADO NO PLANO:\n' + bpLinhas.join('\n');
+      if (planejados.length) linhas.push('BIKE PLANEJADO:\n' + planejados.join('\n'));
+    }
+    return linhas.length ? linhas.join('\n\n') : 'Sem dados de ciclismo registrados.';
   }
-  return 'HISTÓRICO RECENTE:\n' + histSummary +
-    (skippedAll.length ? '\n\nEXERCÍCIOS PULADOS NA ÚLTIMA SESSÃO:\n' + skippedAll.join('\n') : '') +
-    bikeResumo +
-    bikePlanoCtx +
-    planoAtual;
+
+  return 'Tool desconhecida: ' + toolName;
+}
+
+// Detect tool request in model response: {"tool":"name","n":N} or {"tool":"name","label":"X"}
+function detectarToolRequest(text) {
+  var m = text.match(/\{\s*"tool"\s*:\s*"([^"]+)"([^}]*)\}/);
+  if (!m) return null;
+  var toolName = m[1];
+  var params = {};
+  var nMatch = m[2].match(/"n"\s*:\s*(\d+)/);
+  if (nMatch) params.n = parseInt(nMatch[1]);
+  var labelMatch = m[2].match(/"label"\s*:\s*"([^"]+)"/);
+  if (labelMatch) params.label = labelMatch[1];
+  return { tool: toolName, params: params };
+}
+
+// Central API caller with tool loop
+// chatNotifyFn(msg) — displays a status message in the chat UI
+// chatNotifyFn is optional; pass null to suppress notifications
+async function chamarAPIComTools(systemPrompt, messages, chatNotifyFn, maxTokens) {
+  maxTokens = maxTokens || 4000;
+  var MAX_TOOL_ROUNDS = 4; // safety: max 4 tool resolutions per user message
+  var round = 0;
+  var currentMessages = messages.slice();
+
+  while (round < MAX_TOOL_ROUNDS) {
+    var response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': getApiKey(), 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+      body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: maxTokens, system: systemPrompt, messages: currentMessages })
+    });
+    var data = await response.json();
+    trackTokenUsage(data.usage);
+    var text = (data.content || []).map(function(c) { return c.text||''; }).join('').trim();
+
+    var toolReq = detectarToolRequest(text);
+    if (!toolReq) {
+      // No tool request — final response
+      return { text: text, messages: currentMessages };
+    }
+
+    // Tool requested — resolve it
+    var label = TOOL_LABELS[toolReq.tool] || toolReq.tool;
+    if (toolReq.params && toolReq.params.label) label += ' ' + toolReq.params.label;
+    if (toolReq.params && toolReq.params.n) label += ' (últimos ' + toolReq.params.n + ')';
+    if (chatNotifyFn) chatNotifyFn('⟳ Buscando: ' + label + '…');
+
+    var toolResult = executarTool(toolReq.tool, toolReq.params);
+
+    // Inject tool result as assistant+user turn
+    currentMessages = currentMessages.concat([
+      { role: 'assistant', content: text },
+      { role: 'user', content: '[TOOL_RESULT: ' + toolReq.tool + ']\n' + toolResult }
+    ]);
+    round++;
+  }
+
+  // Fallback if tool loop exceeded
+  return { text: '', messages: currentMessages };
+}
+
+// Tools instruction block — injected into all system prompts
+function getToolsInstrucoes() {
+  return `
+ACESSO A DADOS SOB DEMANDA:
+Você tem acesso a dados do app mas NÃO os recebe automaticamente — solicite apenas quando necessário.
+Para solicitar dados, retorne SOMENTE o JSON de tool request (nada mais na mensagem):
+- Histórico de treinos: {"tool":"get_historico","n":20} (ajuste n conforme necessidade — n é o número de sessões)
+- Plano macro completo: {"tool":"get_plano_macro"}
+- Exercícios de uma série: {"tool":"get_serie","label":"A"} (use A, B, C ou D)
+- Dados de ciclismo: {"tool":"get_bike"}
+O app resolverá a solicitação e enviará os dados. Então responda normalmente.
+REGRA: solicite dados apenas quando a pergunta do usuário realmente exigir. Não solicite por precaução.`;
 }
 
 function enviarPlanoAtual() {
@@ -3834,32 +3938,20 @@ async function enviarMensagemPlano() {
   addPlanoChatMsg('user', msg);
   addPlanoChatTyping();
 
-  // Build messages with context injected in first user message
-  var messages = [];
-  if (planoChatHistory.length === 0) {
-    messages.push({ role: 'user', content: buildContextoTreino() + '\n\n' + msg });
-  } else {
-    var recentHistory = planoChatHistory.slice(-40);
-    messages = recentHistory.concat([{ role: 'user', content: msg }]);
+  var recentHistory = planoChatHistory.slice(-40);
+  var messages = recentHistory.concat([{ role: 'user', content: msg }]);
+
+  function notifyFn(statusMsg) {
+    removePlanoChatTyping();
+    addPlanoChatMsg('system', statusMsg);
+    addPlanoChatTyping();
   }
 
   try {
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-api-key': getApiKey(), 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 16000,
-        system: getPLANO_SYSTEM(),
-        messages: messages
-      })
-    });
-    const data = await response.json();
-    trackTokenUsage(data.usage);
-    const text = data.content?.map(c => c.text||'').join('').trim();
+    var result = await chamarAPIComTools(getPLANO_SYSTEM(), messages, notifyFn, 16000);
+    var text = result.text;
 
-    // Update history
-    planoChatHistory = messages.concat([{ role: 'assistant', content: text }]);
+    planoChatHistory = result.messages.concat([{ role: 'assistant', content: text }]);
     state.planoChatHistory = planoChatHistory;
     saveState();
 
@@ -4519,6 +4611,13 @@ function addChatInlineMsg(dayKey, role, text) {
   if (!msgs) return;
   var idx = msgs.children.length;
   var div = document.createElement('div');
+  if (role === 'system') {
+    div.style.cssText = 'font-size:11px;color:var(--muted);padding:3px 10px;font-style:italic';
+    div.textContent = text;
+    msgs.appendChild(div);
+    msgs.scrollTop = msgs.scrollHeight;
+    return;
+  }
   div.style.cssText = 'font-size:12px;line-height:1.5;padding:6px 10px;border-radius:8px;max-width:90%;position:relative;' +
     (role === 'user'
       ? 'background:rgba(232,255,60,.1);color:var(--accent);align-self:flex-end;margin-left:auto'
@@ -4669,30 +4768,31 @@ async function enviarChatInlineDia(dayKey, diaNome, semana) {
   var msgs = document.getElementById('chat-inline-msgs-' + dayKey);
   if (msgs) { msgs.appendChild(typingDiv); msgs.scrollTop = msgs.scrollHeight; }
 
+  function notifyDia(statusMsg) {
+    var t = document.getElementById('typing-inline-' + dayKey);
+    if (t) t.remove();
+    addChatInlineMsg(dayKey, 'system', statusMsg);
+    var newTyping = document.createElement('div');
+    newTyping.id = 'typing-inline-' + dayKey;
+    newTyping.style.cssText = 'font-size:12px;color:var(--muted);padding:4px 10px';
+    newTyping.textContent = '●●●';
+    var msgsEl = document.getElementById('chat-inline-msgs-' + dayKey);
+    if (msgsEl) { msgsEl.appendChild(newTyping); msgsEl.scrollTop = msgsEl.scrollHeight; }
+  }
+
   try {
-    var response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-api-key': getApiKey(), 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 1000,
-        system: systemDia,
-        messages: chatInlineHistory[dayKey]
-      })
-    });
-    var data = await response.json();
-    trackTokenUsage(data.usage);
-    var text = data.content ? data.content.map(function(c) { return c.text||''; }).join('') : '';
+    var result = await chamarAPIComTools(systemDia, chatInlineHistory[dayKey], notifyDia, 1000);
+    var text = result.text;
     var typing = document.getElementById('typing-inline-' + dayKey);
     if (typing) typing.remove();
-    // Save to history with JSON stripped to avoid leaking on reopen
+    // Save to history with JSON stripped
     var textParaHistorico = text
       .replace(/```json[\s\S]*?```/g, '')
       .replace(/```[\s\S]*?```/g, '')
-      .replace(/\{[\s\S]*\}\s*$/m, '') // strip trailing JSON block
-      .replace(/^\s*\{[\s\S]*\}/m, '') // strip leading JSON block
+      .replace(/\{[\s\S]*\}\s*$/m, '')
+      .replace(/^\s*\{[\s\S]*\}/m, '')
       .trim() || '';
-    chatInlineHistory[dayKey].push({ role: 'assistant', content: textParaHistorico });
+    chatInlineHistory[dayKey] = result.messages.concat([{ role: 'assistant', content: textParaHistorico }]);
     saveChatInlineHistory(dayKey);
   } catch(e) {
     var typing2 = document.getElementById('typing-inline-' + dayKey);
@@ -4764,26 +4864,28 @@ async function enviarChatInline(dayKey, serieLabel) {
   var msgs = document.getElementById('chat-inline-msgs-' + dayKey);
   if (msgs) { msgs.appendChild(typingDiv); msgs.scrollTop = msgs.scrollHeight; }
 
+  function notifyInline(statusMsg) {
+    var t = document.getElementById('typing-inline-' + dayKey);
+    if (t) t.remove();
+    addChatInlineMsg(dayKey, 'system', statusMsg);
+    var newTyping = document.createElement('div');
+    newTyping.id = 'typing-inline-' + dayKey;
+    newTyping.style.cssText = 'font-size:12px;color:var(--muted);padding:4px 10px';
+    newTyping.textContent = '●●●';
+    var msgsEl = document.getElementById('chat-inline-msgs-' + dayKey);
+    if (msgsEl) { msgsEl.appendChild(newTyping); msgsEl.scrollTop = msgsEl.scrollHeight; }
+  }
+
   try {
-    var response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-api-key': getApiKey(), 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 3000,
-        system: systemInline,
-        messages: chatInlineHistory[dayKey]
-      })
-    });
-    var data = await response.json();
-    trackTokenUsage(data.usage);
-    var text = data.content ? data.content.map(function(c) { return c.text||''; }).join('') : '';
+    var result = await chamarAPIComTools(systemInline, chatInlineHistory[dayKey], notifyInline, 3000);
+    var text = result.text;
+    trackTokenUsage && trackTokenUsage({});
 
     // Remove typing
     var typing = document.getElementById('typing-inline-' + dayKey);
     if (typing) typing.remove();
 
-    chatInlineHistory[dayKey].push({ role: 'assistant', content: text });
+    chatInlineHistory[dayKey] = result.messages.concat([{ role: 'assistant', content: text }]);
     saveChatInlineHistory(dayKey);
 
     // Check if response contains diaExpandido JSON
@@ -5645,14 +5747,31 @@ function removeBikeHistoryEntry(id) {
 
 function _buildBikeSection(dayKey, bikeInfo, bikePlano, diaChegou) {
   var bs = (bikeInfo && bikeInfo.status && bikeInfo.status !== 'pendente') ? bikeInfo.status : 'pendente';
-  var bikeInfoClean = bs !== 'pendente' ? bikeInfo : null;
   var registrado = bikeInfo && bikeInfo.registrado && bs === 'feito';
-  var html = '<div class="bike-section">';
-  html += '<div class="bike-section-title">&#128690; PEDAL DO DIA</div>';
+  var temDados = registrado || bs === 'chuva' || bs === 'imprevisto';
 
-  // ── Treino planejado pelo macro ──
+  // Collapsed state: show only toggle button unless there's a registered ride
+  var isOpen = temDados || (bikeInfo && bikeInfo._open);
+
+  if (!isOpen) {
+    // Compact: just a "+ Pedal" toggle button
+    return '<div class="bike-section" id="bike-section-' + dayKey + '">' +
+      '<button onclick="toggleBikeSection(\'' + dayKey + '\')" style="font-family:DM Mono,monospace;font-size:10px;background:none;border:1px dashed var(--border);color:var(--muted);border-radius:4px;padding:4px 12px;cursor:pointer;width:100%;text-align:left">&#128690; + Registrar pedal</button>' +
+      '</div>';
+  }
+
+  var html = '<div class="bike-section" id="bike-section-' + dayKey + '">';
+  html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">';
+  html += '<div class="bike-section-title" style="margin-bottom:0">&#128690; PEDAL DO DIA</div>';
+  if (!temDados) {
+    html += '<button onclick="toggleBikeSection(\'' + dayKey + '\')" style="font-family:DM Mono,monospace;font-size:9px;background:none;border:none;color:var(--muted);cursor:pointer;padding:0">✕ fechar</button>';
+  }
+  html += '</div>';
+
+  // ── Recomendação do plano (se existir) ──
   if (bikePlano) {
     html += '<div style="background:rgba(91,143,255,.06);border:1px solid rgba(91,143,255,.2);border-radius:6px;padding:8px 10px;margin-bottom:10px">';
+    html += '<div style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted);letter-spacing:0.5px;margin-bottom:4px">RECOMENDAÇÃO DO PLANO</div>';
     html += '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px">';
     html += '<span style="font-family:DM Mono,monospace;font-size:11px;color:var(--bike-chuva);font-weight:700">' + escHtml(bikePlano.foco||'') + '</span>';
     html += '<span style="font-family:DM Mono,monospace;font-size:10px;color:var(--muted)">' + escHtml(bikePlano.duracao||'') + '</span>';
@@ -5670,19 +5789,15 @@ function _buildBikeSection(dayKey, bikeInfo, bikePlano, diaChegou) {
     }
     if (bikePlano.obs) html += '<div style="font-family:DM Mono,monospace;font-size:10px;color:var(--muted);margin-top:3px">' + escHtml(bikePlano.obs) + '</div>';
     html += '</div>';
-  } else {
-    html += '<div style="font-family:DM Mono,monospace;font-size:10px;color:var(--muted);margin-bottom:10px">Treino de bike será definido quando o plano macro incluir bike neste dia.</div>';
   }
 
-  // ── Botões CHUVA/IMPREVISTO — sempre visíveis ──
+  // ── Botões CHUVA/IMPREVISTO ──
   if (bs !== 'chuva' && bs !== 'imprevisto') {
     html += '<div style="display:flex;gap:6px;margin-bottom:8px">';
     html += '<button class="bike-action-btn chuva" onclick="registrarBike(\'' + dayKey + '\',\'chuva\')">&#127783; CHUVA</button>';
     html += '<button class="bike-action-btn imprevisto" onclick="registrarBike(\'' + dayKey + '\',\'imprevisto\')">&#9888; IMPREVISTO</button>';
     html += '</div>';
-  }
-  // ── Campos e timing — sempre visíveis (exceto cancelamentos) ──
-  if (bs !== 'chuva' && bs !== 'imprevisto') {
+
     var dist = (bikeInfo&&bikeInfo.distancia)||'';
     var tempoMov = (bikeInfo&&bikeInfo.tempoMov)||'';
     var tempoTotal = (bikeInfo&&bikeInfo.tempoTotal)||'';
@@ -5692,7 +5807,6 @@ function _buildBikeSection(dayKey, bikeInfo, bikePlano, diaChegou) {
     var percurso = (bikeInfo&&bikeInfo.percurso)||'';
     var tr = (bikeInfo&&bikeInfo.timingReal)||'';
 
-    // Timing real — só quando há musculação no mesmo dia
     if (bikeInfo && bikeInfo.musculacaoExtra) {
       html += '<div style="margin-bottom:8px">';
       html += '<div style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted);letter-spacing:0.5px;margin-bottom:4px">PEDALEI...</div>';
@@ -5702,7 +5816,6 @@ function _buildBikeSection(dayKey, bikeInfo, bikePlano, diaChegou) {
       html += '</div></div>';
     }
 
-    // Campos principais — KM e tempos em destaque
     html += '<div style="display:flex;gap:8px;margin-bottom:6px;flex-wrap:wrap">';
     html += '<div style="flex:2;min-width:80px"><div style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted);letter-spacing:0.5px">KM</div><input class="bike-field" style="font-size:14px" value="' + escHtml(dist) + '" placeholder="km" onchange="updateBikeField(\'' + dayKey + '\',\'distancia\',this.value)"></div>';
     html += '<div style="flex:2;min-width:80px"><div style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted);letter-spacing:0.5px">T. MOVIMENTO</div><input class="bike-field" style="font-size:14px" value="' + escHtml(tempoMov) + '" placeholder="hh:mm" onchange="updateBikeField(\'' + dayKey + '\',\'tempoMov\',this.value)"></div>';
@@ -5715,9 +5828,6 @@ function _buildBikeSection(dayKey, bikeInfo, bikePlano, diaChegou) {
     html += '</div>';
     html += '<div style="margin-bottom:8px"><div style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted);letter-spacing:0.5px">PERCURSO</div><input class="bike-field" value="' + escHtml(percurso) + '" placeholder="percurso" onchange="updateBikeField(\'' + dayKey + '\',\'percurso\',this.value)"></div>';
 
-
-
-    // Registrar no histórico — só quando dia chegou
     if (diaChegou) {
       if (!registrado) {
         html += '<button class="agenda-action-btn done" onclick="registrarBikeHistorico(\'' + dayKey + '\')" style="width:100%;margin-top:2px">&#10003; REGISTRAR NO HISTÓRICO</button>';
@@ -5727,7 +5837,6 @@ function _buildBikeSection(dayKey, bikeInfo, bikePlano, diaChegou) {
       }
     }
   } else if (diaChegou) {
-    // Cancelado — só mostra se o dia já chegou
     var col = bs==='chuva' ? 'var(--bike-chuva)' : 'var(--bike-imprevisto)';
     var lbl = bs==='chuva' ? '&#127783; Ride cancelado por chuva' : '&#9888; Ride cancelado por imprevisto';
     html += '<div style="font-family:DM Mono,monospace;font-size:11px;color:' + col + ';margin-bottom:6px">' + lbl + '</div>';
@@ -5736,6 +5845,37 @@ function _buildBikeSection(dayKey, bikeInfo, bikePlano, diaChegou) {
 
   html += '</div>';
   return html;
+}
+
+function toggleBikeSection(dayKey) {
+  if (!state.plano.diasBike) state.plano.diasBike = {};
+  if (!state.plano.diasBike[dayKey]) state.plano.diasBike[dayKey] = { status: 'pendente' };
+  var info = state.plano.diasBike[dayKey];
+  info._open = !info._open;
+  // Re-render only the bike section in-place
+  var section = document.getElementById('bike-section-' + dayKey);
+  if (section) {
+    var isDiaHoje = false;
+    var dataMap = null;
+    if (state.plano && state.plano.dataInicio) {
+      var hoje = new Date(); hoje.setHours(0,0,0,0);
+      var m = dayKey.match(/^sem(\d+)_(.+)$/);
+      if (m) {
+        var ordemSemana = ['Segunda','Terça','Quarta','Quinta','Sexta','Sábado','Domingo'];
+        var inicio = new Date(state.plano.dataInicio); inicio.setHours(0,0,0,0);
+        var semNum = parseInt(m[1]);
+        var diaIdx = ordemSemana.indexOf(m[2]);
+        if (diaIdx !== -1) {
+          var diaDate = new Date(inicio.getTime() + ((semNum-1)*7 + diaIdx) * 86400000);
+          isDiaHoje = diaDate.getTime() === hoje.getTime() || diaDate < hoje;
+        }
+      }
+    }
+    var newHtml = _buildBikeSection(dayKey, info, _getBikePlano(dayKey), isDiaHoje);
+    var tmp = document.createElement('div');
+    tmp.innerHTML = newHtml;
+    section.parentNode.replaceChild(tmp.firstChild, section);
+  }
 }
 
 function renderAgendaLinear() {
@@ -5980,10 +6120,11 @@ function renderAgendaLinear() {
         }
       }
 
-      var bikeTemDia = !_bikeEhDiaDPernas(dayKey) && (d.bike || (bikeInfo && bikeInfo.substitutoD) || (isRest && d.tipo === 'bike'));
       var bikeInfo = state.plano.diasBike && state.plano.diasBike[dayKey];
       var bikeStatus = (bikeInfo && bikeInfo.status) ? bikeInfo.status : 'pendente';
-      var bikeBadgeLabel = bikeStatus === 'feito' ? '&#128690; PEDAL &#10003;' : bikeStatus === 'chuva' ? 'CHUVA' : bikeStatus === 'imprevisto' ? 'IMPREVISTO' : '&#128690; PEDAL';
+      var bikeTemDia = true; // janela de bike disponível em todos os dias
+      var bikeFeito = bikeStatus === 'feito';
+      var bikeBadgeLabel = bikeStatus === 'feito' ? '&#128690; PEDAL &#10003;' : bikeStatus === 'chuva' ? '&#127783; CHUVA' : bikeStatus === 'imprevisto' ? '&#9888; IMPREVISTO' : '';
       var isSubstitutoD = !!(bikeInfo && bikeInfo.substitutoD) || (isRest && d.tipo === 'bike');
       var actionsHTML = '<div class="agenda-dia-actions">';
       if (status === 'pendente' || status === 'antecipado' || status === 'ausente' || status === 'disponivel') {
@@ -6036,9 +6177,9 @@ function renderAgendaLinear() {
       html += '<div class="' + cardClass + '" id="agendadia-' + dayKey + '">' +
         '<div class="agenda-dia-head" onclick="toggleAgendaDia(\'' + dayKey + '\')">' +
           '<span class="agenda-dia-label">' + escHtml(d.dia) + (dateStr ? '<br><span style="font-size:10px;font-family:DM Mono,monospace;color:var(--muted)">' + dateStr + '</span>' : '') + '</span>' +
-          '<span class="agenda-dia-serie">' + (status === 'pulado' ? '' : (isRest ? ((tipo === 'bike' && (bikeStatus === 'chuva' || bikeStatus === 'imprevisto')) ? 'Descanso' : (tipo === 'bike' && bikeInfo && bikeInfo.musculacaoExtra) ? bikeInfo.musculacaoExtra.serie + ' — ' + (state.series.find(function(s){return s.label===bikeInfo.musculacaoExtra.serie;}) || {name:''}).name : tipo === 'bike' ? '&#128690; Pedal' : tipo === 'aerobico' ? 'Aeróbico / Cardio' : (d.bike && d.serie !== 'D' && hasTreinoAfter) ? '&#128690; Pedal' : 'Descanso') : (serieObj ? d.serie + ' — ' + serieObj.name : d.serie))) + '</span>' +
+          '<span class="agenda-dia-serie">' + (status === 'pulado' ? '' : (isRest ? ((tipo === 'bike' && (bikeStatus === 'chuva' || bikeStatus === 'imprevisto')) ? 'Descanso' : (tipo === 'bike' && bikeInfo && bikeInfo.musculacaoExtra) ? bikeInfo.musculacaoExtra.serie + ' — ' + (state.series.find(function(s){return s.label===bikeInfo.musculacaoExtra.serie;}) || {name:''}).name : tipo === 'bike' ? '&#128690; Pedal' : tipo === 'aerobico' ? 'Aeróbico / Cardio' : 'Descanso') : (serieObj ? d.serie + ' — ' + serieObj.name : d.serie))) + '</span>' +
           '<span class="agenda-dia-tipo ' + tipoClass + '">' + tipoLabel + '</span>' +
-          (d.bike && d.serie !== 'D' && tipo !== 'bike' && !isRest && !bikeFeito && status !== 'perdido' && status !== 'concluido' && hasTreinoAfter ? '<span class="agenda-dia-tipo tipo-bike" style="margin-left:4px">&#128690; BIKE</span>' : '') +
+          (bikeBadgeLabel ? '<span class="agenda-dia-tipo tipo-bike" style="margin-left:4px">' + bikeBadgeLabel + '</span>' : '') +
 
 
         '</div>' +
@@ -6051,7 +6192,7 @@ function renderAgendaLinear() {
               (bikeInfo && bikeInfo.musculacaoExtra ? '<button class="agenda-action-btn accent3" style="margin-bottom:6px" onclick="expandirDia(' + semana.semana + ',\'' + d.dia + '\',\'' + bikeInfo.musculacaoExtra.serie + '\')">✦ GERAR TREINO ' + bikeInfo.musculacaoExtra.serie + '</button>' : '') +
               exHTML +
               actionsHTML +
-              (!expanded && bikeTemDia && status !== 'concluido' ? _buildBikeSection(dayKey, bikeInfo, _getBikePlano(dayKey), isDiaHoje || (dataMap && dataMap[dayKey] && dataMap[dayKey] < hoje)) : '') +
+              (!expanded ? _buildBikeSection(dayKey, bikeInfo, _getBikePlano(dayKey), isDiaHoje || (dataMap && dataMap[dayKey] && dataMap[dayKey] < hoje)) : '') +
               (isRest ? '<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:8px">' +
                 (isSubstitutoD && !(bikeInfo && bikeInfo.musculacaoExtra) ? '<button class="agenda-action-btn accent3" onclick="anteciparABCParaDiaBike(\'' + dayKey + '\')" style="flex:1">✦ ANTECIPAR ABC</button>' : '') +
                 (isSubstitutoD && (bikeInfo && bikeInfo.musculacaoExtra) ? '<button class="agenda-action-btn" onclick="desfazerSubstitutoD(\'' + dayKey + '\',\'' + d.dia + '\',' + semana.semana + ')">↺ DESFAZER ANTECIP.</button>' : '') +
