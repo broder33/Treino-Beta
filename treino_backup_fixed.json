@@ -2494,29 +2494,18 @@
           },
           {
             "dia": "Sexta",
-            "bike": false,
             "tipo": "recuperacao",
             "serie": "descanso",
             "orientacao": "Dia perdido"
           },
           {
             "dia": "Sábado",
-            "bike": false,
             "tipo": "recuperacao",
             "serie": "descanso",
             "orientacao": "Ausencia planejada"
           },
           {
             "dia": "Domingo",
-            "bike": {
-              "obs": "Apenas se não pedalar no sábado. Cadência alta, sem sprints — tendão patelar direito.",
-              "foco": "Z2 Endurance",
-              "timing": "qualquer",
-              "duracao": "1h",
-              "intensidade": "Ritmo confortável — FC ~65-75% FCmax. Consegue falar frases completas.",
-              "distSugerida": "20-30km",
-              "tempoSugerido": "1h"
-            },
             "tipo": "recuperacao",
             "serie": "descanso",
             "orientacao": "Descanso ativo ou descanso completo conforme sensação. Bike elegível se sábado não tiver sido aproveitado para ride longo."
@@ -2531,15 +2520,6 @@
         "dias": [
           {
             "dia": "Segunda",
-            "bike": {
-              "obs": "Cadência alta, sem sprints — tendão patelar direito. Z2 apenas após musculação.",
-              "foco": "Z2 Endurance",
-              "timing": "após musculação",
-              "duracao": "1h",
-              "intensidade": "Ritmo confortável — FC ~65-75% FCmax. Consegue falar frases completas.",
-              "distSugerida": "20-25km",
-              "tempoSugerido": "1h"
-            },
             "tipo": "treino",
             "serie": "C",
             "orientacao": "Peito/Tríceps em transição — encerramento do ciclo. Volume e carga moderados: 3 séries por exercício. Supino inclinado com halteres: 3 séries com carga intermediária entre deload e pico. Crucifixo com halteres como complemento: 2-3 séries. Sem barra. Tríceps: pushdown no cabo ou tríceps testa com halteres — 2-3 séries com carga moderada. Foco em amplitude e qualidade de execução. Descanso 90s nos compostos, 75s nos isolamentos. Registrar referências de carga e sensações para o próximo mesociclo. Core: crunch bicicleta 3x12 cada lado + prancha frontal 3x35s. (Antecipado de Terça)"
@@ -2552,75 +2532,30 @@
           },
           {
             "dia": "Quarta",
-            "bike": {
-              "obs": "Cadência alta, sem sprints — tendão patelar direito. Recuperação ativa no encerramento do ciclo.",
-              "foco": "Z2 Endurance",
-              "timing": "qualquer",
-              "duracao": "1h",
-              "intensidade": "Ritmo confortável — FC ~65-75% FCmax. Consegue falar frases completas.",
-              "distSugerida": "20-30km",
-              "tempoSugerido": "1h"
-            },
             "tipo": "treino",
             "serie": "D",
             "orientacao": "Última sessão D do ciclo — encerramento definitivo de pernas. Volume e carga moderados: 3 séries por exercício. Leg press conservador respeitando o tendão direito: 3 séries com carga confortável. Agachamento ou avanço com halteres como foco principal: 3 séries. Stiff com halteres no lugar de leg curl — sem flexão de joelho com carga: 3 séries. Sem exercícios de alto risco. Avaliar evolução geral do tendão direito ao longo do ciclo. Registrar observações gerais de pernas para calibrar progressão no próximo mesociclo. Core: crunch 3x15 + elevação de pernas deitado 3x12."
           },
           {
             "dia": "Quinta",
-            "bike": {
-              "obs": "Cadência alta, sem sprints — tendão patelar direito.",
-              "foco": "Z2 Endurance",
-              "timing": "qualquer",
-              "duracao": "1h",
-              "intensidade": "Ritmo confortável — FC ~65-75% FCmax. Consegue falar frases completas.",
-              "distSugerida": "20-30km",
-              "tempoSugerido": "1h"
-            },
             "tipo": "recuperacao",
             "serie": "descanso",
             "orientacao": ""
           },
           {
             "dia": "Sexta",
-            "bike": {
-              "obs": "Cadência alta, sem sprints — tendão patelar direito.",
-              "foco": "Z2 Endurance",
-              "timing": "qualquer",
-              "duracao": "1h",
-              "intensidade": "Ritmo confortável — FC ~65-75% FCmax. Consegue falar frases completas.",
-              "distSugerida": "20-30km",
-              "tempoSugerido": "1h"
-            },
             "tipo": "recuperacao",
             "serie": "descanso",
             "orientacao": "Descanso ativo — bike Z2 elegível. Boa oportunidade para ride de encerramento da semana antes do fim de semana."
           },
           {
             "dia": "Sábado",
-            "bike": {
-              "obs": "Sem musculação — aproveitar para ride mais longo. Cadência alta, sem sprints — tendão patelar direito.",
-              "foco": "Z2 Longo",
-              "timing": "qualquer",
-              "duracao": "1h30",
-              "intensidade": "Ritmo confortável — FC ~65-75% FCmax. Consegue falar frases completas.",
-              "distSugerida": "35-45km",
-              "tempoSugerido": "1h30"
-            },
             "tipo": "recuperacao",
             "serie": "descanso",
             "orientacao": "Descanso ativo — ótimo para ride Z2 longo no fim de semana de encerramento do ciclo."
           },
           {
             "dia": "Domingo",
-            "bike": {
-              "obs": "Opcional — apenas se houver disposição. Não forçar no encerramento do ciclo. Cadência alta, sem sprints.",
-              "foco": "Z2 Leve",
-              "timing": "qualquer",
-              "duracao": "45min",
-              "intensidade": "Ritmo muito confortável — FC ~60-70% FCmax.",
-              "distSugerida": "15-20km",
-              "tempoSugerido": "45min"
-            },
             "tipo": "recuperacao",
             "serie": "descanso",
             "orientacao": "Descanso completo ou descanso ativo leve. Encerramento do ciclo — avaliar progressos gerais e preparar o próximo mesociclo."

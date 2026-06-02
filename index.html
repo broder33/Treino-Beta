@@ -1410,7 +1410,7 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
     <button id="undo-btn" onclick="undoAction()" title="Nada para desfazer" disabled style="font-family:'DM Mono',monospace;font-size:11px;background:none;border:1px solid var(--border);color:var(--muted);border-radius:4px;padding:3px 10px;cursor:default;opacity:0.3;transition:opacity .2s">↩</button>
     <button class="btn btn-header-only" onclick="exportData()">EXPORTAR</button>
     <button class="btn btn-header-only" onclick="importData()">IMPORTAR</button>
-    <span style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted);margin-left:4px">v0.8.9.54</span>
+    <span style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted);margin-left:4px">v0.8.9.59</span>
     <div id="auth-status" style="display:flex;align-items:center;margin-left:4px"></div>
 
     <div class="mobile-menu-wrap" id="mobile-menu-wrap">
@@ -5659,7 +5659,7 @@ function registrarBikeHistorico(dayKey) {
     dayKey: dayKey,
     semana: m ? m[1] : '?',
     dia: m ? m[2] : '?',
-    foco: (bikePlano && bikePlano.foco) || '',
+    foco: '',
     duracao: (bikePlano && bikePlano.duracao) || '',
     distancia: bikeInfo.distancia || '',
     tempoMov: bikeInfo.tempoMov || '',
@@ -6177,7 +6177,7 @@ function renderAgendaLinear() {
       html += '<div class="' + cardClass + '" id="agendadia-' + dayKey + '">' +
         '<div class="agenda-dia-head" onclick="toggleAgendaDia(\'' + dayKey + '\')">' +
           '<span class="agenda-dia-label">' + escHtml(d.dia) + (dateStr ? '<br><span style="font-size:10px;font-family:DM Mono,monospace;color:var(--muted)">' + dateStr + '</span>' : '') + '</span>' +
-          '<span class="agenda-dia-serie">' + (status === 'pulado' ? '' : (isRest ? ((tipo === 'bike' && (bikeStatus === 'chuva' || bikeStatus === 'imprevisto')) ? 'Descanso' : (tipo === 'bike' && bikeInfo && bikeInfo.musculacaoExtra) ? bikeInfo.musculacaoExtra.serie + ' — ' + (state.series.find(function(s){return s.label===bikeInfo.musculacaoExtra.serie;}) || {name:''}).name : tipo === 'bike' ? '&#128690; Pedal' : tipo === 'aerobico' ? 'Aeróbico / Cardio' : 'Descanso') : (serieObj ? d.serie + ' — ' + serieObj.name : d.serie))) + '</span>' +
+          '<span class="agenda-dia-serie">' + (status === 'pulado' ? '' : (isRest ? ((tipo === 'bike' && (bikeStatus === 'chuva' || bikeStatus === 'imprevisto')) ? 'Descanso' : (tipo === 'bike' && bikeInfo && bikeInfo.musculacaoExtra) ? bikeInfo.musculacaoExtra.serie + ' — ' + (state.series.find(function(s){return s.label===bikeInfo.musculacaoExtra.serie;}) || {name:''}).name : tipo === 'bike' ? '&#128690; Pedal' : tipo === 'aerobico' ? 'Aeróbico / Cardio' : bikeFeito ? '&#128690; Pedal' : 'Descanso') : (serieObj ? d.serie + ' — ' + serieObj.name : d.serie))) + '</span>' +
           '<span class="agenda-dia-tipo ' + tipoClass + '">' + tipoLabel + '</span>' +
           (bikeBadgeLabel ? '<span class="agenda-dia-tipo tipo-bike" style="margin-left:4px">' + bikeBadgeLabel + '</span>' : '') +
 
