@@ -1410,7 +1410,7 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
     <button id="undo-btn" onclick="undoAction()" title="Nada para desfazer" disabled style="font-family:'DM Mono',monospace;font-size:11px;background:none;border:1px solid var(--border);color:var(--muted);border-radius:4px;padding:3px 10px;cursor:default;opacity:0.3;transition:opacity .2s">↩</button>
     <button class="btn btn-header-only" onclick="exportData()">EXPORTAR</button>
     <button class="btn btn-header-only" onclick="importData()">IMPORTAR</button>
-    <span style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted);margin-left:4px">v0.8.9.59</span>
+    <span style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted);margin-left:4px">v0.9.0.02</span>
     <div id="auth-status" style="display:flex;align-items:center;margin-left:4px"></div>
 
     <div class="mobile-menu-wrap" id="mobile-menu-wrap">
@@ -1612,6 +1612,11 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
   <div class="history-list" id="history-list"></div>
 </div>
 
+<!-- CICLOS -->
+<div class="view" id="view-ciclos">
+  <div id="ciclos-container" style="padding:0 0 40px"></div>
+</div>
+
 <!-- AI -->
 <!-- PLANO/IA unificado -->
 <div class="view" id="view-ia">
@@ -1629,12 +1634,10 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
       </div>
 
       <!-- Quick actions -->
-      <div style="display:flex;gap:6px;padding:8px 16px 0;flex-wrap:wrap">
-        <button onclick="gerarPlanoCompleto()" style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;padding:5px 14px;border-radius:8px;border:1px solid var(--accent);color:var(--accent);background:rgba(232,255,60,.07);cursor:pointer" title="Cria um plano macro completo do zero com base no seu perfil. Use apenas quando não há plano ativo ou quer recomeçar.">✦ GERAR NOVO PLANO</button>
+      <div style="display:flex;gap:6px;padding:8px 16px 0;flex-wrap:wrap" id="plano-quick-actions">
+        <button onclick="iniciarNovoCiclo()" style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;padding:5px 14px;border-radius:8px;border:1px solid var(--accent);color:var(--accent);background:rgba(232,255,60,.07);cursor:pointer" title="Inicia um novo ciclo de treinamento. Se houver ciclo anterior, usa-o como referência para progressão.">✦ INICIAR NOVO CICLO</button>
         <button onclick="reorganizarPlanoAPartirDeHoje()" style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;padding:5px 14px;border-radius:8px;border:1px solid var(--done);color:var(--done);background:transparent;cursor:pointer" title="Redistribui os dias futuros seguindo a fila estática de séries, sem alterar treinos já concluídos ou passados.">↺ REORGANIZAR A PARTIR DE HOJE</button>
         <button onclick="gerarOrientacoesDiasFuturos()" style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;padding:5px 14px;border-radius:8px;border:1px solid var(--accent);color:var(--accent);background:transparent;cursor:pointer" title="Pede à IA para gerar orientações de periodização para todos os dias futuros do plano reorganizado. Use após reorganizar.">✦ GERAR ORIENTAÇÕES</button>
-        <button onclick="desfazerRelocamento()" style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;padding:5px 14px;border-radius:8px;border:1px solid var(--muted);color:var(--muted);background:transparent;cursor:pointer" title="Desfaz a última ação de relocamento ou reorganização. Suporta até 5 níveis.">↩ DESFAZER</button>
-        <button onclick="enviarPlanoAtual()" style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;padding:5px 14px;border-radius:8px;border:1px solid var(--accent3);color:var(--accent3);background:transparent;cursor:pointer" title="Envia o plano atual completo para o chat da IA para análise ou modificações manuais.">⬡ ENVIAR PLANO ATUAL</button>
         <button onclick="limparChatPlano()" style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;padding:5px 14px;border-radius:8px;border:1px solid var(--border);color:var(--muted);background:transparent;cursor:pointer" title="Limpa o histórico do chat com a IA. Use quando o chat estiver longo ou com erros de contexto.">↺ NOVA CONVERSA</button>
       </div>
 
@@ -2369,22 +2372,86 @@ function criarSerieMista(label, name, exercises) {
 }
 
 // ─────────────────────────── HISTORY ───────────────────────────
+var _historyViewMode = 'atual';
+
 function renderHistory() {
-  const list = document.getElementById('history-list');
-  var hasBike = state.bikeHistory && state.bikeHistory.length > 0;
-  if (!state.history.length && !hasBike) {
-    list.innerHTML = '<div style="color:var(--muted);font-family:DM Mono,monospace;font-size:12px;padding:20px 0">Nenhum treino registrado ainda.</div>';
+  var list = document.getElementById('history-list');
+  var ciclos = state.ciclos || [];
+
+  // ── Filtros ──
+  var filtrosHTML = '<div style="padding:12px 0 10px;display:flex;gap:6px;flex-wrap:wrap;border-bottom:1px solid var(--border);margin-bottom:12px">';
+  filtrosHTML += _histBtn('atual', 'CICLO ATUAL', _historyViewMode === 'atual');
+  filtrosHTML += _histBtn('todos', 'TODOS', _historyViewMode === 'todos');
+  ciclos.forEach(function(c, i) {
+    filtrosHTML += _histBtn('ciclo-' + i, escHtml(c.nome), _historyViewMode === 'ciclo-' + i);
+  });
+  filtrosHTML += '</div>';
+
+  // ── Dados a exibir ──
+  var gymItems = [], bikeItems = [];
+  var cicloNome = '';
+
+  if (_historyViewMode === 'atual') {
+    gymItems = state.history.map(function(h) { return { _data: h }; });
+    bikeItems = (state.bikeHistory || []).map(function(b) { return { _data: b }; });
+    cicloNome = 'Ciclo atual';
+  } else if (_historyViewMode === 'todos') {
+    // Archived cycles oldest first, then current
+    var ciclosOrdenados = ciclos.slice().reverse();
+    ciclosOrdenados.forEach(function(c) {
+      (c.history || []).forEach(function(h) { gymItems.push({ _data: h, _ciclo: c.nome }); });
+      (c.bikeHistory || []).forEach(function(b) { bikeItems.push({ _data: b, _ciclo: c.nome }); });
+    });
+    state.history.forEach(function(h) { gymItems.push({ _data: h, _ciclo: 'Atual' }); });
+    (state.bikeHistory || []).forEach(function(b) { bikeItems.push({ _data: b, _ciclo: 'Atual' }); });
+  } else {
+    var idx = parseInt(_historyViewMode.replace('ciclo-', ''));
+    var c = ciclos[idx];
+    if (c) {
+      gymItems = (c.history || []).map(function(h) { return { _data: h }; });
+      bikeItems = (c.bikeHistory || []).map(function(b) { return { _data: b }; });
+      cicloNome = c.nome;
+    }
+  }
+
+  // ── Info card para ciclos arquivados ──
+  var infoHTML = '';
+  if (_historyViewMode.startsWith('ciclo-')) {
+    var idx2 = parseInt(_historyViewMode.replace('ciclo-', ''));
+    var ca = ciclos[idx2];
+    if (ca) {
+      var di = ca.dataInicio ? new Date(ca.dataInicio).toLocaleDateString('pt-BR', {day:'2-digit',month:'2-digit',year:'2-digit'}) : '?';
+      var df = ca.dataFim ? new Date(ca.dataFim).toLocaleDateString('pt-BR', {day:'2-digit',month:'2-digit',year:'2-digit'}) : '?';
+      var sems = ca.plano && ca.plano.semanas ? ca.plano.semanas.length : '?';
+      infoHTML = '<div style="background:var(--surface2);border-radius:8px;padding:12px 14px;margin-bottom:12px;border:1px solid var(--border)">';
+      infoHTML += '<div style="font-family:Bebas Neue,sans-serif;font-size:15px;letter-spacing:1px;margin-bottom:6px">' + escHtml(ca.nome) + '</div>';
+      infoHTML += '<div style="display:flex;gap:16px;flex-wrap:wrap">';
+      infoHTML += '<div style="font-family:DM Mono,monospace;font-size:10px"><span style="color:var(--muted)">PERÍODO </span><span>' + di + ' → ' + df + '</span></div>';
+      infoHTML += '<div style="font-family:DM Mono,monospace;font-size:10px"><span style="color:var(--muted)">SEMANAS </span><span>' + sems + '</span></div>';
+      infoHTML += '<div style="font-family:DM Mono,monospace;font-size:10px"><span style="color:var(--muted)">TREINOS </span><span style="color:var(--accent)">' + (ca.history||[]).length + '</span></div>';
+      infoHTML += '<div style="font-family:DM Mono,monospace;font-size:10px"><span style="color:var(--muted)">RIDES </span><span style="color:var(--bike-chuva)">' + (ca.bikeHistory||[]).length + '</span></div>';
+      infoHTML += '</div>';
+      infoHTML += '<button class="btn" onclick="analisarCicloNoChat(' + idx2 + ')" style="margin-top:8px;font-size:10px">⬡ ANALISAR COM IA</button>';
+      infoHTML += '</div>';
+    }
+  }
+
+  // ── Timeline ──
+  var allItems = gymItems.map(function(x) { return { _type:'gym', _date: new Date(x._data.date), _data: x._data, _ciclo: x._ciclo }; })
+    .concat(bikeItems.map(function(x) { return { _type:'bike', _date: new Date(x._data.date), _data: x._data, _ciclo: x._ciclo }; }))
+    .sort(function(a, b) { return b._date - a._date; });
+
+  if (!allItems.length) {
+    list.innerHTML = filtrosHTML + infoHTML + '<div style="color:var(--muted);font-family:DM Mono,monospace;font-size:12px;padding:20px 0">Nenhum treino registrado.</div>';
     return;
   }
-  const clearBtn = `<div class="history-clear-wrap">
-    <button class="btn danger" onclick="clearHistory()" title="Apaga todo o histórico de treinos registrados. Esta ação não pode ser desfeita.">↺ LIMPAR HISTÓRICO</button>
-  </div>`;
-  // Unified timeline: bike + gym sorted by date desc
-  var _bikeItems = (state.bikeHistory || []).map(function(b) { return { _type: 'bike', _date: new Date(b.date), _data: b }; });
-  var _gymItems = state.history.map(function(h) { return { _type: 'gym', _date: new Date(h.date), _data: h }; });
-  var _allItems = _bikeItems.concat(_gymItems).sort(function(a, b) { return b._date - a._date; });
 
-  list.innerHTML = clearBtn + _allItems.map(function(entry) {
+  var clearBtn = _historyViewMode === 'atual'
+    ? '<div class="history-clear-wrap"><button class="btn danger" onclick="clearHistory()" title="Apaga o histórico do ciclo atual.">↺ LIMPAR HISTÓRICO ATUAL</button></div>'
+    : '';
+
+  list.innerHTML = filtrosHTML + infoHTML + clearBtn + allItems.map(function(entry) {
+    var showCiclo = _historyViewMode === 'todos' && entry._ciclo;
     if (entry._type === 'bike') {
       var b = entry._data;
       var bd = entry._date;
@@ -2397,14 +2464,15 @@ function renderHistory() {
       return '<div class="history-card" style="flex-direction:column;align-items:stretch;border-color:rgba(91,143,255,.35)">' +
         '<div style="display:flex;justify-content:space-between;align-items:flex-start">' +
         '<div style="flex:1">' +
-        '<div style="display:flex;align-items:baseline;gap:10px;margin-bottom:2px">' +
+        '<div style="display:flex;align-items:baseline;gap:10px;margin-bottom:2px;flex-wrap:wrap">' +
         '<div class="history-serie" style="color:var(--bike-chuva)">&#128690; ' + escHtml(b.foco||'Ride') + '</div>' +
         '<div style="font-family:DM Mono,monospace;font-size:11px;color:var(--accent2)">' + dataFmt + '</div>' +
         '<div style="font-family:DM Mono,monospace;font-size:11px;color:var(--muted)">' + diaSemFmt + '</div>' +
+        (showCiclo ? '<div style="font-family:DM Mono,monospace;font-size:10px;color:var(--muted);margin-left:auto">' + escHtml(entry._ciclo) + '</div>' : '') +
         '</div>' +
         '<div class="history-date">' + escHtml(meta) + timing + (regHora ? ' · ' + regHora : '') + '</div>' +
         '</div>' +
-        '<button class="ex-action-btn" onclick="removeBikeHistoryEntry(\'' + b.id + '\')" title="Remover" style="flex-shrink:0;margin-left:8px">✕</button>' +
+        (_historyViewMode === 'atual' ? '<button class="ex-action-btn" onclick="removeBikeHistoryEntry(\'' + b.id + '\')" title="Remover" style="flex-shrink:0;margin-left:8px">✕</button>' : '') +
         '</div></div>';
     } else {
       var h = entry._data;
@@ -2432,20 +2500,252 @@ function renderHistory() {
       return '<div class="history-card" style="flex-direction:column;align-items:stretch">' +
         '<div style="display:flex;justify-content:space-between;align-items:center">' +
         '<div style="cursor:' + (hasEx ? 'pointer' : 'default') + '" onclick="' + (hasEx ? 'toggleHistoryEx(\'' + h.id + '\')' : '') + '">' +
-        '<div style="display:flex;align-items:baseline;gap:10px">' +
+        '<div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap">' +
         '<div class="history-serie">' + escHtml(h.serieLabel) + ' — ' + escHtml(h.serieName) + '</div>' +
         '<div style="font-family:DM Mono,monospace;font-size:11px;color:var(--accent2)">' + dataFormatada + '</div>' +
         '<div style="font-family:DM Mono,monospace;font-size:11px;color:var(--muted)">' + diaSemanaCapit + '</div>' +
+        (showCiclo ? '<div style="font-family:DM Mono,monospace;font-size:10px;color:var(--muted)">' + escHtml(entry._ciclo) + '</div>' : '') +
         '</div>' +
-        '<div class="history-date">' + escHtml(h.variant) + (reg ? ' · registrado ' + reg : '') + (hasEx ? ' · ver exercícios' : '') + '</div>' +
+        '<div class="history-date">' + escHtml(h.variant||'') + (reg ? ' · registrado ' + reg : '') + (hasEx ? ' · ver exercícios' : '') + '</div>' +
         '</div>' +
         '<div style="display:flex;align-items:center;gap:10px">' +
         '<span class="history-badge">' + h.done + '/' + h.total + ' exercícios</span>' +
-        '<button class="ex-action-btn" onclick="removeHistoryEntry(\'' + h.id + '\')" title="Remover este treino do histórico" style="flex-shrink:0">✕</button>' +
+        (_historyViewMode === 'atual' ? '<button class="ex-action-btn" onclick="removeHistoryEntry(\'' + h.id + '\')" title="Remover" style="flex-shrink:0">✕</button>' : '') +
         '</div></div>' +
         exHTML + '</div>';
     }
   }).join('');
+}
+
+function _histBtn(mode, label, active) {
+  return '<button onclick="_historyViewMode=\'' + mode + '\';renderHistory()" style="font-family:DM Mono,monospace;font-size:10px;padding:4px 12px;border-radius:4px;cursor:pointer;' +
+    (active ? 'background:var(--accent);color:#000;border:none' : 'background:none;border:1px solid var(--border);color:var(--muted)') + '">' + label + '</button>';
+}
+
+// ─────────────────────────── CICLOS ───────────────────────────
+
+function encerrarCiclo() {
+  if (!state.plano) { toast('Nenhum plano ativo.'); return; }
+
+  openModal('ENCERRAR CICLO', [
+    { label: 'Nome do ciclo (opcional)', key: 'nome', type: 'text', placeholder: 'Ex: Ciclo Hipertrofia Ago/25' }
+  ], function(data) {
+    pushUndo('Encerrar ciclo');
+
+    // Determine date range from history entries in this plan
+    var dataInicio = state.plano.dataInicio || null;
+    var dataFim = new Date().toISOString();
+
+    // Collect gym history entries that belong to this plan period
+    var histGym = state.history.slice(); // full current history
+    var histBike = (state.bikeHistory || []).slice();
+
+    var numeroCiclo = (state.ciclos ? state.ciclos.length : 0) + 1;
+    var nome = (data.nome && data.nome.trim()) || ('Ciclo ' + numeroCiclo);
+
+    var cicloArquivado = {
+      id: uid(),
+      numero: numeroCiclo,
+      nome: nome,
+      dataInicio: dataInicio,
+      dataFim: dataFim,
+      plano: JSON.parse(JSON.stringify(state.plano)),
+      history: histGym,
+      bikeHistory: histBike,
+      series: JSON.parse(JSON.stringify(state.series)) // snapshot da biblioteca
+    };
+
+    if (!state.ciclos) state.ciclos = [];
+    state.ciclos.unshift(cicloArquivado); // mais recente primeiro
+
+    // Clear current plan and history — fresh start
+    state.plano = null;
+    state.planoRascunho = null;
+    state.planoChatHistory = [];
+    state.history = [];
+    state.bikeHistory = [];
+
+    saveState(false, false);
+    planoChatHistory = [];
+    render();
+    switchTab('ia');
+
+    // Pre-load chat with cycle analysis context
+    setTimeout(function() {
+      _iniciarChatNovoCiclo(cicloArquivado);
+    }, 300);
+
+    toast('Ciclo ' + nome + ' arquivado ✓');
+  });
+}
+
+function _iniciarChatNovoCiclo(ciclo) {
+  var chat = document.getElementById('plano-chat');
+  if (!chat) return;
+
+  var totalGym = ciclo.history.length;
+  var totalBike = ciclo.bikeHistory.length;
+  var semanas = ciclo.plano && ciclo.plano.semanas ? ciclo.plano.semanas.length : '?';
+
+  var msgBoasVindas = '✓ Ciclo "' + ciclo.nome + '" encerrado.\n\n' +
+    semanas + ' semanas · ' + totalGym + ' treinos de musculação · ' + totalBike + ' rides\n\n' +
+    'Posso analisar o ciclo completo e gerar uma proposta para o próximo. Quando quiser, me diga: "Gere o próximo ciclo" ou "Analise o ciclo anterior".';
+
+  // Clear welcome message and show cycle context
+  chat.innerHTML = '';
+  addPlanoChatMsg('system', msgBoasVindas);
+  planoChatHistory = [];
+  state.planoChatHistory = [];
+}
+
+function renderCiclos() {
+  var container = document.getElementById('ciclos-container');
+  if (!container) return;
+
+  var ciclos = state.ciclos || [];
+
+  // ── Header ──
+  var html = '<div style="padding:20px 24px 12px;display:flex;align-items:center;justify-content:space-between">';
+  html += '<div style="font-family:Bebas Neue,sans-serif;font-size:22px;letter-spacing:1px">CICLOS</div>';
+  if (state.plano) {
+    html += '<button class="btn" onclick="encerrarCiclo()" style="font-size:11px">⊠ ENCERRAR CICLO ATUAL</button>';
+  }
+  html += '</div>';
+
+  if (!ciclos.length) {
+    html += '<div style="padding:24px;color:var(--muted);font-family:DM Mono,monospace;font-size:12px">Nenhum ciclo arquivado ainda.<br><br>Ao encerrar o ciclo atual, ele aparecerá aqui.</div>';
+    container.innerHTML = html;
+    return;
+  }
+
+  // ── Filtro de visualização ──
+  var viewMode = container._viewMode || 'ciclo-0';
+  html += '<div style="display:flex;gap:6px;padding:0 24px 16px;flex-wrap:wrap">';
+  html += '<button onclick="setCiclosView(\'acumulado\')" style="font-family:DM Mono,monospace;font-size:10px;padding:4px 12px;border-radius:4px;cursor:pointer;' + (viewMode === 'acumulado' ? 'background:var(--accent);color:#000;border:none' : 'background:none;border:1px solid var(--border);color:var(--muted)') + '">TODOS</button>';
+  ciclos.forEach(function(c, i) {
+    var ativo = viewMode === 'ciclo-' + i;
+    html += '<button onclick="setCiclosView(\'ciclo-' + i + '\')" style="font-family:DM Mono,monospace;font-size:10px;padding:4px 12px;border-radius:4px;cursor:pointer;' + (ativo ? 'background:var(--accent);color:#000;border:none' : 'background:none;border:1px solid var(--border);color:var(--muted)') + '">' + escHtml(c.nome) + '</button>';
+  });
+  html += '</div>';
+
+  // ── Conteúdo ──
+  var gymItems = [], bikeItems = [];
+
+  if (viewMode === 'acumulado') {
+    ciclos.forEach(function(c) {
+      (c.history || []).forEach(function(h) { gymItems.push({ _data: h, _ciclo: c.nome }); });
+      (c.bikeHistory || []).forEach(function(b) { bikeItems.push({ _data: b, _ciclo: c.nome }); });
+    });
+  } else {
+    var idx = parseInt(viewMode.replace('ciclo-', ''));
+    var c = ciclos[idx];
+    if (c) {
+      // Ciclo info card
+      var di = c.dataInicio ? new Date(c.dataInicio).toLocaleDateString('pt-BR', {day:'2-digit',month:'2-digit',year:'2-digit'}) : '?';
+      var df = c.dataFim ? new Date(c.dataFim).toLocaleDateString('pt-BR', {day:'2-digit',month:'2-digit',year:'2-digit'}) : '?';
+      var semanas = c.plano && c.plano.semanas ? c.plano.semanas.length : '?';
+      html += '<div style="margin:0 24px 16px;background:var(--surface2);border-radius:8px;padding:14px 16px;border:1px solid var(--border)">';
+      html += '<div style="font-family:Bebas Neue,sans-serif;font-size:16px;letter-spacing:1px;margin-bottom:8px">' + escHtml(c.nome) + '</div>';
+      html += '<div style="display:flex;gap:20px;flex-wrap:wrap">';
+      html += '<div style="font-family:DM Mono,monospace;font-size:11px"><span style="color:var(--muted)">PERÍODO </span><span style="color:var(--text)">' + di + ' → ' + df + '</span></div>';
+      html += '<div style="font-family:DM Mono,monospace;font-size:11px"><span style="color:var(--muted)">SEMANAS </span><span style="color:var(--text)">' + semanas + '</span></div>';
+      html += '<div style="font-family:DM Mono,monospace;font-size:11px"><span style="color:var(--muted)">MUSCULAÇÃO </span><span style="color:var(--accent)">' + (c.history||[]).length + '</span></div>';
+      html += '<div style="font-family:DM Mono,monospace;font-size:11px"><span style="color:var(--muted)">RIDES </span><span style="color:var(--bike-chuva)">' + (c.bikeHistory||[]).length + '</span></div>';
+      html += '</div>';
+      html += '<div style="margin-top:10px;display:flex;gap:8px">';
+      html += '<button class="btn" onclick="analisarCicloNoChat(' + idx + ')" style="font-size:10px">⬡ ANALISAR COM IA</button>';
+      html += '</div>';
+      html += '</div>';
+
+      (c.history || []).forEach(function(h) { gymItems.push({ _data: h, _ciclo: c.nome }); });
+      (c.bikeHistory || []).forEach(function(b) { bikeItems.push({ _data: b, _ciclo: c.nome }); });
+    }
+  }
+
+  // ── Timeline unificada ──
+  var allItems = gymItems.map(function(x) { return { _type: 'gym', _date: new Date(x._data.date), _data: x._data, _ciclo: x._ciclo }; })
+    .concat(bikeItems.map(function(x) { return { _type: 'bike', _date: new Date(x._data.date), _data: x._data, _ciclo: x._ciclo }; }))
+    .sort(function(a, b) { return b._date - a._date; });
+
+  if (!allItems.length) {
+    html += '<div style="padding:24px;color:var(--muted);font-family:DM Mono,monospace;font-size:12px">Nenhum treino registrado neste ciclo.</div>';
+  } else {
+    html += '<div style="padding:0 24px">';
+    allItems.forEach(function(entry) {
+      if (entry._type === 'bike') {
+        var b = entry._data;
+        var bd = entry._date;
+        var dataFmt = bd.toLocaleDateString('pt-BR', {day:'2-digit',month:'2-digit',year:'2-digit'});
+        var diaSem = bd.toLocaleDateString('pt-BR', {weekday:'long'});
+        diaSem = diaSem.charAt(0).toUpperCase() + diaSem.slice(1);
+        var meta = [b.distancia ? b.distancia+'km' : '', b.tempoMov ? b.tempoMov+' mov.' : '', b.velocidade ? b.velocidade+' méd.' : '', b.elevacao ? b.elevacao+'m elev.' : '', b.kcal ? b.kcal+'kcal' : ''].filter(Boolean).join(' · ');
+        html += '<div class="history-card" style="flex-direction:column;align-items:stretch;border-color:rgba(91,143,255,.35);margin-bottom:8px">';
+        html += '<div style="display:flex;align-items:baseline;gap:10px;margin-bottom:2px">';
+        html += '<div class="history-serie" style="color:var(--bike-chuva)">&#128690; ' + escHtml(b.foco||'Ride') + '</div>';
+        html += '<div style="font-family:DM Mono,monospace;font-size:11px;color:var(--accent2)">' + dataFmt + '</div>';
+        html += '<div style="font-family:DM Mono,monospace;font-size:11px;color:var(--muted)">' + diaSem + '</div>';
+        if (viewMode === 'acumulado') html += '<div style="font-family:DM Mono,monospace;font-size:10px;color:var(--muted);margin-left:auto">' + escHtml(entry._ciclo) + '</div>';
+        html += '</div>';
+        if (meta) html += '<div class="history-date">' + escHtml(meta) + '</div>';
+        html += '</div>';
+      } else {
+        var h = entry._data;
+        var hd = entry._date;
+        var dataFormatada = hd.toLocaleDateString('pt-BR', {day:'2-digit',month:'2-digit',year:'2-digit'});
+        var diaSemana = hd.toLocaleDateString('pt-BR', {weekday:'long'});
+        diaSemana = diaSemana.charAt(0).toUpperCase() + diaSemana.slice(1);
+        var exCount = h.exercises ? h.exercises.length : 0;
+        var exId = 'ciclo-hist-ex-' + h.id;
+        var exHTML = '';
+        if (h.exercises && h.exercises.length) {
+          var rows = h.exercises.map(function(ex) {
+            var statusColor = ex.status === 'done' ? 'var(--done)' : ex.status === 'skipped' ? 'var(--danger)' : 'var(--muted)';
+            var statusDot = ex.status === 'done' ? '●' : ex.status === 'skipped' ? '✕' : '○';
+            return '<div style="display:flex;align-items:baseline;gap:8px;padding:3px 0;border-bottom:1px solid rgba(255,255,255,.04)">' +
+              '<span style="color:' + statusColor + ';font-size:10px;width:12px;flex-shrink:0">' + statusDot + '</span>' +
+              '<span style="flex:1;font-size:12px;color:var(--text)">' + escHtml(ex.name||'') + '</span>' +
+              '<span style="font-family:DM Mono,monospace;font-size:11px;color:var(--accent)">' + escHtml(ex.sets||'') + '</span>' +
+              '<span style="font-family:DM Mono,monospace;font-size:11px;color:var(--accent2);min-width:80px;text-align:right">' + escHtml(ex.weight||'') + '</span>' +
+              '</div>';
+          }).join('');
+          exHTML = '<div id="' + exId + '" style="display:none;margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">' + rows + '</div>';
+        }
+        html += '<div class="history-card" style="flex-direction:column;align-items:stretch;margin-bottom:8px">';
+        html += '<div style="display:flex;justify-content:space-between;align-items:center">';
+        html += '<div style="cursor:' + (exCount ? 'pointer' : 'default') + '" onclick="' + (exCount ? 'toggleHistoryEx(\'' + h.id + '\')' : '') + '">';
+        html += '<div style="display:flex;align-items:baseline;gap:10px">';
+        html += '<div class="history-serie">' + escHtml(h.serieLabel) + ' — ' + escHtml(h.serieName) + '</div>';
+        html += '<div style="font-family:DM Mono,monospace;font-size:11px;color:var(--accent2)">' + dataFormatada + '</div>';
+        html += '<div style="font-family:DM Mono,monospace;font-size:11px;color:var(--muted)">' + diaSemana + '</div>';
+        if (viewMode === 'acumulado') html += '<div style="font-family:DM Mono,monospace;font-size:10px;color:var(--muted);margin-left:8px">' + escHtml(entry._ciclo) + '</div>';
+        html += '</div>';
+        html += '<div class="history-date">' + escHtml(h.variant||'') + (exCount ? ' · ver exercícios' : '') + '</div>';
+        html += '</div>';
+        html += '<span class="history-badge">' + h.done + '/' + h.total + '</span>';
+        html += '</div>' + exHTML + '</div>';
+      }
+    });
+    html += '</div>';
+  }
+
+  container.innerHTML = html;
+  container._viewMode = viewMode;
+}
+
+function setCiclosView(mode) {
+  var container = document.getElementById('ciclos-container');
+  if (container) { container._viewMode = mode; renderCiclos(); }
+}
+
+function analisarCicloNoChat(idx) {
+  var ciclo = state.ciclos && state.ciclos[idx];
+  if (!ciclo) return;
+  switchTab('ia');
+  setTimeout(function() {
+    var msg = 'Analise o ciclo "' + ciclo.nome + '" e gere uma proposta para o próximo ciclo.';
+    var input = document.getElementById('plano-input');
+    if (input) { input.value = msg; input.focus(); }
+  }, 200);
 }
 
 function toggleHistoryEx(id) {
@@ -3347,8 +3647,21 @@ function buildPerfilTexto() {
 
 var planoChatHistory = state.planoChatHistory || [];
 
+function _calcDataDia(semanaNum, diaNome, dataInicio) {
+  var ordemSemana = ['Segunda','Terça','Quarta','Quinta','Sexta','Sábado','Domingo'];
+  var mon = getMondayOf(dataInicio);
+  var dayOffset = ordemSemana.indexOf(diaNome);
+  if (dayOffset === -1) return null;
+  var d = new Date(mon);
+  d.setDate(mon.getDate() + (semanaNum - 1) * 7 + dayOffset);
+  d.setHours(0,0,0,0);
+  return d;
+}
+
 function getPLANO_SYSTEM() {
-  var temPlano = state.plano && state.plano.semanas && state.plano.semanas.length > 0;
+  var temPlano = !state._pendingCicloDataInicio &&
+    ((state.plano && state.plano.semanas && state.plano.semanas.length > 0) ||
+    (state.planoRascunho && state.planoRascunho.semanas));
 
   // Calculate today's date and position in plan
   var diasSemana = ['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
@@ -3356,18 +3669,24 @@ function getPLANO_SYSTEM() {
   var hojeStr = hoje.toLocaleDateString('pt-BR', {weekday:'long', day:'2-digit', month:'2-digit', year:'numeric'});
   var hojeContexto = 'HOJE: ' + hojeStr;
 
-  // Find which dayKey corresponds to today
+  // Find today's position in plan by training day number
   if (temPlano && state.plano.dataInicio) {
     var ordemSemana = ['Segunda','Terça','Quarta','Quinta','Sexta','Sábado','Domingo'];
     var inicio = new Date(state.plano.dataInicio);
     inicio.setHours(0,0,0,0);
     hoje.setHours(0,0,0,0);
-    var diffDays = Math.round((hoje - inicio) / 86400000);
-    if (diffDays >= 0) {
-      var semanaNum = Math.floor(diffDays / 7) + 1;
-      var diaNome = diasSemana[new Date().getDay()];
-      hojeContexto += ' — Semana ' + semanaNum + ' do plano, ' + diaNome;
-    }
+    // Count training days up to today
+    var diaNumHoje = 0;
+    state.plano.semanas && state.plano.semanas.forEach(function(sem) {
+      (sem.dias || sem.agenda || []).forEach(function(d) {
+        if (d.serie && d.serie !== 'descanso') {
+          var dataD = _calcDataDia(sem.semana, d.dia, inicio);
+          if (dataD && dataD <= hoje) diaNumHoje++;
+        }
+      });
+    });
+    var diaNome = ordemSemana[new Date().getDay() === 0 ? 6 : new Date().getDay() - 1];
+    hojeContexto += ' — ' + diaNome + (diaNumHoje > 0 ? ', Dia ' + diaNumHoje + ' do ciclo' : ', antes do primeiro treino');
   }
 
   return `Você é um personal trainer especializado em periodização, integrado a um app de treino.
@@ -3378,14 +3697,38 @@ ${buildPerfilTexto()}
 
 SÉRIES DISPONÍVEIS: A — Ombros, B — Costas/Bíceps, C — Peito/Tríceps, D — Pernas
 
+IMPORTANTE — ESTRUTURA DO PLANO:
+O plano é organizado por DIAS DE TREINO numerados (Dia 1, Dia 2... Dia N). Cada dia tem suas próprias propriedades independentes. A visualização em semanas calendário é apenas para o usuário — o modelo trabalha SEMPRE com números de dia. Periodização, progressão e ajustes são expressos em dias, nunca em semanas. Ex: "Dias 1-8: acumulação 70-76%, Dias 9-16: intensificação 78-82%, Dias 17-20: deload 62-65%."
+
 CAPACIDADES:
 
-1. ${temPlano ? 'MODIFICAR DIAS DO PLANO ATUAL (use isso quando já existe um plano ativo — NUNCA gere um plano completo novo)' : 'GERAR PLANO MACRO COMPLETO (use apenas quando não há plano ativo)'}
+1. ${temPlano ? 'MODIFICAR DIAS DO PLANO ATUAL (use quando já existe plano ativo — NUNCA gere plano novo completo)' : 'GERAR PLANO MACRO COMPLETO (use apenas quando não há plano ativo)'}
 ${temPlano ?
-`Retorne os dias modificados no formato abaixo. Se o usuário pedir um replano completo de várias semanas, inclua TODOS os dias de TODAS as semanas afetadas — não omita nenhum dia. Para semanas novas ou com foco alterado, inclua uma ação de tipo "semana" com foco e intensidade. IMPORTANTE: sempre que alterar o número de dias de treino de uma semana (ex: de 1 para 2 dias, ou de 3 para 1 dia), inclua obrigatoriamente uma ação "semana" para atualizar o foco e intensidade da semana afetada de forma coerente com a nova estrutura:
-{"modificacoes":{"serieLabel":"planoMacro","acoes":[{"tipo":"semana","semana":2,"foco":"Acumulação","intensidade":"70-80%"},{"tipo":"alterar","semana":2,"dia":"Segunda","serie":"A","orientacao":"instrução específica","bike":{"foco":"Z2 Endurance","duracao":"1h30","timing":"após musculação","intensidade":"Ritmo confortável — FC ~65-75% FCmax.","obs":"Cadência alta — joelho direito."}},{"tipo":"alterar","semana":2,"dia":"Terça","serie":"D","orientacao":"instrução"}]}}` :
+`Retorne APENAS este JSON:
+{"modificacoes":{"serieLabel":"planoMacro","acoes":[
+  {"diaNum":1,"orientacao":"instrução específica","intensidade":"70%"},
+  {"diaNum":2,"orientacao":"instrução específica","intensidade":"72%"},
+  {"tipo":"alterar_serie","serie":"D","orientacao":"instrução universal para todos os dias D"}
+]}}
+
+REGRAS:
+- Use "diaNum" para referenciar qualquer dia de treino específico
+- Use "tipo":"alterar_serie" apenas para orientações idênticas em TODOS os dias de uma série
+- NUNCA use semana+dia como referência` :
 `Retorne APENAS este JSON (sem markdown, sem texto extra):
-{"planoMacro":{"objetivo":"descrição do ciclo","semanas":[{"semana":1,"foco":"Adaptação","intensidade":"60-70%","progressao":"semana de referência","dias":[{"dia":"Segunda","serie":"A","tipo":"treino","intensidade":"moderada","orientacao":"instrução específica","bike":{"foco":"Z2 Endurance","duracao":"1h30","timing":"após musculação","intensidade":"Ritmo confortável — FC ~65-75% FCmax.","obs":"Cadência alta — joelho direito."}},{"dia":"Terça","serie":"D","tipo":"treino","intensidade":"moderada","orientacao":"instrução"},{"dia":"Quarta","serie":"descanso","tipo":"aerobico","orientacao":"instrução concreta"},{"dia":"Quinta","serie":"B","tipo":"treino","intensidade":"moderada","orientacao":"instrução"},{"dia":"Sexta","serie":"C","tipo":"treino","intensidade":"moderada","orientacao":"instrução"},{"dia":"Sábado","serie":"D","tipo":"treino","intensidade":"leve","orientacao":"instrução"},{"dia":"Domingo","serie":"descanso","tipo":"recuperacao","orientacao":"instrução"}]},{"semana":2,"foco":"...","intensidade":"...","progressao":"...","dias":[...]},{"semana":3,"foco":"...","intensidade":"...","progressao":"...","dias":[...]},{"semana":4,"foco":"Deload","intensidade":"50-60%","progressao":"recuperação","dias":[...]}],"observacoes":"orientações gerais"}}`}
+{"planoMacro":{"objetivo":"descrição do ciclo","dias":[
+{"dia":1,"serie":"B","orientacao":"instrução específica para este treino","intensidade":"70%"},
+{"dia":2,"serie":"D","orientacao":"instrução específica para este treino","intensidade":"70%"},
+{"dia":3,"serie":"C","orientacao":"instrução específica para este treino","intensidade":"72%"},
+{"dia":4,"serie":"A","orientacao":"instrução específica para este treino","intensidade":"72%"},
+{"dia":5,"serie":"D","orientacao":"instrução específica para este treino","intensidade":"75%"}
+],"observacoes":"orientações gerais do ciclo — progressão expressa em dias, ex: Dias 1-8 acumulação, Dias 9-16 intensificação"}}
+
+REGRAS DO FORMATO:
+- Inclua APENAS dias de treino (A, B, C, D). NÃO inclua dias de descanso.
+- Progressão e periodização expressas em números de dia, NUNCA em semanas.
+- A sequência de séries DEVE seguir exatamente a informada no prompt.
+- Total de dias deve ser exatamente o solicitado.`}
 
 2. EXPANDIR DIA (exercícios completos com sets e cargas)
 {"diaExpandido":{"semana":1,"dia":"Segunda","serie":"A","foco":"foco do dia","exercicios":[{"id":"e1","nome":"Overhead Press Sentado","sets":"3x5","weight":"24kg cada lado","rest":"90-120s","notes":""}]}}
@@ -3397,10 +3740,10 @@ ${temPlano ?
 {"replanejamento":{"diaPerdido":"Quarta","motivoPerdido":"viagem","ajustes":[{"dia":"Quinta","serie":"C","orientacao":"ajuste"}],"observacao":"explicação"}}
 
 5. BIKE — planejamento de ciclismo integrado ao plano
-Inclua o campo "bike" em todo dia que NÃO seja D. Sábado e Domingo são elegíveis — ótimos para ride longo Z2. Formato:
+Inclua o campo "bike" em todo dia que NÃO seja D. Sábado e Domingo são elegíveis para ride longo Z2. Formato:
 {"bike":{"foco":"Z2 Endurance","duracao":"1h30","timing":"após musculação","intensidade":"Ritmo confortável, consegue falar frases completas. FC ~65-75% FCmax.","distSugerida":"30-40km","tempoSugerido":"1h-1h30","obs":"Cadência alta, sem força excessiva — joelho direito."}}
 Zonas: Z2=confortável (frases completas), Z3=moderado (frases curtas), Z4=forte (palavras isoladas).
-Regras: nunca bike em dia D. Tendão patelar direito: sem sprints longos. Timing "antes": reduza intensidade da musculação. Timing "após": Z2 apenas. Meta ~4 rides/semana: Z2 (3x) + Z4 (1x em dia leve). "D trocado por bike": bike.foco="Ride substituto de D", Z2-Z3, D é relocado.
+Regras: nunca bike em dia D. Tendão patelar direito: sem sprints longos. Timing "antes": reduza intensidade da musculação. Timing "após": Z2 apenas. Meta ~4 rides/semana: Z2 (3x) + Z4 (1x em dia leve).
 
 6. CONVERSA NORMAL — responda em português, direto e técnico.
 
@@ -3417,7 +3760,8 @@ var TOOL_LABELS = {
   get_historico: 'histórico de treinos',
   get_plano_macro: 'plano macro',
   get_serie: 'biblioteca da série',
-  get_bike: 'dados de ciclismo'
+  get_bike: 'dados de ciclismo',
+  get_ciclo_anterior: 'ciclo anterior completo'
 };
 
 function executarTool(toolName, params) {
@@ -3447,16 +3791,24 @@ function executarTool(toolName, params) {
     if (!state.plano || !state.plano.semanas) return 'Nenhum plano ativo.';
     var diasStatus = state.plano.diasStatus || {};
     var linhas = [];
+    var diaNumCounter = 0;
     state.plano.semanas.forEach(function(sem) {
       linhas.push('── Semana ' + sem.semana + ' (' + (sem.foco||'') + ', ' + (sem.intensidade||'') + ') ──');
       (sem.dias || sem.agenda || []).forEach(function(d) {
         var key = 'sem' + sem.semana + '_' + d.dia;
         var status = diasStatus[key] || 'pendente';
-        linhas.push('  ' + d.dia + ': ' + (d.serie||'descanso') + (d.orientacao ? ' — ' + d.orientacao : '') + ' [' + status + ']');
+        var diaNum = '';
+        if (d.serie && d.serie !== 'descanso') {
+          diaNumCounter++;
+          diaNum = ' [Dia ' + diaNumCounter + ']';
+        }
+        linhas.push('  Semana ' + sem.semana + ', ' + d.dia + diaNum + ': ' + (d.serie||'descanso') + (d.orientacao ? ' — ' + d.orientacao : '') + ' [' + status + ']');
       });
     });
     return 'PLANO MACRO ATUAL (' + state.plano.semanas.length + ' semanas):\n' + linhas.join('\n') +
-      '\n\nIMPORTANTE: Este plano tem ' + state.plano.semanas.length + ' semanas. Ao gerar modificações, inclua TODAS as semanas.';
+      '\n\nPara modificar um dia específico, use {"tipo":"alterar","semana":N,"dia":"NomeDia",...}.' +
+      '\nPara modificar todos os dias de uma série, use {"tipo":"alterar_serie","serie":"X",...}.' +
+      '\nIMPORTANTE: Este plano tem ' + state.plano.semanas.length + ' semanas. Ao gerar modificações, inclua TODAS as semanas.';
   }
 
   if (toolName === 'get_serie') {
@@ -3500,6 +3852,75 @@ function executarTool(toolName, params) {
     return linhas.length ? linhas.join('\n\n') : 'Sem dados de ciclismo registrados.';
   }
 
+  if (toolName === 'get_ciclo_anterior') {
+    var n = params && params.n ? parseInt(params.n) : 1;
+    var ciclos = state.ciclos || [];
+    if (!ciclos.length) return 'Nenhum ciclo arquivado ainda.';
+    var ciclo = ciclos[Math.min(n - 1, ciclos.length - 1)];
+
+    var di = ciclo.dataInicio ? new Date(ciclo.dataInicio).toLocaleDateString('pt-BR') : '?';
+    var df = ciclo.dataFim ? new Date(ciclo.dataFim).toLocaleDateString('pt-BR') : '?';
+    var semanas = ciclo.plano && ciclo.plano.semanas ? ciclo.plano.semanas.length : '?';
+
+    var out = 'CICLO: ' + ciclo.nome + '\nPERÍODO: ' + di + ' → ' + df + '\nSEMANAS: ' + semanas + '\n';
+    out += 'MUSCULAÇÃO: ' + (ciclo.history||[]).length + ' sessões\n';
+    out += 'RIDES: ' + (ciclo.bikeHistory||[]).length + '\n\n';
+
+    // Plano macro summary
+    if (ciclo.plano && ciclo.plano.semanas) {
+      out += 'PLANO DO CICLO:\n';
+      var diasStatus = ciclo.plano.diasStatus || {};
+      ciclo.plano.semanas.forEach(function(sem) {
+        out += '── Sem' + sem.semana + ' (' + (sem.foco||'') + '):\n';
+        (sem.dias || sem.agenda || []).forEach(function(d) {
+          var key = 'sem' + sem.semana + '_' + d.dia;
+          var st = diasStatus[key] || 'pendente';
+          out += '  ' + d.dia + ': ' + (d.serie||'descanso') + (d.orientacao ? ' — ' + d.orientacao : '') + ' [' + st + ']\n';
+        });
+      });
+      out += '\n';
+    }
+
+    // Gym history
+    if (ciclo.history && ciclo.history.length) {
+      out += 'HISTÓRICO MUSCULAÇÃO:\n';
+      ciclo.history.forEach(function(h) {
+        var d = new Date(h.date).toLocaleDateString('pt-BR', {weekday:'short', day:'2-digit', month:'2-digit'});
+        out += d + ': Série ' + h.serieLabel + ' (' + h.done + '/' + h.total + ')\n';
+        if (h.exercises) {
+          h.exercises.forEach(function(e) {
+            out += '  ' + e.name + ' | ' + e.sets + ' | ' + e.weight + (e.status !== 'done' ? ' [' + e.status + ']' : '') + '\n';
+          });
+        }
+      });
+      out += '\n';
+    }
+
+    // Bike history
+    if (ciclo.bikeHistory && ciclo.bikeHistory.length) {
+      out += 'HISTÓRICO RIDES:\n';
+      ciclo.bikeHistory.forEach(function(b) {
+        var d = new Date(b.date).toLocaleDateString('pt-BR', {weekday:'short', day:'2-digit', month:'2-digit'});
+        var meta = [b.distancia ? b.distancia+'km' : '', b.velocidade ? b.velocidade+' méd.' : '', b.elevacao ? b.elevacao+'m elev.' : ''].filter(Boolean).join(', ');
+        out += d + ': ' + (meta || 'sem dados') + '\n';
+      });
+      out += '\n';
+    }
+
+    // Library snapshot
+    if (ciclo.series && ciclo.series.length) {
+      out += 'BIBLIOTECA NO ENCERRAMENTO:\n';
+      ciclo.series.forEach(function(s) {
+        out += 'Série ' + s.label + ' — ' + s.name + ':\n';
+        s.exercises.forEach(function(e) {
+          out += '  ' + e.name + ' | ' + e.sets + ' | ' + e.weight + '\n';
+        });
+      });
+    }
+
+    return out;
+  }
+
   return 'Tool desconhecida: ' + toolName;
 }
 
@@ -3516,49 +3937,102 @@ function detectarToolRequest(text) {
   return { tool: toolName, params: params };
 }
 
+// Active abort flag
+var _abortRequested = false;
+
+function stopGeneration() {
+  _abortRequested = true;
+}
+
 // Central API caller with tool loop
-// chatNotifyFn(msg) — displays a status message in the chat UI
-// chatNotifyFn is optional; pass null to suppress notifications
-async function chamarAPIComTools(systemPrompt, messages, chatNotifyFn, maxTokens) {
+async function chamarAPIComTools(systemPrompt, messages, chatNotifyFn, maxTokens, sendBtnId) {
   maxTokens = maxTokens || 4000;
-  var MAX_TOOL_ROUNDS = 4; // safety: max 4 tool resolutions per user message
+  var MAX_TOOL_ROUNDS = 4;
   var round = 0;
   var currentMessages = messages.slice();
 
-  while (round < MAX_TOOL_ROUNDS) {
-    var response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-api-key': getApiKey(), 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
-      body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: maxTokens, system: systemPrompt, messages: currentMessages })
-    });
-    var data = await response.json();
-    trackTokenUsage(data.usage);
-    var text = (data.content || []).map(function(c) { return c.text||''; }).join('').trim();
+  _abortRequested = false;
+  _setSendBtnStop(sendBtnId);
 
-    var toolReq = detectarToolRequest(text);
-    if (!toolReq) {
-      // No tool request — final response
-      return { text: text, messages: currentMessages };
+  try {
+    while (round < MAX_TOOL_ROUNDS) {
+      if (_abortRequested) {
+        return { text: null, messages: currentMessages, aborted: true };
+      }
+
+      var response = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-api-key': getApiKey(), 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+        body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: maxTokens, system: systemPrompt, messages: currentMessages })
+      });
+      if (!response.ok) {
+        var errText = await response.text().catch(function() { return ''; });
+        throw new Error('API error ' + response.status + ': ' + errText.slice(0, 200));
+      }
+      var data = await response.json();
+
+      if (_abortRequested) {
+        return { text: null, messages: currentMessages, aborted: true };
+      }
+
+      trackTokenUsage(data.usage);
+      var text = (data.content || []).map(function(c) { return c.text||''; }).join('').trim();
+
+      var toolReq = detectarToolRequest(text);
+      if (!toolReq) {
+        return { text: text, messages: currentMessages };
+      }
+
+      var label = TOOL_LABELS[toolReq.tool] || toolReq.tool;
+      if (toolReq.params && toolReq.params.label) label += ' ' + toolReq.params.label;
+      if (toolReq.params && toolReq.params.n) label += ' (últimos ' + toolReq.params.n + ')';
+      if (chatNotifyFn) chatNotifyFn('⟳ Buscando: ' + label + '…');
+
+      var toolResult = executarTool(toolReq.tool, toolReq.params);
+      currentMessages = currentMessages.concat([
+        { role: 'assistant', content: text },
+        { role: 'user', content: '[TOOL_RESULT: ' + toolReq.tool + ']\n' + toolResult }
+      ]);
+      round++;
     }
-
-    // Tool requested — resolve it
-    var label = TOOL_LABELS[toolReq.tool] || toolReq.tool;
-    if (toolReq.params && toolReq.params.label) label += ' ' + toolReq.params.label;
-    if (toolReq.params && toolReq.params.n) label += ' (últimos ' + toolReq.params.n + ')';
-    if (chatNotifyFn) chatNotifyFn('⟳ Buscando: ' + label + '…');
-
-    var toolResult = executarTool(toolReq.tool, toolReq.params);
-
-    // Inject tool result as assistant+user turn
-    currentMessages = currentMessages.concat([
-      { role: 'assistant', content: text },
-      { role: 'user', content: '[TOOL_RESULT: ' + toolReq.tool + ']\n' + toolResult }
-    ]);
-    round++;
+    return { text: '', messages: currentMessages };
+  } catch(e) {
+    if (_abortRequested) {
+      return { text: null, messages: currentMessages, aborted: true };
+    }
+    throw e;
+  } finally {
+    _abortRequested = false;
+    _setSendBtnSend(sendBtnId);
   }
+}
 
-  // Fallback if tool loop exceeded
-  return { text: '', messages: currentMessages };
+function _setSendBtnStop(btnId) {
+  var btn = btnId ? document.getElementById(btnId) : null;
+  if (!btn) return;
+  btn.innerHTML = '&#9632;'; // ■
+  btn.title = 'Parar geração';
+  btn.onclick = function() { stopGeneration(); };
+  btn.disabled = false;
+  btn.style.background = 'var(--danger, #ff4444)';
+  btn.style.color = '#fff';
+}
+
+function _setSendBtnSend(btnId) {
+  var btn = btnId ? document.getElementById(btnId) : null;
+  if (!btn) return;
+  btn.innerHTML = '&#8679;'; // ↑
+  btn.title = 'Enviar';
+  btn.style.background = '';
+  btn.style.color = '';
+  btn.disabled = false;
+  // Restore original onclick based on button id
+  if (btnId === 'plano-send-btn') {
+    btn.onclick = function() { enviarMensagemPlano(); };
+  } else if (btnId && btnId.startsWith('inline-send-')) {
+    var dk = btnId.replace('inline-send-', '');
+    btn.onclick = function() { enviarChatInline(dk); };
+  }
 }
 
 // Tools instruction block — injected into all system prompts
@@ -3571,6 +4045,7 @@ Para solicitar dados, retorne SOMENTE o JSON de tool request (nada mais na mensa
 - Plano macro completo: {"tool":"get_plano_macro"}
 - Exercícios de uma série: {"tool":"get_serie","label":"A"} (use A, B, C ou D)
 - Dados de ciclismo: {"tool":"get_bike"}
+- Ciclo anterior completo (histórico + plano + biblioteca): {"tool":"get_ciclo_anterior","n":1} (n=1 é o mais recente)
 O app resolverá a solicitação e enviará os dados. Então responda normalmente.
 REGRA: solicite dados apenas quando a pergunta do usuário realmente exigir. Não solicite por precaução.`;
 }
@@ -3807,16 +4282,167 @@ function gerarOrientacoesDiasFuturos() {
   }, 300);
 }
 
-function gerarPlanoCompleto() {
-  var ctx = buildContextoTreino();
+// Determina o estado da fila após um histórico de treinos
+// Retorna { idxFila, contadores, proximos[] }
+function calcularEstadoFila(cfg, historicoLabels, n) {
+  n = n || 10;
+  var coreLabel = (state.series || []).find(function(s) { return s.id === 'score'; });
+  coreLabel = coreLabel ? coreLabel.label : null;
+  var fila = (cfg.filaPrincipal || ['A','B','C']).filter(function(l) { return l !== coreLabel; });
+  var intercaladas = (cfg.intercaladas || []).filter(function(ic) { return ic.label !== coreLabel; });
+
+  var idxFila = 0;
+  var contadores = {};
+  intercaladas.forEach(function(ic) { contadores[ic.label] = 0; });
+
+  // Replay each historical training to advance the queue state
+  historicoLabels.forEach(function(label) {
+    var intercaladaMatch = intercaladas.find(function(ic) { return ic.label === label; });
+    if (intercaladaMatch) {
+      contadores[label] = 0;
+    } else if (fila.indexOf(label) !== -1) {
+      idxFila++;
+      intercaladas.forEach(function(ic) { contadores[ic.label]++; });
+    }
+  });
+
+  // Generate next N items from current state
+  function gerarProximos(n) {
+    var tempIdx = idxFila;
+    var tempContadores = JSON.parse(JSON.stringify(contadores));
+    var resultado = [];
+    var limite = n * 3;
+    var count = 0;
+    while (resultado.length < n && count < limite) {
+      count++;
+      var prontas = intercaladas.filter(function(ic) {
+        return tempContadores[ic.label] >= ic.freqApos;
+      }).sort(function(a, b) { return a.prioridade - b.prioridade; });
+      if (prontas.length > 0) {
+        resultado.push(prontas[0].label);
+        tempContadores[prontas[0].label] = 0;
+      } else {
+        resultado.push(fila[tempIdx % fila.length]);
+        tempIdx++;
+        intercaladas.forEach(function(ic) { tempContadores[ic.label]++; });
+      }
+    }
+    return resultado;
+  }
+
+  return { idxFila: idxFila, contadores: contadores, proximos: gerarProximos(n) };
+}
+
+function iniciarNovoCiclo() {
   var diasCiclo = (state.perfil && state.perfil.diasCiclo) ? parseInt(state.perfil.diasCiclo) : 20;
   diasCiclo = Math.min(Math.max(diasCiclo, 1), 40);
-  var semanasNecessarias = Math.ceil(diasCiclo / 5);
-  var input = document.getElementById('plano-input');
-  if (input) {
-    input.value = 'Gere um plano macro periodizado com exatamente ' + diasCiclo + ' dias de treino, distribuidos em ' + semanasNecessarias + ' semanas calendário. O ciclo deve ter exatamente ' + diasCiclo + ' sessoes de treino de forca no total.' + (ctx ? '\n\n' + ctx : '');
-    enviarMensagemPlano();
-  }
+  var temCicloAnterior = state.ciclos && state.ciclos.length > 0;
+
+  // Limpa rascunho, histórico do chat (API) e data pendente anterior
+  // Mantém mensagens visíveis na tela para o usuário consultar
+  state.planoRascunho = null;
+  state._pendingCicloDataInicio = null;
+  planoChatHistory = [];
+  state.planoChatHistory = [];
+  saveState();
+
+  openModal('INICIAR NOVO CICLO', [
+    { label: 'DATA DE INÍCIO DO CICLO', key: 'dataInicio', type: 'date-br', placeholder: '' },
+    { label: 'PRIMEIRO TREINO DE ACADEMIA (se diferente do início)', key: 'primeiroTreino', type: 'date-br', placeholder: '' },
+    { label: 'SEQUÊNCIA DE TREINOS', key: 'resetFila', type: 'radio-with-input', options: [
+      { value: 'continuar', label: 'Continuar sequência do ciclo anterior' },
+      { value: 'iniciar', label: 'Iniciar a sequência em:', hasInput: true, placeholder: 'ex: B' }
+    ]},
+    { label: 'OBSERVAÇÕES (feriados, restrições, etc.)', key: 'obs', type: 'text', placeholder: 'Ex: 04/06 só pedal' }
+  ], function(data) {
+    var dateStr = data.dataInicio ? data.dataInicio.trim() : '';
+    var dataInicio = null;
+    if (dateStr) {
+      var parts = dateStr.split('/');
+      if (parts.length === 3) {
+        var d = parseInt(parts[0]), m = parseInt(parts[1]), y = parseInt(parts[2]);
+        if (y < 100) y += 2000;
+        dataInicio = new Date(y, m - 1, d, 12, 0, 0);
+        if (isNaN(dataInicio.getTime())) dataInicio = null;
+      }
+    }
+    if (!dataInicio) { toast('Selecione uma data de início.'); return; }
+
+    // Parse primeiro treino de academia (pode ser diferente do início do ciclo)
+    var primeiroTreinoStr = data.primeiroTreino ? data.primeiroTreino.trim() : '';
+    var primeiroTreino = null;
+    if (primeiroTreinoStr) {
+      var ptParts = primeiroTreinoStr.split('/');
+      if (ptParts.length === 3) {
+        var ptD = parseInt(ptParts[0]), ptM = parseInt(ptParts[1]), ptY = parseInt(ptParts[2]);
+        if (ptY < 100) ptY += 2000;
+        primeiroTreino = new Date(ptY, ptM - 1, ptD, 12, 0, 0);
+        if (isNaN(primeiroTreino.getTime())) primeiroTreino = null;
+      }
+    }
+
+    var resetFila = data.resetFila === 'iniciar';
+    var iniciarEm = resetFila ? (data.resetFila_extra || '').trim().toUpperCase() : null;
+    _setPendingDataInicio(dataInicio.toISOString());
+    // Store primeiro treino separado — used by distribuirDiasEmSemanas
+    state._pendingPrimeiroTreino = primeiroTreino ? primeiroTreino.toISOString() : null;
+    saveState();
+
+    var diasSemana = ['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
+    var dataInicioTexto = dataInicio.toLocaleDateString('pt-BR', {weekday:'long', day:'2-digit', month:'2-digit', year:'numeric'});
+    var hojeTexto = new Date().toLocaleDateString('pt-BR', {weekday:'long', day:'2-digit', month:'2-digit', year:'numeric'});
+
+    // Calculate queue continuation
+    var cfg = getConfigTreino();
+    var sequenciaInfo = '';
+    if (!resetFila) {
+      var todoHistorico = [];
+      if (temCicloAnterior) {
+        // Include archived cycles + current history
+        var ciclosOrdenados = (state.ciclos || []).slice().reverse(); // oldest first
+        ciclosOrdenados.forEach(function(c) {
+          (c.history || []).slice().reverse().forEach(function(h) { todoHistorico.push(h.serieLabel); });
+        });
+      }
+      // Current cycle history (already most-recent-first, so reverse)
+      state.history.slice().reverse().forEach(function(h) { todoHistorico.push(h.serieLabel); });
+
+      var estadoFila = calcularEstadoFila(cfg, todoHistorico, diasCiclo);
+      sequenciaInfo = '\n\nSEQUÊNCIA DE TREINOS: continuando do ciclo anterior. ' +
+        'Os próximos ' + estadoFila.proximos.length + ' treinos em ordem são: ' +
+        estadoFila.proximos.join('→') + '. ' +
+        'O plano DEVE seguir exatamente essa sequência para os dias de treino de força, sem alterar a ordem.';
+    } else {
+      var serieInicio = iniciarEm || 'A';
+      sequenciaInfo = '\n\nSEQUÊNCIA DE TREINOS: iniciando em ' + serieInicio + '. A sequência começa em ' + serieInicio + ' e segue a lógica normal de rotação.';
+    }
+
+    var obsExtra = (data.obs && data.obs.trim()) ? '\n\nOBSERVAÇÕES DO USUÁRIO: ' + data.obs.trim() : '';
+
+    var contexto = 'O ciclo começa em ' + dataInicioTexto + '. Hoje é ' + hojeTexto + '.' + sequenciaInfo + obsExtra;
+
+    var prompt;
+    if (temCicloAnterior && !resetFila) {
+      var ultimoCiclo = state.ciclos[0];
+      prompt = contexto + '\n\nAnalise o ciclo anterior ("' + ultimoCiclo.nome + '") e gere um novo plano macro periodizado com exatamente ' +
+        diasCiclo + ' dias de treino. ' +
+        'Use o histórico e a biblioteca atual para calibrar progressão de cargas, volume e escolha de exercícios.';
+    } else {
+      prompt = contexto + '\n\nGere um plano macro periodizado com exatamente ' + diasCiclo + ' dias de treino.';
+    }
+
+    var input = document.getElementById('plano-input');
+    if (input) { input.value = prompt; enviarMensagemPlano(); }
+  });
+}
+
+function _getPendingDataInicio() {
+  return state._pendingCicloDataInicio || null;
+}
+
+function _setPendingDataInicio(iso) {
+  state._pendingCicloDataInicio = iso;
+  saveState();
 }
 
 function deletePlanoChatMsg(idx) {
@@ -3948,7 +4574,13 @@ async function enviarMensagemPlano() {
   }
 
   try {
-    var result = await chamarAPIComTools(getPLANO_SYSTEM(), messages, notifyFn, 16000);
+    var result = await chamarAPIComTools(getPLANO_SYSTEM(), messages, notifyFn, 16000, 'plano-send-btn');
+    if (result.aborted) {
+      removePlanoChatTyping();
+      addPlanoChatMsg('system', '⬛ Geração interrompida.');
+      btn.disabled = false;
+      return;
+    }
     var text = result.text;
 
     planoChatHistory = result.messages.concat([{ role: 'assistant', content: text }]);
@@ -3985,23 +4617,27 @@ async function enviarMensagemPlano() {
     } catch(e) { parseError = e.message; }
 
     if (parsed && parsed.planoMacro) {
-      // Etapa 1: plano macro
-      state.planoRascunho = parsed.planoMacro;
+      // Etapa 1: plano macro — redistribuir imediatamente se há data pendente
+      var rascunho = parsed.planoMacro;
+      rascunho = _redistribuirRascunhoSeNecessario(rascunho);
+      state.planoRascunho = rascunho;
       saveState();
-      addPlanoChatMsg('ai', '✓ Plano macro de ' + parsed.planoMacro.semanas.length + ' semanas gerado! Veja no painel à direita.\n\n' + (parsed.planoMacro.observacoes||'') + '\n\nClique em "Aplicar" para ativar. Depois diga "expanda Segunda semana 1" para ver o treino completo do dia.');
-      renderPlanoMacro(parsed.planoMacro);
+      var numDias = rascunho.dias ? rascunho.dias.length : (rascunho._diasOriginais ? rascunho._diasOriginais.length : (rascunho.semanas ? rascunho.semanas.reduce(function(acc, s) { return acc + (s.dias||s.agenda||[]).filter(function(d){return d.serie&&d.serie!=='descanso';}).length; }, 0) : '?'));
+      addPlanoChatMsg('ai', '✓ Plano de ' + numDias + ' dias gerado! Veja no painel à direita.\n\n' + (rascunho.observacoes||'') + '\n\nClique em "Aplicar" para ativar.');
+      renderPlanoMacro(rascunho);
     } else if (parsed && (parsed.diaExpandido || parsed.exercicios || parsed.exercises || parsed.blocos || parsed.session || parsed.workout || parsed.treino)) {
       var d = normalizarDiaExpandido(parsed, parsed.semana || (parsed.session && parsed.session.week) || 1, parsed.diaSemana || parsed.dia || (parsed.session && parsed.session.day) || '');
       aplicarDiaExpandido(d);
-      state.planoRascunho = null; // clear draft — no new plan to apply
+      state.planoRascunho = null;
       addPlanoChatMsg('ai', '✓ Treino de ' + d.dia + ' (semana ' + d.semana + ') expandido com ' + d.exercicios.length + ' exercícios. Abrindo a Agenda...');
       renderPlanoMacro(state.plano);
       setTimeout(function() { switchTab('agenda'); }, 1000);
     } else if (parsed && parsed.semanas) {
-      state.planoRascunho = parsed;
+      var rascunho2 = _redistribuirRascunhoSeNecessario(parsed);
+      state.planoRascunho = rascunho2;
       saveState();
       addPlanoChatMsg('ai', '✓ Plano gerado! Veja no painel à direita. Clique em "Aplicar" para ativar.');
-      renderPlanoMacro(parsed);
+      renderPlanoMacro(rascunho2);
     } else if (parsed && parsed.pares !== undefined) {
       // Response to duplicate check
       _pendingDuplicataCheck = false;
@@ -4040,7 +4676,12 @@ async function enviarMensagemPlano() {
 
   } catch(e) {
     removePlanoChatTyping();
-    addPlanoChatMsg('ai', 'Erro ao contatar a IA. Tente novamente.');
+    var errMsg = e && e.message ? e.message : 'Erro desconhecido';
+    addPlanoChatMsg('ai', 'Erro ao contatar a IA: ' + errMsg);
+    // Clear stale rascunho to prevent applying wrong plan
+    if (state._pendingCicloDataInicio) {
+      state.planoRascunho = null;
+    }
   }
 
   btn.disabled = false;
@@ -4271,71 +4912,50 @@ function aplicarModificacoesMacro(mod) {
     toast('Nenhum plano ativo'); return;
   }
 
-  var diaMap = {
-    'Segunda-feira': 'Segunda', 'Terça-feira': 'Terça', 'Quarta-feira': 'Quarta',
-    'Quinta-feira': 'Quinta', 'Sexta-feira': 'Sexta', 'Sábado': 'Sábado', 'Domingo': 'Domingo',
-    'segunda': 'Segunda', 'terça': 'Terça', 'quarta': 'Quarta', 'quinta': 'Quinta',
-    'sexta': 'Sexta', 'sábado': 'Sábado', 'domingo': 'Domingo',
-    'Terca': 'Terça', 'Terca-feira': 'Terça', 'Sabado': 'Sábado',
-    'terca': 'Terça', 'sabado': 'Sábado'
-  };
+  // Helper: find day object by training day number
+  function _getDiaPorNum(num) {
+    var counter = 0;
+    var result = null;
+    state.plano.semanas.forEach(function(sem) {
+      if (result) return;
+      (sem.dias || sem.agenda || []).forEach(function(d) {
+        if (result) return;
+        if (d.serie && d.serie !== 'descanso') {
+          counter++;
+          if (counter === num) result = d;
+        }
+      });
+    });
+    return result;
+  }
 
   (mod.acoes || []).forEach(function(a) {
-    var semanaNum = a.semana || 1;
-    var semana = state.plano.semanas.find(function(s) { return s.semana === semanaNum; });
-
-    // If semana doesn't exist, create it
-    if (!semana) {
-      semana = { semana: semanaNum, foco: '', intensidade: '', progressao: '', dias: [] };
-      state.plano.semanas.push(semana);
-      state.plano.semanas.sort(function(a, b) { return a.semana - b.semana; });
+    // ── Por número de dia de treino (preferencial) ──
+    if (a.diaNum) {
+      var diaObj = _getDiaPorNum(a.diaNum);
+      if (diaObj) {
+        if (a.serie !== undefined) { diaObj.serie = a.serie; diaObj.tipo = 'treino'; }
+        if (a.orientacao !== undefined) diaObj.orientacao = a.orientacao;
+        if (a.intensidade !== undefined) diaObj.intensidade = a.intensidade;
+        if (a.tipo_dia !== undefined) diaObj.tipo = a.tipo_dia;
+      }
+      return;
     }
 
-    var dias = semana.dias || semana.agenda || [];
-    if (!semana.dias) semana.dias = dias;
-    var diaNome = a.dia ? (diaMap[a.dia] || a.dia) : null;
-
-    if (a.tipo === 'semana') {
-      if (a.foco) semana.foco = a.foco;
-      if (a.intensidade) semana.intensidade = a.intensidade;
-      if (a.progressao) semana.progressao = a.progressao;
-    } else if (a.tipo === 'alterar' && diaNome) {
-      var d = dias.find(function(d) { return d.dia === diaNome; });
-      if (!d) {
-        d = { dia: diaNome, serie: 'descanso', tipo: 'recuperacao', orientacao: '' };
-        dias.push(d);
-      }
-      if (a.serie !== undefined) {
-        d.serie = a.serie;
-        if (!a.tipo_dia) {
-          d.tipo = a.serie === 'descanso'
-            ? (a.orientacao && /aer[oó]b/i.test(a.orientacao) ? 'aerobico' : 'recuperacao')
-            : 'treino';
-        }
-      }
-      if (a.orientacao !== undefined) {
-        d.orientacao = a.orientacao;
-        if (d.serie === 'descanso' && /aer[oó]b/i.test(a.orientacao)) d.tipo = 'aerobico';
-      }
-      if (a.bike !== undefined) d.bike = a.bike;
-      if (a.tipo_dia) d.tipo = a.tipo_dia;
-      if (a.intensidade) d.intensidade = a.intensidade;
-    } else if (a.tipo === 'substituir' && diaNome) {
-      var d2 = dias.find(function(d) { return d.dia === diaNome; });
-      if (!d2) {
-        d2 = { dia: diaNome, serie: 'descanso', tipo: 'recuperacao', orientacao: '' };
-        dias.push(d2);
-      }
-      if (a.serie !== undefined) {
-        d2.serie = a.serie;
-        if (!a.tipo_dia) {
-          d2.tipo = a.serie === 'descanso'
-            ? (a.orientacao && /aer[oó]b/i.test(a.orientacao) ? 'aerobico' : 'recuperacao')
-            : 'treino';
-        }
-      }
-      if (a.orientacao !== undefined) d2.orientacao = a.orientacao;
+    // ── Por série (universal) ──
+    if (a.tipo === 'alterar_serie') {
+      state.plano.semanas.forEach(function(sem) {
+        (sem.dias || sem.agenda || []).forEach(function(d) {
+          if (d.serie === a.serie) {
+            if (a.orientacao !== undefined) d.orientacao = a.orientacao;
+            if (a.intensidade !== undefined) d.intensidade = a.intensidade;
+            if (a.tipo_dia !== undefined) d.tipo = a.tipo_dia;
+          }
+        });
+      });
+      return;
     }
+
   });
 
   // Sort days in correct week order
@@ -4357,54 +4977,229 @@ function aplicarModificacoesMacro(mod) {
 function renderPlanoMacro(plano) {
   var resultado = document.getElementById('plano-resultado');
   if (!resultado) return;
-  var semanas = plano.semanas || [];
   var html = '';
 
   if (plano.observacoes) {
     html += '<div class="plan-raw" style="margin-bottom:12px;font-size:12px;border-color:rgba(232,255,60,.2)">' + escHtml(plano.observacoes) + '</div>';
   }
 
-  semanas.forEach(function(semana) {
-    // Skip weeks with no training days
-    var diasSem = semana.dias || semana.agenda || [];
-    if (!diasSem.some(function(d) { return d.serie && d.serie !== 'descanso'; })) return;
-
-    html += '<div class="plan-week"><div class="plan-week-title">SEMANA ' + semana.semana;
-    if (semana.foco) html += ' <span style="font-size:12px;font-family:\'DM Sans\',sans-serif;font-weight:400;letter-spacing:0;color:var(--muted)">— ' + escHtml(semana.foco) + '</span>';
-    if (semana.intensidade) html += ' <span style="font-size:10px;font-family:DM Mono,monospace;color:var(--accent2)"> ' + escHtml(semana.intensidade) + '</span>';
-    html += '</div>';
-
-    var dias = semana.dias || semana.agenda || [];
-    dias.forEach(function(d) {
-      var isRest = d.serie === 'descanso';
+  // ── Novo formato: dias[] ──
+  if (plano.dias && Array.isArray(plano.dias)) {
+    html += '<div style="font-family:DM Mono,monospace;font-size:10px;color:var(--muted);margin-bottom:8px;letter-spacing:0.5px">SEQUÊNCIA DE ' + plano.dias.length + ' DIAS DE TREINO</div>';
+    plano.dias.forEach(function(d) {
       var serieObj = state.series.find(function(s) { return s.label === d.serie; });
-      var tipo = d.tipo || (isRest ? 'recuperacao' : 'treino');
-      var tipoClass = tipo === 'aerobico' ? 'tipo-aerobico' : tipo === 'recuperacao' ? 'tipo-recuperacao' : 'tipo-treino';
-      var tipoLabel = tipo === 'aerobico' ? 'AERÓBICO' : tipo === 'recuperacao' ? 'DESCANSO' : 'TREINO';
-
-      html += '<div class="plan-day' + (isRest ? ' rest' : '') + '">' +
-        '<div class="plan-day-label">' + escHtml(d.dia) + '</div>' +
-        '<div class="plan-day-content">' +
+      html += '<div class="plan-day" style="display:flex;align-items:flex-start;gap:10px">' +
+        '<div style="font-family:DM Mono,monospace;font-size:10px;color:var(--muted);min-width:42px;flex-shrink:0">DIA ' + d.dia + '</div>' +
+        '<div class="plan-day-content" style="flex:1">' +
         '<div class="plan-day-serie" style="display:flex;align-items:center;gap:8px">' +
-          (isRest ? '' : '<span>' + d.serie + ' — ' + (serieObj ? serieObj.name : d.serie) + '</span>') +
-          (isRest ? '<span>' + (tipo === 'aerobico' ? 'Aeróbico' : 'Descanso') + '</span>' : '') +
-          '<span class="agenda-dia-tipo ' + tipoClass + '" style="font-size:9px;padding:2px 8px">' + tipoLabel + '</span>' +
+          '<span>' + d.serie + ' — ' + (serieObj ? serieObj.name : d.serie) + '</span>' +
+          (d.intensidade ? '<span style="font-family:DM Mono,monospace;font-size:10px;color:var(--accent2)">' + escHtml(d.intensidade) + '</span>' : '') +
         '</div>' +
         (d.orientacao ? '<div class="plan-day-notes">' + escHtml(d.orientacao) + '</div>' : '') +
         '</div></div>';
     });
-    html += '</div>';
-  });
 
-  // Only show APLICAR button if planoRascunho has semanas genuinely different from active plan
+  // ── Formato antigo: semanas[] ──
+  } else {
+    var semanas = plano.semanas || [];
+    semanas.forEach(function(semana) {
+      var diasSem = semana.dias || semana.agenda || [];
+      if (!diasSem.some(function(d) { return d.serie && d.serie !== 'descanso'; })) return;
+
+      html += '<div class="plan-week"><div class="plan-week-title">SEMANA ' + semana.semana;
+      if (semana.foco) html += ' <span style="font-size:12px;font-family:\'DM Sans\',sans-serif;font-weight:400;letter-spacing:0;color:var(--muted)">— ' + escHtml(semana.foco) + '</span>';
+      if (semana.intensidade) html += ' <span style="font-size:10px;font-family:DM Mono,monospace;color:var(--accent2)"> ' + escHtml(semana.intensidade) + '</span>';
+      html += '</div>';
+
+      diasSem.forEach(function(d) {
+        var isRest = d.serie === 'descanso';
+        var serieObj = state.series.find(function(s) { return s.label === d.serie; });
+        var tipo = d.tipo || (isRest ? 'recuperacao' : 'treino');
+        var tipoClass = tipo === 'aerobico' ? 'tipo-aerobico' : tipo === 'recuperacao' ? 'tipo-recuperacao' : 'tipo-treino';
+        var tipoLabel = tipo === 'aerobico' ? 'AERÓBICO' : tipo === 'recuperacao' ? 'DESCANSO' : 'TREINO';
+
+        html += '<div class="plan-day' + (isRest ? ' rest' : '') + '">' +
+          '<div class="plan-day-label">' + escHtml(d.dia) + '</div>' +
+          '<div class="plan-day-content">' +
+          '<div class="plan-day-serie" style="display:flex;align-items:center;gap:8px">' +
+            (isRest ? '' : '<span>' + d.serie + ' — ' + (serieObj ? serieObj.name : d.serie) + '</span>') +
+            (isRest ? '<span>' + (tipo === 'aerobico' ? 'Aeróbico' : 'Descanso') + '</span>' : '') +
+            '<span class="agenda-dia-tipo ' + tipoClass + '" style="font-size:9px;padding:2px 8px">' + tipoLabel + '</span>' +
+          '</div>' +
+          (d.orientacao ? '<div class="plan-day-notes">' + escHtml(d.orientacao) + '</div>' : '') +
+          '</div></div>';
+      });
+      html += '</div>';
+    });
+  }
+
+  // APLICAR button
   var temRascunhoNovo = state.planoRascunho &&
-    state.planoRascunho.semanas &&
+    (state.planoRascunho.dias || state.planoRascunho.semanas) &&
     (!state.plano || !state.plano.semanas ||
-     JSON.stringify(state.planoRascunho.semanas) !== JSON.stringify(state.plano.semanas));
+     JSON.stringify(state.planoRascunho) !== JSON.stringify(state.plano));
   if (temRascunhoNovo) {
     html += '<button class="plan-apply-btn" onclick="aplicarPlano()">⬤ APLICAR ESTE PLANO</button>';
   }
   resultado.innerHTML = html;
+}
+
+// ── Converte plano por dias em estrutura por semanas calendário ──
+function distribuirDiasEmSemanas(diasTreino, dataInicioTreino, diasTreinoSemana, dataInicioCiclo) {
+  var ordemSemana = ['Segunda','Terça','Quarta','Quinta','Sexta','Sábado','Domingo'];
+  // dataInicioCiclo: quando o ciclo começa (para semanas no calendário)
+  // dataInicioTreino: quando começa o primeiro treino de academia
+  var inicio = new Date(dataInicioCiclo || dataInicioTreino);
+  inicio.setHours(0,0,0,0);
+  var inicioTreino = new Date(dataInicioTreino);
+  inicioTreino.setHours(0,0,0,0);
+
+  // Gera lista de datas de treino a partir de dataInicioTreino
+  var datasDisponiveis = [];
+  var cursor = new Date(inicioTreino);
+  var maxDias = diasTreino.length * 3 + 30;
+  for (var i = 0; i < maxDias && datasDisponiveis.length < diasTreino.length; i++) {
+    var nomeDia = ordemSemana[cursor.getDay() === 0 ? 6 : cursor.getDay() - 1];
+    if (diasTreinoSemana.indexOf(nomeDia) !== -1) {
+      datasDisponiveis.push(new Date(cursor));
+    }
+    cursor.setDate(cursor.getDate() + 1);
+  }
+
+  // Distribui cada dia de treino para a próxima data disponível
+  var semanas = {};
+  diasTreino.forEach(function(dt, idx) {
+    var data = datasDisponiveis[idx];
+    if (!data) return;
+    // Calcula semana relativa ao início do plano (semana 1 = primeira semana)
+    var mon = getMondayOf(inicio);
+    var monData = getMondayOf(data);
+    var diffSem = Math.round((monData - mon) / (7 * 86400000));
+    var semNum = diffSem + 1;
+    var nomeDia = ordemSemana[data.getDay() === 0 ? 6 : data.getDay() - 1];
+
+    if (!semanas[semNum]) semanas[semNum] = { semana: semNum, foco: '', intensidade: '', progressao: '', dias: [] };
+
+    semanas[semNum].dias.push({
+      dia: nomeDia,
+      serie: dt.serie || 'descanso',
+      tipo: dt.serie && dt.serie !== 'descanso' ? 'treino' : 'recuperacao',
+      orientacao: dt.orientacao || '',
+      intensidade: dt.intensidade || '',
+      _diaNum: dt.dia // preserve original day number
+    });
+  });
+
+  // Preenche dias de descanso entre treinos (dias da semana sem treino)
+  // Garante que semana 1 existe mesmo se dataInicio não é dia de treino
+  var semana1Num = 1;
+  if (!semanas[semana1Num]) semanas[semana1Num] = { semana: semana1Num, foco: '', intensidade: '', progressao: '', dias: [] };
+
+  Object.values(semanas).forEach(function(sem) {
+    var diasComTreino = sem.dias.map(function(d) { return d.dia; });
+    // Add descanso only for days >= dataInicio
+    var monInicio = getMondayOf(inicio);
+    ordemSemana.forEach(function(nomeDia) {
+      if (diasComTreino.indexOf(nomeDia) === -1) {
+        // Calculate the actual date of this day in this semana
+        var semOffset = (sem.semana - 1) * 7;
+        var dayOffset = ordemSemana.indexOf(nomeDia);
+        var dayDate = new Date(monInicio);
+        dayDate.setDate(monInicio.getDate() + semOffset + dayOffset);
+        dayDate.setHours(0,0,0,0);
+        // Only include if on or after dataInicio
+        if (dayDate >= inicio) {
+          sem.dias.push({ dia: nomeDia, serie: 'descanso', tipo: 'recuperacao', orientacao: '' });
+        }
+      }
+    });
+    // Sort by week order
+    sem.dias.sort(function(a, b) { return ordemSemana.indexOf(a.dia) - ordemSemana.indexOf(b.dia); });
+  });
+
+  return Object.values(semanas).sort(function(a, b) { return a.semana - b.semana; });
+}
+
+// Redistribui rascunho a partir de dataInicio pendente, se disponível
+function _redistribuirRascunhoSeNecessario(rascunho) {
+  var dataInicioStr = _getPendingDataInicio();
+  if (!dataInicioStr) return rascunho; // sem data pendente, não redistribui
+
+  var dataInicio = new Date(dataInicioStr);
+  var dataInicioTreino = state._pendingPrimeiroTreino ? new Date(state._pendingPrimeiroTreino) : dataInicio;
+  var cfg = getConfigTreino();
+  var diasTreinoSemana = cfg.diasTreino || ['Segunda','Terça','Quarta','Quinta','Sexta'];
+
+  // Extrai dias de treino em ordem
+  var diasOrientacoes = [];
+  if (rascunho.dias && Array.isArray(rascunho.dias)) {
+    diasOrientacoes = rascunho.dias.filter(function(d) { return d.serie && d.serie !== 'descanso'; });
+  } else if (rascunho.semanas) {
+    rascunho.semanas.forEach(function(sem) {
+      (sem.dias || sem.agenda || []).forEach(function(d) {
+        if (d.serie && d.serie !== 'descanso') {
+          diasOrientacoes.push({ orientacao: d.orientacao || '', intensidade: d.intensidade || sem.intensidade || '' });
+        }
+      });
+    });
+  }
+  if (!diasOrientacoes.length) return rascunho;
+
+  // Calcula sequência correta
+  var todoHist = [];
+  var ciclosOrd = (state.ciclos || []).slice().reverse();
+  ciclosOrd.forEach(function(c) {
+    (c.history || []).slice().reverse().forEach(function(h) { todoHist.push(h.serieLabel); });
+  });
+  state.history.slice().reverse().forEach(function(h) { todoHist.push(h.serieLabel); });
+
+  var coreL = (state.series || []).find(function(s) { return s.id === 'score'; });
+  coreL = coreL ? coreL.label : null;
+  var filaP = (cfg.filaPrincipal || ['A','B','C']).filter(function(l) { return l !== coreL; });
+  var icP = (cfg.intercaladas || []).filter(function(ic) { return ic.label !== coreL; });
+
+  // Replay histórico para encontrar estado atual
+  var tempIdx = 0, tempCont = {};
+  icP.forEach(function(ic) { tempCont[ic.label] = 0; });
+  todoHist.forEach(function(label) {
+    var isIc = icP.find(function(ic) { return ic.label === label; });
+    if (isIc) { tempCont[label] = 0; }
+    else if (filaP.indexOf(label) !== -1) { tempIdx++; icP.forEach(function(ic) { tempCont[ic.label]++; }); }
+  });
+
+  // Gera sequência correta para N dias
+  var sequencia = [];
+  var limS = diasOrientacoes.length * 4, cntS = 0;
+  while (sequencia.length < diasOrientacoes.length && cntS < limS) {
+    cntS++;
+    var prontas = icP.filter(function(ic) { return tempCont[ic.label] >= ic.freqApos; })
+      .sort(function(a, b) { return a.prioridade - b.prioridade; });
+    if (prontas.length > 0) {
+      sequencia.push(prontas[0].label);
+      tempCont[prontas[0].label] = 0;
+    } else {
+      sequencia.push(filaP[tempIdx % filaP.length]);
+      tempIdx++;
+      icP.forEach(function(ic) { tempCont[ic.label]++; });
+    }
+  }
+
+  // Monta dias com sequência correta + orientações do modelo
+  var diasFinais = sequencia.map(function(serie, idx) {
+    var ori = diasOrientacoes[idx] || {};
+    return {
+      dia: idx + 1,
+      serie: serie,
+      orientacao: ori.orientacao || '',
+      intensidade: ori.intensidade || ''
+    };
+  });
+
+  var novoRascunho = JSON.parse(JSON.stringify(rascunho));
+  novoRascunho.semanas = distribuirDiasEmSemanas(diasFinais, dataInicioTreino, diasTreinoSemana, dataInicio);
+  novoRascunho._diasOriginais = diasFinais;
+  delete novoRascunho.dias; // remove formato antigo se existia
+  return novoRascunho;
 }
 
 function aplicarPlano() {
@@ -4429,6 +5224,16 @@ function aplicarPlano() {
 function _doAplicarPlano() {
   if (!state.planoRascunho) return;
   var macro = state.planoRascunho;
+
+  // ── Redistribuição já foi aplicada ao receber o rascunho ──
+  // Se por algum motivo ainda há dataInicio pendente, aplicar agora
+  if (_getPendingDataInicio() && macro.semanas) {
+    var recheck = _redistribuirRascunhoSeNecessario(macro);
+    if (recheck !== macro) {
+      macro = recheck;
+      state.planoRascunho = macro;
+    }
+  }
 
   var prevDiasExpandidos = (state.plano && state.plano.diasExpandidos) || {};
   var prevDiasStatus = (state.plano && state.plano.diasStatus) || {};
@@ -4480,9 +5285,11 @@ function _doAplicarPlano() {
     diasExpandidos: newDiasExpandidos,
     diasStatus: newDiasStatus,
     chatInline: newChatInline,
-    dataInicio: prevDataInicio,
+    dataInicio: _getPendingDataInicio() || prevDataInicio || new Date().toISOString(),
     semanaOpen: { 'sem1': true }
   };
+  state._pendingCicloDataInicio = null; // consume
+  state._pendingPrimeiroTreino = null; // consume
   state.planoInicio = state.planoInicio || new Date().toISOString();
   state.planoSemana = 0;
   state.planoDia = 0;
@@ -4781,7 +5588,13 @@ async function enviarChatInlineDia(dayKey, diaNome, semana) {
   }
 
   try {
-    var result = await chamarAPIComTools(systemDia, chatInlineHistory[dayKey], notifyDia, 1000);
+    var result = await chamarAPIComTools(systemDia, chatInlineHistory[dayKey], notifyDia, 1000, 'inline-send-' + dayKey);
+    if (result.aborted) {
+      var t = document.getElementById('typing-inline-' + dayKey);
+      if (t) t.remove();
+      addChatInlineMsg(dayKey, 'system', '⬛ Interrompido.');
+      return;
+    }
     var text = result.text;
     var typing = document.getElementById('typing-inline-' + dayKey);
     if (typing) typing.remove();
@@ -4877,7 +5690,13 @@ async function enviarChatInline(dayKey, serieLabel) {
   }
 
   try {
-    var result = await chamarAPIComTools(systemInline, chatInlineHistory[dayKey], notifyInline, 3000);
+    var result = await chamarAPIComTools(systemInline, chatInlineHistory[dayKey], notifyInline, 3000, 'inline-send-' + dayKey);
+    if (result.aborted) {
+      var t = document.getElementById('typing-inline-' + dayKey);
+      if (t) t.remove();
+      addChatInlineMsg(dayKey, 'system', '⬛ Interrompido.');
+      return;
+    }
     var text = result.text;
     trackTokenUsage && trackTokenUsage({});
 
@@ -5856,7 +6675,6 @@ function toggleBikeSection(dayKey) {
   var section = document.getElementById('bike-section-' + dayKey);
   if (section) {
     var isDiaHoje = false;
-    var dataMap = null;
     if (state.plano && state.plano.dataInicio) {
       var hoje = new Date(); hoje.setHours(0,0,0,0);
       var m = dayKey.match(/^sem(\d+)_(.+)$/);
@@ -5866,7 +6684,11 @@ function toggleBikeSection(dayKey) {
         var semNum = parseInt(m[1]);
         var diaIdx = ordemSemana.indexOf(m[2]);
         if (diaIdx !== -1) {
-          var diaDate = new Date(inicio.getTime() + ((semNum-1)*7 + diaIdx) * 86400000);
+          var weekStart = getMondayOf(inicio);
+          weekStart.setDate(weekStart.getDate() + (semNum - 1) * 7);
+          var diaDate = new Date(weekStart);
+          diaDate.setDate(weekStart.getDate() + diaIdx);
+          diaDate.setHours(0,0,0,0);
           isDiaHoje = diaDate.getTime() === hoje.getTime() || diaDate < hoje;
         }
       }
@@ -5936,13 +6758,12 @@ function renderAgendaLinear() {
   }
 
   // Start date picker header
-  var dataInicioStr = state.plano.dataInicio ? new Date(state.plano.dataInicio).toLocaleDateString('pt-BR') : 'Não definida';
+  var dataInicioStr = state.plano.dataInicio
+    ? new Date(state.plano.dataInicio).toLocaleDateString('pt-BR', {day:'2-digit', month:'2-digit', year:'numeric'})
+    : 'Não definida';
   var headerHTML = '<div style="display:flex;align-items:center;gap:8px;padding:6px 4px 10px;border-bottom:1px solid var(--border);margin-bottom:10px">' +
     '<span style="font-family:DM Mono,monospace;font-size:9px;letter-spacing:1.5px;color:var(--muted);flex-shrink:0">INÍCIO DO CICLO</span>' +
-    '<input type="date" id="plano-inicio-input" value="' + (state.plano.dataInicio ? state.plano.dataInicio.slice(0,10) : '') + '" ' +
-    'onchange="setPlanoInicio(this.value)" ' +
-    'style="font-family:DM Mono,monospace;font-size:11px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:3px 8px;color:var(--text);cursor:pointer">' +
-    '<span style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted)">' + (state.plano.dataInicio ? '' : '← defina') + '</span>' +
+    '<span style="font-family:DM Mono,monospace;font-size:11px;color:var(--text)">' + dataInicioStr + '</span>' +
     '<button onclick="sincronizarNomesAgenda()" style="margin-left:auto;font-family:DM Mono,monospace;font-size:9px;letter-spacing:0.5px;padding:3px 8px;border-radius:6px;border:1px solid var(--muted);color:var(--muted);background:transparent;cursor:pointer;flex-shrink:0" title="Sincronizar nomes da Agenda com o Histórico">⟳ SINCRONIZAR</button>' +
     '</div>';
 
@@ -5988,10 +6809,24 @@ function renderAgendaLinear() {
     for (var _si = 0; _si < state.plano.semanas.indexOf(semana); _si++) {
       _semDiaOffset += (state.plano.semanas[_si].dias || state.plano.semanas[_si].agenda || []).length;
     }
+    // Pre-compute training day numbers for all plan days
+    var _diaNumMap = {};
+    var _diaNumCounter = 0;
+    state.plano.semanas.forEach(function(sem) {
+      (sem.dias || sem.agenda || []).forEach(function(dd) {
+        var dk = 'sem' + sem.semana + '_' + dd.dia;
+        if (dd.serie && dd.serie !== 'descanso') {
+          _diaNumCounter++;
+          _diaNumMap[dk] = dd._diaNum || _diaNumCounter;
+        }
+      });
+    });
+
     dias.forEach(function(d, _dIdx) {
       const dayKey = 'sem' + semana.semana + '_' + d.dia;
       var _thisDiaGlobalIdx = _semDiaOffset + _dIdx;
       var hasTreinoAfter = _thisDiaGlobalIdx <= _lastTreinoIdx;
+      var diaNum = _diaNumMap[dayKey] || null; // training day number
       const status = diasStatus[dayKey] || 'pendente';
       const isDiaHoje = isHojeDate(dayKey);
       const dateStr = formatDate(dayKey);
@@ -6000,7 +6835,10 @@ function renderAgendaLinear() {
       const tipo = isRest ? (d.tipo || 'recuperacao') : 'treino';
 
 
-      var bikeFeito = !!(state.plano.diasBike && state.plano.diasBike[dayKey] && state.plano.diasBike[dayKey].registrado) ||
+      var bikeInfo = state.plano.diasBike && state.plano.diasBike[dayKey];
+      var bikeStatus = (bikeInfo && bikeInfo.status) ? bikeInfo.status : 'pendente';
+      var bikeFeito = bikeStatus === 'feito' ||
+        !!(bikeInfo && bikeInfo.registrado) ||
         !!(state.bikeHistory && state.bikeHistory.some(function(b) { return b.dayKey === dayKey; }));
       let cardClass = 'agenda-dia';
       if (isDiaHoje && (status === 'pendente' || status === 'disponivel')) cardClass += ' hoje';
@@ -6016,7 +6854,8 @@ function renderAgendaLinear() {
       if (status === 'concluido') { tipoLabel = '✓ CONCLUÍDO'; tipoClass = 'tipo-concluido'; }
       else if (bikeFeito) { tipoLabel = '&#128690; BIKE'; tipoClass = 'tipo-concluido'; }
       else if (status === 'perdido') { tipoLabel = '✕ PERDIDO'; tipoClass = 'tipo-perdido'; }
-      if (isRest && bikeStatus === 'chuva') { tipoLabel = '&#127783; CHUVA'; tipoClass = 'tipo-bike'; }
+      else if (isRest && bikeFeito) { tipoLabel = '&#128690; PEDAL'; tipoClass = 'tipo-concluido'; }
+      else if (isRest && bikeStatus === 'chuva') { tipoLabel = '&#127783; CHUVA'; tipoClass = 'tipo-bike'; }
       else if (isRest && bikeStatus === 'imprevisto') { tipoLabel = '&#9888; IMPREVISTO'; tipoClass = 'tipo-bike-imprevisto'; }
       else if (status === 'pulado') { tipoLabel = '⟶ PULADO'; tipoClass = 'tipo-pulado'; }
       else if (status === 'antecipado') { tipoLabel = '↑ ANTECIPADO'; tipoClass = 'tipo-pulado'; }
@@ -6125,6 +6964,8 @@ function renderAgendaLinear() {
       var bikeTemDia = true; // janela de bike disponível em todos os dias
       var bikeFeito = bikeStatus === 'feito';
       var bikeBadgeLabel = bikeStatus === 'feito' ? '&#128690; PEDAL &#10003;' : bikeStatus === 'chuva' ? '&#127783; CHUVA' : bikeStatus === 'imprevisto' ? '&#9888; IMPREVISTO' : '';
+      // Suprimir badge duplicado quando tipoLabel já mostra o pedal
+      if (isRest && bikeFeito) bikeBadgeLabel = '';
       var isSubstitutoD = !!(bikeInfo && bikeInfo.substitutoD) || (isRest && d.tipo === 'bike');
       var actionsHTML = '<div class="agenda-dia-actions">';
       if (status === 'pendente' || status === 'antecipado' || status === 'ausente' || status === 'disponivel') {
@@ -6176,7 +7017,7 @@ function renderAgendaLinear() {
 
       html += '<div class="' + cardClass + '" id="agendadia-' + dayKey + '">' +
         '<div class="agenda-dia-head" onclick="toggleAgendaDia(\'' + dayKey + '\')">' +
-          '<span class="agenda-dia-label">' + escHtml(d.dia) + (dateStr ? '<br><span style="font-size:10px;font-family:DM Mono,monospace;color:var(--muted)">' + dateStr + '</span>' : '') + '</span>' +
+          '<span class="agenda-dia-label">' + escHtml(d.dia) + (dateStr ? '<br><span style="font-size:10px;font-family:DM Mono,monospace;color:var(--muted)">' + dateStr + '</span>' : '') + (diaNum ? '<br><span style="font-size:9px;font-family:DM Mono,monospace;color:var(--muted);letter-spacing:0.5px">DIA ' + diaNum + '</span>' : '') + '</span>' +
           '<span class="agenda-dia-serie">' + (status === 'pulado' ? '' : (isRest ? ((tipo === 'bike' && (bikeStatus === 'chuva' || bikeStatus === 'imprevisto')) ? 'Descanso' : (tipo === 'bike' && bikeInfo && bikeInfo.musculacaoExtra) ? bikeInfo.musculacaoExtra.serie + ' — ' + (state.series.find(function(s){return s.label===bikeInfo.musculacaoExtra.serie;}) || {name:''}).name : tipo === 'bike' ? '&#128690; Pedal' : tipo === 'aerobico' ? 'Aeróbico / Cardio' : bikeFeito ? '&#128690; Pedal' : 'Descanso') : (serieObj ? d.serie + ' — ' + serieObj.name : d.serie))) + '</span>' +
           '<span class="agenda-dia-tipo ' + tipoClass + '">' + tipoLabel + '</span>' +
           (bikeBadgeLabel ? '<span class="agenda-dia-tipo tipo-bike" style="margin-left:4px">' + bikeBadgeLabel + '</span>' : '') +
@@ -6467,7 +7308,7 @@ function irParaTreino(dayKey, serieLabel, callbackOrChatOpen) {
         '<textarea id="chat-inline-input-' + dayKey + '" placeholder="Ex: por que esse exercício? / troque o skull crusher por outra coisa / aumente o volume de posterior de deltóide..." ' +
         'style="flex:1;font-family:\'DM Sans\',sans-serif;font-size:12px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px;color:var(--text);resize:none;height:60px;outline:none" ' +
         'onkeydown="if(event.key===\'Enter\'&&!event.shiftKey){event.preventDefault();enviarChatInline(\'' + dayKey + '\',\'' + serieLabel + '\')}"></textarea>' +
-        '<button onclick="enviarChatInline(\'' + dayKey + '\',\'' + serieLabel + '\')" style="font-family:DM Mono,monospace;font-size:11px;padding:8px 14px;border-radius:8px;border:none;background:var(--accent3);color:#000;cursor:pointer;align-self:flex-end">↑</button>' +
+        '<button id="inline-send-' + dayKey + '" onclick="enviarChatInline(\'' + dayKey + '\',\'' + serieLabel + '\')" style="font-family:DM Mono,monospace;font-size:11px;padding:8px 14px;border-radius:8px;border:none;background:var(--accent3);color:#000;cursor:pointer;align-self:flex-end">↑</button>' +
       '</div>' +
     '</div>';
 
@@ -7378,10 +8219,19 @@ function getMondayOf(date) {
 
 function setPlanoInicio(dateStr) {
   if (!state.plano) return;
-  state.plano.dataInicio = dateStr;
-  // Auto-open the semana that contains today
+  if (!dateStr) return;
+  // Parse as local date (avoid UTC midnight offset issue)
+  var parts = dateStr.split('-');
+  var localDate = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]), 12, 0, 0);
+  state.plano.dataInicio = localDate.toISOString();
+
+  // Update pt-BR display label
+  var label = document.getElementById('plano-inicio-label');
+  if (label) label.textContent = localDate.toLocaleDateString('pt-BR', {day:'2-digit', month:'2-digit', year:'numeric'});
+
   saveState();
   renderAgendaLinear();
+  renderPlanoMacro(state.plano);
   toast('Data de início definida ✓');
 }
 
@@ -7994,22 +8844,140 @@ function applyRename(serieId, exId, btn) {
 function openModal(title, fields, cb) {
   document.getElementById('modal-title').textContent = title;
   const body = document.getElementById('modal-body');
-  body.innerHTML = fields.map(f => f.type === 'hidden'
-    ? `<div style="font-size:13px;color:var(--muted);line-height:1.5;padding:4px 0">${f.label}</div>`
-    : `<div>
+  body.innerHTML = fields.map(f => {
+    if (f.type === 'radio-with-input') return `
+      <div>
         <div class="modal-field-label">${f.label}</div>
-        <input class="modal-input" id="mf-${f.key}" type="${f.type||'text'}" placeholder="${f.placeholder||''}" value="${f.default||''}" />
-      </div>`
-  ).join('');
+        <div style="display:flex;flex-direction:column;gap:8px;margin-top:4px">
+          ${f.options.map((opt, i) => `
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-family:DM Mono,monospace;font-size:12px;color:var(--text)">
+              <input type="radio" name="radio-${f.key}" value="${opt.value}" ${i===0?'checked':''} onchange="_radioInputChange('${f.key}',this.value)" style="accent-color:var(--accent)">
+              <span>${opt.label}</span>
+              ${opt.hasInput ? `<input id="radio-input-${f.key}" class="modal-input" type="text" placeholder="${opt.placeholder||''}" style="flex:1;margin:0;padding:4px 8px;font-size:12px" oninput="document.querySelector('input[name=radio-${f.key}][value=${opt.value}]').checked=true;_radioInputChange('${f.key}','${opt.value}')">` : ''}
+            </label>
+          `).join('')}
+        </div>
+        <input type="hidden" id="mf-${f.key}" value="${f.options[0].value}">
+        <input type="hidden" id="mf-${f.key}-extra" value="">
+      </div>`;
+    if (f.type === 'hidden') return `<div style="font-size:13px;color:var(--muted);line-height:1.5;padding:4px 0">${f.label}</div>`;
+    if (f.type === 'date-br') return `
+      <div>
+        <div class="modal-field-label">${f.label}</div>
+        <div id="datepicker-${f.key}" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px;user-select:none">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+            <button type="button" onclick="_dpNav('${f.key}',-1)" style="background:none;border:none;color:var(--text);cursor:pointer;font-size:16px;padding:0 8px">‹</button>
+            <span id="dp-label-${f.key}" style="font-family:DM Mono,monospace;font-size:12px;color:var(--text)"></span>
+            <button type="button" onclick="_dpNav('${f.key}',1)" style="background:none;border:none;color:var(--text);cursor:pointer;font-size:16px;padding:0 8px">›</button>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;text-align:center;margin-bottom:4px">
+            ${['S','T','Q','Q','S','S','D'].map(d=>`<div style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted);padding:2px 0">${d}</div>`).join('')}
+          </div>
+          <div id="dp-days-${f.key}" style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;text-align:center"></div>
+        </div>
+        <input type="hidden" id="mf-${f.key}" value="${f.default||''}">
+      </div>`;
+    return `<div>
+      <div class="modal-field-label">${f.label}</div>
+      <input class="modal-input" id="mf-${f.key}" type="${f.type||'text'}" placeholder="${f.placeholder||''}" value="${f.default||''}" />
+    </div>`;
+  }).join('');
+
+  // Init datepickers
+  fields.filter(f => f.type === 'date-br').forEach(f => {
+    var today = new Date();
+    window._dpState = window._dpState || {};
+    window._dpState[f.key] = { year: today.getFullYear(), month: today.getMonth(), selected: null };
+    _dpRender(f.key);
+  });
+
   modalCallback = () => {
     const data = {};
-    fields.filter(f => f.type !== 'hidden').forEach(f => data[f.key] = document.getElementById('mf-'+f.key).value);
+    fields.filter(f => f.type !== 'hidden').forEach(f => {
+      if (f.type === 'radio-with-input') {
+        data[f.key] = document.getElementById('mf-'+f.key).value;
+        data[f.key+'_extra'] = document.getElementById('mf-'+f.key+'-extra').value;
+      } else {
+        data[f.key] = document.getElementById('mf-'+f.key).value;
+      }
+    });
     cb(data);
     closeModal();
   };
   document.getElementById('modal-confirm').onclick = modalCallback;
   document.getElementById('modal').classList.add('open');
-  setTimeout(() => body.querySelector('input')?.focus(), 100);
+  setTimeout(() => body.querySelector('input:not([type=hidden])')?.focus(), 100);
+}
+
+function _dpRender(key) {
+  var st = window._dpState && window._dpState[key];
+  if (!st) return;
+  var meses = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  var label = document.getElementById('dp-label-' + key);
+  var grid = document.getElementById('dp-days-' + key);
+  if (!label || !grid) return;
+  label.textContent = meses[st.month] + ' ' + st.year;
+
+  var firstDay = new Date(st.year, st.month, 1).getDay();
+  var offset = firstDay === 0 ? 6 : firstDay - 1;
+  var daysInMonth = new Date(st.year, st.month + 1, 0).getDate();
+  var today = new Date(); today.setHours(0,0,0,0);
+
+  grid.innerHTML = '';
+
+  // Empty cells for offset
+  for (var i = 0; i < offset; i++) {
+    var empty = document.createElement('div');
+    grid.appendChild(empty);
+  }
+
+  for (var d = 1; d <= daysInMonth; d++) {
+    var date = new Date(st.year, st.month, d);
+    var isSelected = st.selected && st.selected.getDate() === d && st.selected.getMonth() === st.month && st.selected.getFullYear() === st.year;
+    var isToday = date.getTime() === today.getTime();
+
+    var cell = document.createElement('div');
+    cell.textContent = d;
+    cell.style.cssText = 'font-family:DM Mono,monospace;font-size:11px;padding:4px 2px;border-radius:4px;cursor:pointer;text-align:center;' +
+      'background:' + (isSelected ? 'var(--accent)' : 'transparent') + ';' +
+      'color:' + (isSelected ? '#000' : 'var(--text)') + ';' +
+      'border:1px solid ' + (isToday && !isSelected ? 'var(--accent)' : 'transparent') + ';';
+
+    (function(day) {
+      cell.addEventListener('click', function() { _dpSelect(key, day); });
+    })(d);
+
+    grid.appendChild(cell);
+  }
+}
+
+function _radioInputChange(key, value) {
+  var hidden = document.getElementById('mf-' + key);
+  var hiddenExtra = document.getElementById('mf-' + key + '-extra');
+  if (hidden) hidden.value = value;
+  if (hiddenExtra) {
+    var inputEl = document.getElementById('radio-input-' + key);
+    if (inputEl) hiddenExtra.value = inputEl.value;
+  }
+}
+
+function _dpNav(key, dir) {
+  var st = window._dpState && window._dpState[key];
+  if (!st) return;
+  st.month += dir;
+  if (st.month > 11) { st.month = 0; st.year++; }
+  if (st.month < 0) { st.month = 11; st.year--; }
+  _dpRender(key);
+}
+
+function _dpSelect(key, day) {
+  var st = window._dpState && window._dpState[key];
+  if (!st) return;
+  st.selected = new Date(st.year, st.month, day, 12, 0, 0);
+  var d = String(day).padStart(2,'0');
+  var m = String(st.month + 1).padStart(2,'0');
+  document.getElementById('mf-' + key).value = d + '/' + m + '/' + st.year;
+  _dpRender(key);
 }
 
 function closeModal() {
