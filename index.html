@@ -1410,7 +1410,7 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
     <button id="undo-btn" onclick="undoAction()" title="Nada para desfazer" disabled style="font-family:'DM Mono',monospace;font-size:11px;background:none;border:1px solid var(--border);color:var(--muted);border-radius:4px;padding:3px 10px;cursor:default;opacity:0.3;transition:opacity .2s">↩</button>
     <button class="btn btn-header-only" onclick="exportData()">EXPORTAR</button>
     <button class="btn btn-header-only" onclick="importData()">IMPORTAR</button>
-    <span style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted);margin-left:4px">v0.9.0.02</span>
+    <span style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted);margin-left:4px">v0.9.0.03</span>
     <div id="auth-status" style="display:flex;align-items:center;margin-left:4px"></div>
 
     <div class="mobile-menu-wrap" id="mobile-menu-wrap">
@@ -9250,19 +9250,13 @@ async function supabaseLoad() {
     }
     var cloudUpdatedAt = data[0].updated_at ? new Date(data[0].updated_at).getTime() : 0;
     var localUpdatedAt = state._updatedAt ? new Date(state._updatedAt).getTime() : 0;
-    // Cloud is newer: always load from cloud
+    // Cloud is newer: load from cloud
     if (cloudUpdatedAt > localUpdatedAt) {
       var parsed = typeof data[0].state === 'string' ? JSON.parse(data[0].state) : data[0].state;
       state = Object.assign(loadState(), parsed);
       saveState(true); // fromCloud — don't re-upload
     }
-    // Local is newer: upload to cloud
-    else if (localUpdatedAt > cloudUpdatedAt) {
-      _supabaseLoadComplete = true;
-      supabaseSave();
-      return;
-    }
-    // Same timestamp: do nothing
+    // Local is newer OR same: do nothing — upload only happens when user modifies data
     _supabaseLoadComplete = true;
   } catch(e) {
     console.warn('Supabase load exception:', e);
