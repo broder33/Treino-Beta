@@ -1410,7 +1410,7 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
     <button id="undo-btn" onclick="undoAction()" title="Nada para desfazer" disabled style="font-family:'DM Mono',monospace;font-size:11px;background:none;border:1px solid var(--border);color:var(--muted);border-radius:4px;padding:3px 10px;cursor:default;opacity:0.3;transition:opacity .2s">↩</button>
     <button class="btn btn-header-only" onclick="exportData()">EXPORTAR</button>
     <button class="btn btn-header-only" onclick="importData()">IMPORTAR</button>
-    <span style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted);margin-left:4px">v0.9.0.25</span>
+    <span style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted);margin-left:4px">v0.9.0.26</span>
     <div id="auth-status" style="display:flex;align-items:center;margin-left:4px"></div>
 
     <div class="mobile-menu-wrap" id="mobile-menu-wrap">
@@ -9310,7 +9310,7 @@ async function supabaseSave() {
       dbu.from('user_data').upsert({
         id: _supabaseUser.id,
         state: stateObj,
-        updated_at: new Date().toISOString()
+        updated_at: stateObj._updatedAt || new Date().toISOString()
       }), 8000);
     if (result.error) {
       console.warn('Supabase save error:', result.error.message);
@@ -9321,7 +9321,7 @@ async function supabaseSave() {
         if (dbu2) await dbu2.from('user_data').upsert({
           id: _supabaseUser.id,
           state: stateObj,
-          updated_at: new Date().toISOString()
+          updated_at: stateObj._updatedAt || new Date().toISOString()
         });
       }
     }
@@ -9357,8 +9357,8 @@ async function supabaseLoad() {
     }
     var cloudUpdatedAt = data[0].updated_at ? new Date(data[0].updated_at).getTime() : 0;
     var localUpdatedAt = state._updatedAt ? new Date(state._updatedAt).getTime() : 0;
-    // Cloud is newer: load from cloud
-    if (cloudUpdatedAt > localUpdatedAt) {
+    // Cloud is newer OR updated_at is null (can't compare — prefer cloud): load from cloud
+    if (cloudUpdatedAt > localUpdatedAt || (!data[0].updated_at && data[0].state)) {
       var parsed = typeof data[0].state === 'string' ? JSON.parse(data[0].state) : data[0].state;
       state = Object.assign(loadState(), parsed);
       saveState(true); // fromCloud — don't re-upload
