@@ -1410,7 +1410,7 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
     <button id="undo-btn" onclick="undoAction()" title="Nada para desfazer" disabled style="font-family:'DM Mono',monospace;font-size:11px;background:none;border:1px solid var(--border);color:var(--muted);border-radius:4px;padding:3px 10px;cursor:default;opacity:0.3;transition:opacity .2s">↩</button>
     <button class="btn btn-header-only" onclick="exportData()">EXPORTAR</button>
     <button class="btn btn-header-only" onclick="importData()">IMPORTAR</button>
-    <span style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted);margin-left:4px">v0.9.0.03</span>
+    <span style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted);margin-left:4px">v0.9.0.25</span>
     <div id="auth-status" style="display:flex;align-items:center;margin-left:4px"></div>
 
     <div class="mobile-menu-wrap" id="mobile-menu-wrap">
@@ -1836,6 +1836,14 @@ function renderTabs() {
 }
 
 function switchTab(id) {
+  // Save any open inline chat drafts before leaving agenda
+  if (currentTab === 'agenda' && id !== 'agenda') {
+    document.querySelectorAll('[id^="chat-inline-input-"]').forEach(function(el) {
+      var dayKey = el.id.replace('chat-inline-input-', '');
+      if (el.value.trim()) _chatInlineDrafts[dayKey] = el.value;
+      else delete _chatInlineDrafts[dayKey];
+    });
+  }
   currentTab = id;
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
   if (id === 'history') document.getElementById('view-history').classList.add('active');
@@ -4894,10 +4902,23 @@ function aplicarModificacoesInline(mod, dayKey, serieLabel) {
       });
       exs = expanded.exercicios;
     } else if (a.tipo === 'adicionar') {
+      // Programmatic guard: reject if exercise already exists in any library series
+      var nomeNovo = (a.nome || a.por || '').toLowerCase();
+      var jaExiste = false;
+      state.series.forEach(function(serie) {
+        serie.exercises.forEach(function(e) {
+          if (e.name.toLowerCase() === nomeNovo) jaExiste = true;
+        });
+      });
+      if (jaExiste) {
+        toast('"' + (a.nome || a.por) + '" já existe na Biblioteca — escolha outro exercício.');
+        return;
+      }
       var novo = {
         id: uid(), nome: a.nome || a.por,
         sets: a.sets || '3x10', weight: a.weight || '—',
-        rest: a.rest || ''
+        rest: a.rest || '',
+        isCore: a.isCore || false
       };
       if (a.posicao !== undefined && a.posicao >= 1) exs.splice(a.posicao - 1, 0, novo);
       else exs.push(novo);
@@ -5504,8 +5525,8 @@ function limparChatInlineDiasPassados(apenasAntesDestaSemana) {
       if (!inicioSemanaAtual) { inicioSemanaAtual = getMondayOf(hoje); inicioSemanaAtual.setHours(0,0,0,0); }
     }
 
-    if (!state.plano.chatInline) { toast('Nenhum chat para limpar'); return; }
     var limpos = 0;
+    if (!state.plano.chatInline) state.plano.chatInline = {};
     var mon2 = getMondayOf(planoInicio);
 
     Object.keys(state.plano.chatInline).forEach(function(dayKey) {
@@ -5528,6 +5549,16 @@ function limparChatInlineDiasPassados(apenasAntesDestaSemana) {
         limpos++;
       }
     });
+
+    // Apagar chatInline de ciclos encerrados — todos são passados
+    if (state.ciclos && state.ciclos.length) {
+      state.ciclos.forEach(function(ciclo) {
+        if (ciclo.plano && ciclo.plano.chatInline) {
+          limpos += Object.keys(ciclo.plano.chatInline).length;
+          ciclo.plano.chatInline = {};
+        }
+      });
+    }
 
     saveState();
     toast('Chat de ' + limpos + ' dia(s) limpo(s) (' + desc + ') ✓');
@@ -5645,22 +5676,28 @@ async function enviarChatInline(dayKey, serieLabel) {
     return e.id + ' | ' + e.name + ' | ' + e.sets + ' | ' + e.weight;
   }).join('\n') : '';
 
+  // Build complete library list for duplicate prevention
+  var todasBibNomes = [];
+  state.series.forEach(function(serie) {
+    serie.exercises.forEach(function(e) { todasBibNomes.push('- ' + e.name + ' (' + serie.label + ')'); });
+  });
+
   var systemInline = getPLANO_SYSTEM() + '\n\nCONTEXTO ATUAL — DIA ESPECÍFICO:\n' +
     'Dia: ' + dia + ', Semana ' + semana + ', Série ' + serieLabel + '\n' +
     'Foco da semana: ' + (semanaObj ? semanaObj.foco : '') + '\n' +
     'Intensidade: ' + (semanaObj ? semanaObj.intensidade : '') + '\n\n' +
     'TREINO ATUAL DO DIA:\n' + exAtual + '\n\n' +
     (bibList && _msgNeedsBiblioteca(msg) ? 'BIBLIOTECA DA SÉRIE ' + serieLabel + ' (nomes e cargas de referência):\n' + bibList + '\n\n' : '') +
-    'REFERÊNCIA DE NÍVEL (para calibrar cargas — não como lista de exercícios):\n' +
-    'Overhead Press 24kg/lado, Pull-up assistido 66kg máquina, Supino halteres 28kg/lado, Leg Press 120kg/lado.\n\n' +
-    'O usuário está aberto a qualquer exercício que você considere ideal. Use seu conhecimento livremente.\n' +
+    'BIBLIOTECA COMPLETA — TODOS OS EXERCÍCIOS QUE O USUÁRIO JÁ POSSUI:\n' + todasBibNomes.join('\n') + '\n\n' +
+    'Você está livre para sugerir qualquer exercício, inclusive novos que não estão na biblioteca. ' +
+    'EXCEÇÃO: quando o usuário pedir explicitamente um exercício que não está na biblioteca, verifique cada sugestão contra a lista acima e sugira apenas exercícios ausentes dela.\n\n' +
     'Responda perguntas e explique escolhas em português.\n' +
     'REGRA: Quando o usuário aprovar uma mudança, retorne JSON em um destes formatos:\n' +
     '- Para mudanças pontuais use {"modificacoes":{"serieLabel":"' + serieLabel + '","acoes":[...]}} com tipos:\n' +
     '  substituir: {"tipo":"substituir","de":"nome atual","por":"novo nome","sets":"3x10","weight":"20kg","rest":"60s"} — SEMPRE inclua sets, weight e rest calibrados para o novo exercício (use a Biblioteca como referência e ajuste ao contexto do dia)\n' +
     '  alterar: {"tipo":"alterar","nome":"nome exato do exercício","weight":"20kg"} (só inclua os campos que mudam)\n' +
     '  remover: {"tipo":"remover","nome":"nome exato"}\n' +
-    '  adicionar: {"tipo":"adicionar","nome":"novo exercício","sets":"3x10","weight":"15kg","posicao":3} — posicao é base 1: posicao:1 = primeiro da lista, posicao:3 = terceiro lugar na lista\n' +
+    '  adicionar: {"tipo":"adicionar","nome":"novo exercício","sets":"3x10","weight":"15kg","posicao":3,"isCore":false} — posicao é base 1: posicao:1 = primeiro da lista, posicao:3 = terceiro lugar na lista. Use "isCore":true para exercícios de Core/abdômen/lombar.\n' +
     '- Para reescrever o treino completo (APENAS se o usuário pedir explicitamente para refazer/montar/reorganizar o treino inteiro): {"diaExpandido":{...treino completo...}}\n' +
     'REGRA CRÍTICA: Use SEMPRE modificacoes por padrão. diaExpandido SOMENTE quando o usuário pedir explicitamente para refazer o treino inteiro — nunca por iniciativa própria para trocas pontuais.\n' +
     'Quando você tiver uma proposta pronta e precisar de confirmação antes de aplicar, termine sua mensagem com exatamente: [PRONTO PARA APLICAR]\n' +
@@ -6094,6 +6131,7 @@ function normalizarDiaExpandido(parsed, semana, dia) {
       return {
         id: ex.id || uid(),
         nome: ex.nome || ex.name || ex.exercise || '',
+        musculo: ex.musculo || ex.muscle || ex.grupo || ex.muscle_group || '',
         sets: setsStr,
         weight: w,
         rest: rest,
@@ -7526,16 +7564,21 @@ function finishSerieFromAgenda(dayKey, serieId) {
   }
 
   // Merge: use expanded for details, seriesData for status
+  // Normalize: in history, 'undone' and 'skipped' are the same — both become 'skipped'
   var exercises = expandedExs.length > 0 ? expandedExs.map(function(e) {
+    var st = statusMap[e.id] || e.status || 'undone';
     return {
       name: e.nome || e.name,
+      musculo: e.musculo || e.muscle || e.grupo || '',
+      isCore: e.isCore || false,
       sets: e.sets,
       weight: e.weight,
       rest: e.rest || '',
-      status: statusMap[e.id] || e.status || 'undone'
+      status: st === 'done' ? 'done' : 'skipped'
     };
   }) : (pd ? pd.exercises.map(function(e) {
-    return { name: e.name, sets: e.sets, weight: e.weight, rest: e.rest || '', status: e.status || 'undone' };
+    var st = e.status || 'undone';
+    return { name: e.name, musculo: e.musculo || '', sets: e.sets, weight: e.weight, rest: e.rest || '', status: st === 'done' ? 'done' : 'skipped' };
   }) : []);
 
   var done = exercises.filter(function(e) { return e.status === 'done'; }).length;
@@ -7642,7 +7685,7 @@ function adicionarNovosExerciciosNaBiblioteca(exercises, serieObj) {
     var nomeEx = ex.name.toLowerCase();
     var isCoreEx = ex.isCore ||
       /core|abdômen|abdomin|lombar|oblíquo|obliquo|prancha|plank|crunch|sit.?up|dead.?bug|bird.?dog/i.test(musculo) ||
-      /prancha|plank|crunch|sit.?up|dead.?bug|bird.?dog|abdominal|elevação de perna/i.test(nomeEx);
+      /prancha|plank|crunch|sit.?up|dead.?bug|bird.?dog|abdominal|elevação de perna|elevação de joelh|roman chair|captain.?chair|knee raise|ab wheel|hollow body|l.?sit|dragon flag|pallof|mountain climb/i.test(nomeEx);
     var destino = (isCoreEx && coreObj) ? coreObj : serieObj;
     destino.exercises.push({
       id: uid(),
@@ -7726,14 +7769,6 @@ function sincronizarNomesAgenda() {
 function verificarDuplicatasHistoricoCompleto() {
   var apiKey = getApiKey();
 
-  // Collect all unique exercise names from history
-  var historicoNomes = new Set();
-  state.history.forEach(function(h) {
-    (h.exercises || []).forEach(function(ex) {
-      if (ex.name) historicoNomes.add(ex.name);
-    });
-  });
-
   // Library names
   var bibliotecaNames = [];
   state.series.forEach(function(s) {
@@ -7742,21 +7777,25 @@ function verificarDuplicatasHistoricoCompleto() {
     });
   });
 
-  // Find history exercises not exactly in library
-  var bibliotecaNomesLower = bibliotecaNames.map(function(e) { return e.name.toLowerCase(); });
-  var candidatos = Array.from(historicoNomes).filter(function(n) {
-    return !bibliotecaNomesLower.includes(n.toLowerCase());
-  });
-
-  if (candidatos.length === 0) {
-    toast('Nenhuma duplicata potencial encontrada ✓');
+  if (bibliotecaNames.length < 2) {
+    toast('Biblioteca com poucos exercícios para verificar ✓');
     return;
   }
 
-  toast('Verificando ' + candidatos.length + ' exercícios com a IA...');
+  // Also collect history names not exactly in library (may be same exercise with different spelling)
+  var bibliotecaNomesLower = bibliotecaNames.map(function(e) { return e.name.toLowerCase(); });
+  var historicoNomes = new Set();
+  var todosHistorico = state.history.slice();
+  (state.ciclos || []).forEach(function(c) { (c.history || []).forEach(function(h) { todosHistorico.push(h); }); });
+  todosHistorico.forEach(function(h) {
+    (h.exercises || []).forEach(function(ex) {
+      if (ex.name && !bibliotecaNomesLower.includes(ex.name.toLowerCase())) historicoNomes.add(ex.name);
+    });
+  });
 
-  var prompt = buildDuplicatasPrompt(candidatos, bibliotecaNames);
-  var apiKey = getApiKey();
+  toast('Verificando biblioteca e histórico com a IA...');
+
+  var prompt = buildDuplicatasPrompt(bibliotecaNames, Array.from(historicoNomes));
 
   if (apiKey) {
     fetch('https://api.anthropic.com/v1/messages', {
@@ -7796,7 +7835,7 @@ function verificarDuplicatasHistoricoCompleto() {
     // Via plan chat silencioso
     _pendingDuplicataCheck = true;
     switchTab('ia');
-    addPlanoChatMsg('system', '🔍 Verificando duplicatas entre Histórico e Biblioteca...');
+    addPlanoChatMsg('system', '🔍 Verificando duplicatas na Biblioteca...');
     setTimeout(function() {
       var input = document.getElementById('plano-input');
       if (input) input.value = '';
@@ -7829,18 +7868,23 @@ function processarRespostaDuplicatas(text) {
     } else {
       addPlanoChatMsg('system', 'Nenhuma duplicata encontrada ✓');
     }
-  } catch(e) {}
+  } catch(e) { toast('Erro ao processar resposta da IA.'); }
 }
 
-function buildDuplicatasPrompt(candidatos, bibliotecaNames) {
-  return 'Analise se algum destes exercícios do treino é o mesmo que algum exercício da biblioteca, mesmo com nomes diferentes.\n\n' +
-    'EXERCÍCIOS DO TREINO:\n' + candidatos.join('\n') + '\n\n' +
-    'BIBLIOTECA:\n' + bibliotecaNames.map(function(e) { return e.name + ' (' + e.serie + ')'; }).join('\n') + '\n\n' +
-    'Para o nomeOficial de cada par: escolha o nome como um personal trainer brasileiro experiente escolheria — o nome que ele usaria naturalmente ao falar com um aluno. ' +
-    'Alguns exercícios são mais conhecidos pelo nome em inglês no Brasil (mesmo havendo tradução), outros pelo nome em português. Não priorize nenhum dos dois nomes fornecidos — avalie de forma independente qual é o mais usado na prática.\n' +
+function buildDuplicatasPrompt(bibliotecaNames, historicoNomes) {
+  var lista = bibliotecaNames.map(function(e) { return e.name + ' (' + e.serie + ')'; }).join('\n');
+  var historicoSection = (historicoNomes && historicoNomes.length > 0)
+    ? '\nEXERCÍCIOS DO HISTÓRICO (nomes que aparecem no histórico mas não estão na biblioteca — podem ser o mesmo exercício com grafia diferente):\n' + historicoNomes.join('\n') + '\n'
+    : '';
+  return 'Analise esta lista de exercícios e identifique dois tipos de duplicatas:\n' +
+    '1. Exercícios da BIBLIOTECA com nomes diferentes que são o mesmo movimento (ex: "Sit-up" e "Sit Up", "Prancha" e "Prancha Frontal")\n' +
+    '2. Exercícios do HISTÓRICO que correspondem a um exercício da biblioteca com grafia diferente\n\n' +
+    'BIBLIOTECA:\n' + lista + historicoSection + '\n' +
+    'Para o nomeOficial de cada par: escolha o nome como um personal trainer brasileiro experiente escolheria. ' +
+    'Alguns exercícios são mais conhecidos pelo nome em inglês no Brasil, outros pelo português. Avalie de forma independente qual é o mais usado na prática.\n' +
     'Retorne APENAS JSON sem texto adicional:\n' +
-    '{"pares":[{"treino":"nome no treino","biblioteca":"nome na biblioteca","serie":"letra","motivo":"1 frase","nomeOficial":"nome natural usado por personal trainers brasileiros"}]}' +
-    '\nSe não houver pares suspeitos, retorne {"pares":[]}';
+    '{"pares":[{"treino":"nome a manter (histórico ou biblioteca)","biblioteca":"nome na biblioteca a remover","serie":"letra da série do nome a remover","motivo":"1 frase","nomeOficial":"nome oficial","tipo":"biblioteca se ambos são da biblioteca, historico se um é do histórico"}]}' +
+    '\nSe não houver duplicatas, retorne {"pares":[]}';
 }
 
 function verificarDuplicatasComIA(exerciciosNovos) {
@@ -7887,7 +7931,7 @@ function verificarDuplicatasComIA(exerciciosNovos) {
     // Via plan chat silencioso — works in Claude.ai without API key
     _pendingDuplicataCheck = true;
     switchTab('ia');
-    addPlanoChatMsg('system', '🔍 Verificando duplicatas entre Histórico e Biblioteca...');
+    addPlanoChatMsg('system', '🔍 Verificando duplicatas na Biblioteca...');
     setTimeout(function() {
       var input = document.getElementById('plano-input');
       if (input) input.value = ''; // clear input to avoid accidental send
@@ -7917,14 +7961,15 @@ function mostrarModalDuplicatas() {
 
   var linhasHTML = paresPagina.map(function(par, idx) {
     var globalIdx = inicio + idx;
-    var nomeSugerido = escHtml(par.nomeOficial || par.biblioteca);
+    var nomeSugerido = escHtml(par._nomeEditado || par.nomeOficial || par.biblioteca);
+    var checked = par._selecionado ? ' checked' : '';
     return '<div style="border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:10px;background:var(--surface2)">' +
       '<div style="display:flex;align-items:flex-start;gap:10px">' +
-      '<input type="checkbox" id="dup-check-' + globalIdx + '" style="margin-top:4px;flex-shrink:0">' +
+      '<input type="checkbox" id="dup-check-' + globalIdx + '"' + checked + ' style="margin-top:4px;flex-shrink:0">' +
       '<div style="flex:1;min-width:0">' +
       // Names row
       '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">' +
-      '<div><div style="font-size:9px;letter-spacing:1px;color:var(--muted);margin-bottom:2px">HISTÓRICO</div>' +
+      '<div><div style="font-size:9px;letter-spacing:1px;color:var(--muted);margin-bottom:2px">' + (par.tipo === 'biblioteca' ? 'BIBLIOTECA' : 'HISTÓRICO') + '</div>' +
       '<div style="font-size:12px;color:var(--text)">' + escHtml(par.treino) + '</div></div>' +
       '<div><div style="font-size:9px;letter-spacing:1px;color:var(--muted);margin-bottom:2px">BIBLIOTECA (' + escHtml(par.serie) + ')</div>' +
       '<div style="font-size:12px;color:var(--text)">' + escHtml(par.biblioteca) + '</div></div>' +
@@ -7969,7 +8014,7 @@ function mostrarModalDuplicatas() {
     linhasHTML +
     paginacaoHTML +
     '<div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap">' +
-    '<button onclick="aplicarDuplicatasSelecionadas(' + inicio + ',' + (inicio + _DUPLICATAS_POR_PAGINA) + ')" style="font-family:DM Mono,monospace;font-size:11px;padding:8px 18px;border-radius:8px;border:none;background:var(--accent3);color:#000;cursor:pointer">✓ APLICAR SELECIONADOS</button>' +
+    '<button onclick="aplicarDuplicatasSelecionadas(0,0)" style="font-family:DM Mono,monospace;font-size:11px;padding:8px 18px;border-radius:8px;border:none;background:var(--accent3);color:#000;cursor:pointer">✓ APLICAR SELECIONADOS</button>' +
     '<button onclick="fecharModalDuplicatas()" style="font-family:DM Mono,monospace;font-size:11px;padding:8px 18px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer">✕ FECHAR</button>' +
     '</div></div>';
 
@@ -8051,6 +8096,15 @@ function enviarMensagemPlanoSilenciosoComCallback(prompt, callback) {
 }
 
 function navegarDuplicatas(dir) {
+  // Save current page selections and edited names before navigating
+  var pares = state._duplicatasPendentes || [];
+  var inicio = _duplicatasPagina * _DUPLICATAS_POR_PAGINA;
+  for (var i = inicio; i < Math.min(inicio + _DUPLICATAS_POR_PAGINA, pares.length); i++) {
+    var chk = document.getElementById('dup-check-' + i);
+    var nomeEl = document.getElementById('dup-nome-' + i);
+    if (chk) pares[i]._selecionado = chk.checked;
+    if (nomeEl) pares[i]._nomeEditado = nomeEl.value;
+  }
   _duplicatasPagina += dir;
   mostrarModalDuplicatas();
 }
@@ -8063,24 +8117,33 @@ function fecharModalDuplicatas() {
 function aplicarDuplicatasSelecionadas(inicio, fim) {
   var pares = state._duplicatasPendentes || [];
   var apiKey = getApiKey();
-  var selecionados = [];
 
-  for (var i = inicio; i < Math.min(fim, pares.length); i++) {
-    var checkbox = document.getElementById('dup-check-' + i);
-    var ctx = document.getElementById('dup-ctx-' + i);
-    var nomeField = document.getElementById('dup-nome-' + i);
-    if (checkbox && checkbox.checked) {
+  // Save current page state first (checkboxes + edited names)
+  for (var j = inicio; j < Math.min(fim, pares.length); j++) {
+    var chk = document.getElementById('dup-check-' + j);
+    var nomeEl = document.getElementById('dup-nome-' + j);
+    var ctxEl = document.getElementById('dup-ctx-' + j);
+    if (chk) pares[j]._selecionado = chk.checked;
+    if (nomeEl) pares[j]._nomeEditado = nomeEl.value;
+    if (ctxEl) pares[j]._contexto = ctxEl.value.trim();
+  }
+
+  // Collect all selected across ALL pages
+  var selecionados = [];
+  for (var i = 0; i < pares.length; i++) {
+    if (pares[i]._selecionado) {
       selecionados.push({
         idx: i,
         par: pares[i],
-        contexto: ctx ? ctx.value.trim() : '',
-        nomeEscolhido: nomeField ? nomeField.value.trim() : (pares[i].nomeOficial || pares[i].biblioteca)
+        contexto: pares[i]._contexto || '',
+        nomeEscolhido: pares[i]._nomeEditado || pares[i].nomeOficial || pares[i].biblioteca
       });
     }
   }
 
   if (selecionados.length === 0) {
     fecharModalDuplicatas();
+    toast('Nenhuma duplicata selecionada.');
     return;
   }
 
@@ -8121,23 +8184,67 @@ function aplicarDuplicatasSelecionadas(inicio, fim) {
       var oldBiblioteca = par.biblioteca.toLowerCase();
       var oldNames = [oldTreino, oldBiblioteca];
 
-      // Update history — rename old treino name
-      state.history.forEach(function(h) {
-        (h.exercises || []).forEach(function(ex) {
-          if (ex.name && ex.name.toLowerCase() === oldTreino) {
-            ex.name = nomeEscolhido;
-          }
+      // Update history — rename old names in current and archived ciclos
+      var todosHistorico = [state.history];
+      (state.ciclos || []).forEach(function(c) { if (c.history) todosHistorico.push(c.history); });
+      todosHistorico.forEach(function(hist) {
+        hist.forEach(function(h) {
+          (h.exercises || []).forEach(function(ex) {
+            if (ex && ex.name && (ex.name.toLowerCase() === oldTreino || ex.name.toLowerCase() === oldBiblioteca)) {
+              ex.name = nomeEscolhido;
+            }
+          });
         });
       });
 
-      // Update library — rename both old names to the chosen name
+      // Update library — rename both old names to the chosen name, then deduplicate
+      // First check if par.biblioteca actually exists in the library
+      var bibliotecaExiste = false;
       state.series.forEach(function(s) {
         s.exercises.forEach(function(ex) {
-          if (ex.name && (ex.name.toLowerCase() === oldTreino || ex.name.toLowerCase() === oldBiblioteca)) {
-            ex.name = nomeEscolhido;
-          }
+          if (ex.name && ex.name.toLowerCase() === oldBiblioteca) bibliotecaExiste = true;
         });
       });
+
+      if (bibliotecaExiste) {
+        state.series.forEach(function(s) {
+          s.exercises.forEach(function(ex) {
+            if (ex.name && (ex.name.toLowerCase() === oldTreino || ex.name.toLowerCase() === oldBiblioteca)) {
+              ex.name = nomeEscolhido;
+            }
+          });
+          // Remove duplicate entries (same name) — keep first occurrence
+          var seen = {};
+          s.exercises = s.exercises.filter(function(ex) {
+            var key = ex.name.toLowerCase();
+            if (seen[key]) return false;
+            seen[key] = true;
+            return true;
+          });
+        });
+      } else {
+        // par.biblioteca not in library — history-only exercise, infer serie from history
+        var serieInferida = null;
+        // Search history for the exercise to find which serie it belongs to
+        var todosH = (state.history || []).concat();
+        (state.ciclos || []).forEach(function(c) { (c.history || []).forEach(function(h) { todosH.push(h); }); });
+        todosH.forEach(function(h) {
+          if (!serieInferida) {
+            (h.exercises || []).forEach(function(ex) {
+              if (ex && ex.name && ex.name.toLowerCase() === oldTreino) serieInferida = h.serieLabel;
+            });
+          }
+        });
+        var serieDestino = serieInferida
+          ? state.series.find(function(s) { return s.label === serieInferida; })
+          : state.series.find(function(s) { return s.id !== 'score'; });
+        if (serieDestino) {
+          var jaExiste = serieDestino.exercises.some(function(e) { return e.name.toLowerCase() === nomeEscolhido.toLowerCase(); });
+          if (!jaExiste) {
+            serieDestino.exercises.push({ id: uid(), name: nomeEscolhido, sets: '3x10', weight: '—', rest: '', status: 'undone', skippedLast: false, isCore: false });
+          }
+        }
+      }
 
       // Update agenda (diasExpandidos) — rename exercises in expanded days
       if (state.plano && state.plano.diasExpandidos) {
@@ -9545,6 +9652,7 @@ function importData() {
         // Clear storage and save fresh
         try { localStorage.removeItem(STORAGE_KEY); } catch(e) {}
         planoChatHistory = state.planoChatHistory || [];
+        chatInlineHistory = {};
         saveState();
         render();
         loadPerfil();
