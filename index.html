@@ -1410,7 +1410,7 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
     <button id="undo-btn" onclick="undoAction()" title="Nada para desfazer" disabled style="font-family:'DM Mono',monospace;font-size:11px;background:none;border:1px solid var(--border);color:var(--muted);border-radius:4px;padding:3px 10px;cursor:default;opacity:0.3;transition:opacity .2s">↩</button>
     <button class="btn btn-header-only" onclick="exportData()">EXPORTAR</button>
     <button class="btn btn-header-only" onclick="importData()">IMPORTAR</button>
-    <span style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted);margin-left:4px">v0.9.0.27</span>
+    <span style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted);margin-left:4px">v0.9.0.28</span>
     <div id="auth-status" style="display:flex;align-items:center;margin-left:4px"></div>
 
     <div class="mobile-menu-wrap" id="mobile-menu-wrap">
@@ -4902,16 +4902,11 @@ function aplicarModificacoesInline(mod, dayKey, serieLabel) {
       });
       exs = expanded.exercicios;
     } else if (a.tipo === 'adicionar') {
-      // Programmatic guard: reject if exercise already exists in any library series
+      // Guard: reject if exercise already exists in current day's treino
       var nomeNovo = (a.nome || a.por || '').toLowerCase();
-      var jaExiste = false;
-      state.series.forEach(function(serie) {
-        serie.exercises.forEach(function(e) {
-          if (e.name.toLowerCase() === nomeNovo) jaExiste = true;
-        });
-      });
-      if (jaExiste) {
-        toast('"' + (a.nome || a.por) + '" já existe na Biblioteca — escolha outro exercício.');
+      var jaNoTreino = exs.some(function(e) { return (e.nome || e.name || '').toLowerCase() === nomeNovo; });
+      if (jaNoTreino) {
+        toast('"' + (a.nome || a.por) + '" já está neste treino.');
         return;
       }
       var novo = {
