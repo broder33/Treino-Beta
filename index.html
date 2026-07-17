@@ -1410,7 +1410,7 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
     <button id="undo-btn" onclick="undoAction()" title="Nada para desfazer" disabled style="font-family:'DM Mono',monospace;font-size:11px;background:none;border:1px solid var(--border);color:var(--muted);border-radius:4px;padding:3px 10px;cursor:default;opacity:0.3;transition:opacity .2s">↩</button>
     <button class="btn btn-header-only" onclick="exportData()">EXPORTAR</button>
     <button class="btn btn-header-only" onclick="importData()">IMPORTAR</button>
-    <span style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted);margin-left:4px">v0.9.0.28</span>
+    <span style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted);margin-left:4px">v0.9.0.29</span>
     <div id="auth-status" style="display:flex;align-items:center;margin-left:4px"></div>
 
     <div class="mobile-menu-wrap" id="mobile-menu-wrap">
@@ -3647,7 +3647,7 @@ function buildPerfilTexto() {
     '- Timing preferido: ' + (p.bikeTiming === 'manha' ? 'manhã' : p.bikeTiming === 'noite' ? 'noite' : 'flexível (manhã ou noite)') + '.\n' +
     '- REGRAS ABSOLUTAS: bike NUNCA em dia D (pernas). Sábado e Domingo são elegíveis para bike. Tendão patelar direito: sem sprints, cadência alta.\n' +
     '- Bike antes da musculação: reduza intensidade da musculação. Bike após A/B/C: Z2 apenas, nunca Z4.\n' +
-    '- "D trocado por bike": usuário substitui dia D por bike (D relocado). Pode combinar com A/B/C no mesmo dia.\n' +
+    '- "D trocado por bike": usuário troca o dia D por bike — pode SUBSTITUIR (D descartado, sem relocação) ou RELOCAR (D vai para outro dia). Pode combinar com A/B/C no mesmo dia.\n' +
     (p.bikeObs ? '- Obs ciclismo: ' + p.bikeObs + '\n' : '') +
     bikeCtx;
 }
@@ -6421,8 +6421,27 @@ function gerarOrientacaoBike(dayKey) {
 }
 
 function desfazerSubstitutoD(dayKey, diaNome, semana) {
-  // Desfaz o relocamento via snapshot
-  desfazerRelocamento();
+  var info = state.plano.diasBike && state.plano.diasBike[dayKey];
+  var foiRelocado = !(info && info.relocado === false); // legado sem flag = relocado
+  if (foiRelocado) {
+    // Desfaz o relocamento via snapshot
+    desfazerRelocamento();
+  } else {
+    // Sem relocação: restaura o dia diretamente para treino D
+    var parts = dayKey.match(/^sem(\d+)_(.+)$/);
+    if (parts) {
+      var semObj = state.plano.semanas && state.plano.semanas.find(function(s) { return s.semana === parseInt(parts[1]); });
+      if (semObj) {
+        var diaObj = (semObj.dias || semObj.agenda || []).find(function(d) { return d.dia === parts[2]; });
+        if (diaObj) {
+          diaObj.serie = 'D';
+          diaObj.tipo = 'treino';
+          diaObj.orientacao = '';
+        }
+      }
+    }
+    if (state.plano.diasStatus) delete state.plano.diasStatus[dayKey];
+  }
   // Remove entrada de bike
   if (state.plano.diasBike && state.plano.diasBike[dayKey]) {
     delete state.plano.diasBike[dayKey];
@@ -6433,11 +6452,22 @@ function desfazerSubstitutoD(dayKey, diaNome, semana) {
 }
 
 function substituirDPorBike(dayKey, diaNome, semana) {
-  aplicarRelocamento(dayKey, diaNome, semana, 'ausente');
-  // Corrige o dia: tira o status de ausente, vira dia de bike
+  // Pergunta ao usuário: substituir (D descartado) ou relocar (D vai para outro dia)?
+  var title = document.getElementById('modal-title');
+  var body = document.getElementById('modal-body');
+  var confirmBtn = document.getElementById('modal-confirm');
+  if (title) title.textContent = 'D → BIKE';
+  if (body) body.innerHTML =
+    '<p style="font-family:DM Sans,sans-serif;font-size:14px;color:var(--text);margin:0 0 12px">O que fazer com o treino D deste dia?</p>' +
+    '<button class="modal-btn" style="display:block;width:100%;margin-bottom:8px;text-align:left" onclick="closeModal();_dParaBikeSubstituir(\'' + dayKey + '\',\'' + diaNome + '\',' + semana + ')">SUBSTITUIR — o treino D é descartado, apenas pedal neste dia</button>' +
+    '<button class="modal-btn confirm" style="display:block;width:100%;text-align:left" onclick="closeModal();_dParaBikeRelocar(\'' + dayKey + '\',\'' + diaNome + '\',' + semana + ')">RELOCAR — o treino D vai para outro dia</button>';
+  if (confirmBtn) confirmBtn.style.display = 'none';
+  document.getElementById('modal').classList.add('open');
+}
+
+function _dParaBikeMarcarDia(dayKey, orientacaoTexto) {
   if (!state.plano.diasStatus) state.plano.diasStatus = {};
   delete state.plano.diasStatus[dayKey];
-  // Atualiza o dia no plano macro para tipo bike
   var parts = dayKey.match(/^sem(\d+)_(.+)$/);
   if (parts) {
     var semObj = state.plano.semanas && state.plano.semanas.find(function(s) { return s.semana === parseInt(parts[1]); });
@@ -6446,15 +6476,29 @@ function substituirDPorBike(dayKey, diaNome, semana) {
       if (diaObj) {
         diaObj.serie = 'descanso';
         diaObj.tipo = 'bike';
-        diaObj.orientacao = 'D trocado por Bike — treino D relocado.';
+        diaObj.orientacao = orientacaoTexto;
       }
     }
   }
+}
+
+function _dParaBikeRelocar(dayKey, diaNome, semana) {
+  aplicarRelocamento(dayKey, diaNome, semana, 'ausente');
+  _dParaBikeMarcarDia(dayKey, 'D trocado por Bike — treino D relocado.');
   if (!state.plano.diasBike) state.plano.diasBike = {};
-  state.plano.diasBike[dayKey] = { status: 'pendente', substitutoD: true };
+  state.plano.diasBike[dayKey] = { status: 'pendente', substitutoD: true, relocado: true };
   saveState();
   renderAgendaLinear();
   toast('D→Bike: treino D relocado. Pedal no lugar!');
+}
+
+function _dParaBikeSubstituir(dayKey, diaNome, semana) {
+  _dParaBikeMarcarDia(dayKey, 'D trocado por Bike — treino D substituído (não relocado).');
+  if (!state.plano.diasBike) state.plano.diasBike = {};
+  state.plano.diasBike[dayKey] = { status: 'pendente', substitutoD: true, relocado: false };
+  saveState();
+  renderAgendaLinear();
+  toast('D→Bike: pedal no lugar do treino D (sem relocação).');
 }
 
 function registrarBike(dayKey, status) {
@@ -9084,6 +9128,8 @@ function _dpSelect(key, day) {
 
 function closeModal() {
   document.getElementById('modal').classList.remove('open');
+  var cb = document.getElementById('modal-confirm');
+  if (cb) cb.style.display = '';
   modalCallback = null;
 }
 document.getElementById('modal').addEventListener('click', e => { if (e.target === e.currentTarget) closeModal(); });
