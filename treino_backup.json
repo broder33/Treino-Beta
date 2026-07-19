@@ -2212,6 +2212,18 @@
         "percurso": "Igapó - Sem Computador",
         "tempoTotal": "~01:00",
         "registrado": true
+      },
+      "sem7_Sábado": {
+        "status": "feito",
+        "_open": true,
+        "distancia": "25.39",
+        "tempoMov": "01:15:04",
+        "tempoTotal": "01:29:44",
+        "velocidade": "20.3",
+        "elevacao": "314",
+        "kcal": "754",
+        "percurso": "Botânico - Igapó",
+        "registrado": true
       }
     },
     "_historico": [
@@ -11374,6 +11386,16 @@
         {
           "role": "assistant",
           "content": "```json\n{\n  \"modificacoes\": {\n    \"serieLabel\": \"C\",\n    \"acoes\": [\n      {\n        \"tipo\": \"substituir\",\n        \"de\": \"Crossover\",\n        \"por\": \"Fly na Máquina\",\n        \"sets\": \"4x8\",\n        \"weight\": \"66kg\",\n        \"rest\": \"60-90s\"\n      }\n    ]\n  }\n}\n```"
+        }
+      ],
+      "sem7_Sábado": [
+        {
+          "role": "user",
+          "content": "Gere uma orientação detalhada para o treino de bike de hoje.\n\nPLANO DO DIA:\nFoco: Z2 Endurance\nDuração sugerida: 1h\nIntensidade: Ritmo confortável.\n\nCONTEXTO DA SEMANA: \n\nHISTÓRICO DE RIDES RECENTES:\nSexta: ~15kmkm, ~00:45 mov, ~20\nDomingo: 26.28km, 1:16:18 mov, 20.7\nSexta: 26.26km, 01:10:21 mov, 22.4\nQuinta: 30.73km, 01:22:50 mov, 22.3\n\nTREINOS DE MUSCULAÇÃO RECENTES: C 2026-07-16, B 2026-07-03, D 2026-07-02\n\nPERFIL:\n- Meta: 4 rides/semana\n- Objetivo: Perda de gordura, resistência, cardio e ganho de força\n- Timing preferido: flexivel\n- Restrição: tendão patelar direito — sem sprints, cadência alta (>85rpm)\n\nIncluir na orientação: distância sugerida, tempo total, estrutura (aquecimento/desenvolvimento/volta à calma), zona FC alvo, cadência recomendada, pontos de atenção."
+        },
+        {
+          "role": "assistant",
+          "content": "# 🚴‍♂️ ORIENTAÇÃO DE TREINO — SÁBADO, 19/07/2026\n\n## OBJETIVO DO DIA\n**Z2 Endurance** — Base aeróbica, queima de gordura, recuperação ativa\n\n---\n\n## 📊 PARÂMETROS DO RIDE\n\n**Distância sugerida:** 25-30km  \n**Tempo total:** ~1h10-1h20 (incluindo aquecimento e volta à calma)  \n**Tempo em movimento:** ~1h  \n\n**Zonas de Frequência Cardíaca:**\n- **Z2:** 65-75% FCmax (~110-130bpm estimado para seu perfil)\n- Você deve conseguir **falar frases completas** durante todo o percurso\n\n**Cadência recomendada:** 85-95rpm (SEMPRE)  \n⚠️ **Crítico:** Tendão patelar direito — cadência ALTA, resistência BAIXA. Nunca force engrenagens pesadas.\n\n---\n\n## 🗺️ ESTRUTURA DO TREINO\n\n### **1. AQUECIMENTO (10min)**\n- **0-5min:** Cadência livre 75-85rpm, Z1 (~60-65% FCmax)\n- **5-10min:** Elevar gradualmente para 85-90rpm, entrar em Z2 (~70% FCmax)\n- **Objetivo:** Preparar articulações, elevar temperatura corporal, ativar sistema cardiovascular\n\n### **2. DESENVOLVIMENTO — Z2 SUSTENTADO (45-50min)**\n- **Cadência:** 85-95rpm constante (prioridade absoluta)\n- **FC:** 65-75% FCmax — ritmo confortável, conversa fluida\n- **Percurso:** Escolha rota plana ou levemente ondulada. Evite subidas íngremes que forcem você a reduzir cadência ou aumentar muito a resistência\n- **Foco mental:** Respiração ritmada, pedal redondo (aplicar força em todo o ciclo da pedalada, não só empurrando para baixo)\n\n**Pontos de atenção:**\n- ❌ **NÃO acelere** em trechos planos — mantenha ritmo constante\n- ❌ **NÃO force** subidas — se a cadência cair abaixo de 80rpm, troque a marcha imediatamente (mesmo que reduza a velocidade)\n- ✅ **Monitore joelho direito** — qualquer desconforto, reduza resistência/cadência ou pare\n\n### **3. VOLTA À CALMA (10-15min)**\n- **50-60min:** Reduzir gradualmente intensidade, manter cadência 80-85rpm\n- **Últimos 5min:** Z1 leve (~60% FCmax), cadência livre 70-80rpm\n- **Objetivo:** Remover lactato residual, normalizar FC, preparar corpo para recuperação\n\n---\n\n## 🎯 CONTROLE DE INTENSIDADE\n\n| **Parâmetro** | **Alvo** | **Indicador prático** |\n|---|---|---|\n| **Zona FC** | 65-75% | Consegue falar frases completas sem ofegar |\n| **Cadência** | 85-95rpm | Pernas leves, sem força excessiva |\n| **Respiração** | Ritmada, nasal | Inspiração nasal confortável (se precisar respirar pela boca, está acima de Z2) |\n| **Velocidade média** | ~20-23km/h | Compatível com histórico recente (sextas ~20-22km/h, domingos ~20-21km/h) |\n\n---\n\n## ⚠️ RESTRIÇÕES E PRECAUÇÕES\n\n### **Tendão Patelar Direito**\n- **Regra de ouro:** Cadência SEMPRE acima de 85rpm\n- **Evite:** Sprints, arranques, subidas forçadas, engrenagens pesadas\n- **Sinal de alerta:** Dor/desconforto no joelho → PARE imediatamente, reduza carga ou encerre o treino\n\n### **Musculação Recente**\n- Último treino: **C (Peito/Tríceps) em 16/07** — sem impacto significativo nas pernas\n- Último **D (Pernas):** 02/07 — **17 dias atrás** → pernas totalmente recuperadas, sem restrições adicionais por fadiga muscular\n\n---\n\n## 📈 CONTEXTO NO CICLO\n\n**Rides realizados:** 4/4 da meta semanal (excelente consistência!)  \n**Histórico recente:** Velocidades médias consistentes (20-22km/h), durações adequadas (1h-1h30)  \n\n**Objetivo deste ride:**  \nConsolidar base aeróbica Z2, manter volume semanal, promover recuperação ativa sem impacto nas pernas (já que você não treinou D esta semana e pode considerar sessão de pernas nos próximos dias).\n\n---\n\n## ✅ CHECKLIST PRÉ-RIDE\n\n- [ ] Hidratação: 500ml água antes de sair\n- [ ] Garrafa cheia na bike\n- [ ] GPS carregado e sincronizado\n- [ ] Verificar pressão dos pneus (110-120psi para asfalto)\n- [ ] Cadência > 85rpm — ajustar marchas ANTES de sentir resistência\n- [ ] Joelho: ao menor sinal de desconforto, encerrar treino\n\n---\n\n## 🎯 META DO DIA\n\n**Distância:** 25-30km  \n**Tempo mov:** ~1h  \n**Zona dominante:** Z2 (>90% do tempo em desenvolvimento)  \n**Cadência média:** >85rpm  \n**Sensação pós-treino:** Energizado, sem fadiga excessiva, joelhos sem dor  \n\n---\n\n**Bom pedal! 🚴‍♂️💨**  \nFoque em **consistência, não em velocidade**. Z2 é sobre volume sustentável — a mágica acontece na repetição, não na intensidade pontual."
         }
       ]
     },
@@ -28224,12 +28246,31 @@
     "bikeObjetivo": "Perda de gordura, resistência, cardio e ganho de força"
   },
   "planoDia": 0,
-  "_updatedAt": "2026-07-17T23:19:01.158Z",
+  "_updatedAt": "2026-07-19T17:20:47.731Z",
   "lastBibTab": "workout-core",
   "_migrations": {
     "bikeFocoCleared": true
   },
   "bikeHistory": [
+    {
+      "id": "x3g9lt7z",
+      "type": "bike",
+      "date": "2026-07-18T03:00:00.000Z",
+      "dayKey": "sem7_Sábado",
+      "semana": "7",
+      "dia": "Sábado",
+      "foco": "",
+      "duracao": "",
+      "distancia": "25.39",
+      "tempoMov": "01:15:04",
+      "tempoTotal": "01:29:44",
+      "velocidade": "20.3",
+      "elevacao": "314",
+      "kcal": "754",
+      "percurso": "Botânico - Igapó",
+      "timingReal": "",
+      "registeredAt": "2026-07-19T17:20:24.094Z"
+    },
     {
       "id": "xfvsurm7",
       "type": "bike",
@@ -28239,7 +28280,7 @@
       "dia": "Sexta",
       "foco": "",
       "duracao": "",
-      "distancia": "~15km",
+      "distancia": "~15",
       "tempoMov": "~00:45",
       "tempoTotal": "~01:00",
       "velocidade": "~20",

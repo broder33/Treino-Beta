@@ -1410,7 +1410,7 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
     <button id="undo-btn" onclick="undoAction()" title="Nada para desfazer" disabled style="font-family:'DM Mono',monospace;font-size:11px;background:none;border:1px solid var(--border);color:var(--muted);border-radius:4px;padding:3px 10px;cursor:default;opacity:0.3;transition:opacity .2s">↩</button>
     <button class="btn btn-header-only" onclick="exportData()">EXPORTAR</button>
     <button class="btn btn-header-only" onclick="importData()">IMPORTAR</button>
-    <span style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted);margin-left:4px">v0.9.0.29</span>
+    <span style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted);margin-left:4px">v0.9.0.31</span>
     <div id="auth-status" style="display:flex;align-items:center;margin-left:4px"></div>
 
     <div class="mobile-menu-wrap" id="mobile-menu-wrap">
@@ -6532,6 +6532,12 @@ function desfazerBike(dayKey) {
 function updateBikeField(dayKey, field, value) {
   if (!state.plano.diasBike) state.plano.diasBike = {};
   if (!state.plano.diasBike[dayKey]) state.plano.diasBike[dayKey] = { status: 'feito' };
+  // Sanitiza unidades digitadas pelo usuário — a UI acrescenta a unidade na exibição
+  if (typeof value === 'string') {
+    if (field === 'distancia') value = value.replace(/\s*km\s*$/i, '');
+    else if (field === 'elevacao') value = value.replace(/\s*m\s*$/i, '');
+    else if (field === 'kcal') value = value.replace(/\s*kcal\s*$/i, '');
+  }
   state.plano.diasBike[dayKey][field] = value;
   saveState();
 }
@@ -6548,10 +6554,13 @@ function registrarBikeHistorico(dayKey) {
   if (!bikeInfo) return;
   var bikePlano = _getBikePlano(dayKey);
   var m = dayKey.match(/^sem(\d+)_(.+)$/);
+  // date = dia real do treino na agenda; registeredAt = momento do registro
+  var dataDia = m ? _calcDataDia(parseInt(m[1]), m[2], state.plano.dataInicio) : null;
   var entry = {
     id: uid(),
     type: 'bike',
-    date: new Date().toISOString(),
+    date: dataDia ? dataDia.toISOString() : new Date().toISOString(),
+    registeredAt: new Date().toISOString(),
     dayKey: dayKey,
     semana: m ? m[1] : '?',
     dia: m ? m[2] : '?',
