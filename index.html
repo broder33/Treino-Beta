@@ -1410,7 +1410,7 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
     <button id="undo-btn" onclick="undoAction()" title="Nada para desfazer" disabled style="font-family:'DM Mono',monospace;font-size:11px;background:none;border:1px solid var(--border);color:var(--muted);border-radius:4px;padding:3px 10px;cursor:default;opacity:0.3;transition:opacity .2s">↩</button>
     <button class="btn btn-header-only" onclick="exportData()">EXPORTAR</button>
     <button class="btn btn-header-only" onclick="importData()">IMPORTAR</button>
-    <span style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted);margin-left:4px">v0.9.0.31</span>
+    <span style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted);margin-left:4px">v0.9.0.37</span>
     <div id="auth-status" style="display:flex;align-items:center;margin-left:4px"></div>
 
     <div class="mobile-menu-wrap" id="mobile-menu-wrap">
@@ -1615,6 +1615,11 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
 <!-- CICLOS -->
 <div class="view" id="view-ciclos">
   <div id="ciclos-container" style="padding:0 0 40px"></div>
+</div>
+
+<!-- BIKE -->
+<div class="view" id="view-bike">
+  <div id="bike-container" style="padding:0 0 40px"></div>
 </div>
 
 <!-- AI -->
@@ -1833,6 +1838,12 @@ function renderTabs() {
   tai.textContent = '⬡ PLANO';
   tai.onclick = () => switchTab('ia');
   tabs.appendChild(tai);
+
+  const tbike = document.createElement('button');
+  tbike.className = 'tab' + (currentTab === 'bike' ? ' active' : '');
+  tbike.innerHTML = '&#128690; BIKE';
+  tbike.onclick = () => switchTab('bike');
+  tabs.appendChild(tbike);
 }
 
 function switchTab(id) {
@@ -1847,6 +1858,7 @@ function switchTab(id) {
   currentTab = id;
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
   if (id === 'history') document.getElementById('view-history').classList.add('active');
+  else if (id === 'bike') { document.getElementById('view-bike').classList.add('active'); renderBikeTab(); }
   else if (id === 'agenda') { document.getElementById('view-agenda').classList.add('active'); renderAgendaLinear(); }
   else if (id === 'perfil') { document.getElementById('view-perfil').classList.add('active'); setTimeout(loadPerfil, 50); }
   else if (id === 'ia') {
@@ -6585,6 +6597,348 @@ function registrarBikeHistorico(dayKey) {
   toast('Ride registrado no histórico ✓');
 }
 
+// ─── BIKE: ODÔMETRO & MANUTENÇÃO (aba Bike) ───
+
+function _bikeOdoInit() {
+  if (!state.bikeOdo) state.bikeOdo = null; // null = não configurado
+}
+
+function _bikeOdoLog(tipo, dados) {
+  var o = state.bikeOdo;
+  if (!o.leituras) o.leituras = [];
+  var entry = Object.assign({ id: uid(), tipo: tipo, data: new Date().toISOString() }, dados || {});
+  o.leituras.unshift(entry);
+  return entry;
+}
+
+// Pontos reais (data, total) em ordem cronológica — base do motor de estimativas
+function _bikeOdoPontosReais() {
+  var o = state.bikeOdo;
+  if (!o) return [];
+  var pontos = [];
+  (o.leituras || []).slice().reverse().forEach(function(l) {
+    if (l.totalApos !== undefined && l.totalApos !== null) {
+      pontos.push({ data: new Date(l.data).getTime(), total: l.totalApos });
+    }
+  });
+  return pontos;
+}
+
+// Estima o odômetro total numa data qualquer. Retorna {km, estimado}
+function bikeEstimarKmNaData(dataISO) {
+  var o = state.bikeOdo;
+  if (!o) return null;
+  var t = new Date(dataISO).getTime();
+  var pontos = _bikeOdoPontosReais();
+  if (pontos.length === 0) return { km: o.total, estimado: true };
+  // Antes do primeiro ponto
+  if (t <= pontos[0].data) return { km: pontos[0].total, estimado: t !== pontos[0].data };
+  // Entre dois pontos: interpolação linear
+  for (var i = 0; i < pontos.length - 1; i++) {
+    if (t >= pontos[i].data && t <= pontos[i+1].data) {
+      if (t === pontos[i].data) return { km: pontos[i].total, estimado: false };
+      if (t === pontos[i+1].data) return { km: pontos[i+1].total, estimado: false };
+      var frac = (t - pontos[i].data) / (pontos[i+1].data - pontos[i].data);
+      return { km: pontos[i].total + frac * (pontos[i+1].total - pontos[i].total), estimado: true };
+    }
+  }
+  // Depois do último ponto: projeta pela média km/dia dos últimos ~30 dias com dados
+  var ultimo = pontos[pontos.length - 1];
+  var kmDia = _bikeOdoMediaKmDia();
+  var dias = (t - ultimo.data) / 86400000;
+  return { km: ultimo.total + kmDia * dias, estimado: true };
+}
+
+// Média km/dia com base nos últimos ~30 dias de leituras reais (fallback: média histórica)
+function _bikeOdoMediaKmDia() {
+  var pontos = _bikeOdoPontosReais();
+  if (pontos.length < 2) return 0;
+  var fim = pontos[pontos.length - 1];
+  var alvo = fim.data - 30 * 86400000;
+  // Ponto real mais próximo de 30 dias atrás (ou o primeiro)
+  var inicio = pontos[0];
+  for (var i = pontos.length - 2; i >= 0; i--) {
+    inicio = pontos[i];
+    if (pontos[i].data <= alvo) break;
+  }
+  var dias = (fim.data - inicio.data) / 86400000;
+  if (dias <= 0) return 0;
+  return (fim.total - inicio.total) / dias;
+}
+
+function renderBikeTab() {
+  _bikeOdoInit();
+  var c = document.getElementById('bike-container');
+  if (!c) return;
+  var o = state.bikeOdo;
+
+  if (!o) {
+    // Setup inicial
+    c.innerHTML =
+      '<div style="max-width:480px;margin:24px auto;padding:0 16px">' +
+      '<div style="font-family:Bebas Neue,sans-serif;font-size:26px;color:var(--accent);letter-spacing:2px;margin-bottom:4px">CONFIGURAR BIKE</div>' +
+      '<p style="font-family:DM Sans,sans-serif;font-size:13px;color:var(--muted);margin:0 0 16px">O odômetro total conta apenas os km rodados por você desde a compra. Insira os dados iniciais:</p>' +
+      '<label style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;color:var(--muted)">NOME / MODELO DA BIKE</label>' +
+      '<input id="bike-setup-nome" type="text" placeholder="ex: Colnago" style="display:block;width:100%;box-sizing:border-box;margin:4px 0 12px;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:DM Mono,monospace">' +
+      '<label style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;color:var(--muted)">DATA DA COMPRA (dd/mm/aaaa)</label>' +
+      '<div style="display:flex;gap:6px;margin:4px 0 8px">' +
+      '<input id="bike-setup-data" type="text" inputmode="numeric" placeholder="dd/mm/aaaa" style="flex:1;box-sizing:border-box;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:DM Mono,monospace">' +
+      '<button type="button" onclick="toggleDatepickerInline(\'bikecompra\',\'bike-dp-wrap\')" title="Abrir calendário" style="padding:0 14px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);cursor:pointer;font-size:16px">&#128197;</button>' +
+      '</div>' +
+      '<div id="bike-dp-wrap" style="display:none;margin:0 0 12px">' + datepickerInlineHTML('bikecompra', 'bike-setup-data') + '</div>' +
+      '<label style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;color:var(--muted)">KM TOTAL RODADO POR VOCÊ ATÉ HOJE</label>' +
+      '<input id="bike-setup-total" type="number" step="0.1" min="0" placeholder="ex: 120" style="display:block;width:100%;box-sizing:border-box;margin:4px 0 12px;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:DM Mono,monospace">' +
+      '<label style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;color:var(--muted)">LEITURA ATUAL DO ODÔMETRO PARCIAL (GPS)</label>' +
+      '<input id="bike-setup-parcial" type="number" step="0.1" min="0" placeholder="ex: 40" style="display:block;width:100%;box-sizing:border-box;margin:4px 0 12px;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:DM Mono,monospace">' +
+      '<label style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;color:var(--muted)">CONDIÇÃO DA BIKE NA COMPRA</label>' +
+      '<div style="display:flex;gap:8px;margin:4px 0 16px">' +
+      '<label style="flex:1;font-family:DM Mono,monospace;font-size:11px;color:var(--text);border:1px solid var(--border);border-radius:8px;padding:10px;text-align:center;cursor:pointer"><input type="radio" name="bike-setup-condicao" value="usada" checked style="margin-right:6px">USADA</label>' +
+      '<label style="flex:1;font-family:DM Mono,monospace;font-size:11px;color:var(--text);border:1px solid var(--border);border-radius:8px;padding:10px;text-align:center;cursor:pointer"><input type="radio" name="bike-setup-condicao" value="nova" style="margin-right:6px">NOVA</label>' +
+      '</div>' +
+      '<button onclick="bikeSetupConfirmar()" style="font-family:DM Mono,monospace;font-size:11px;letter-spacing:1px;padding:10px 20px;border-radius:8px;border:none;background:var(--accent);color:#000;cursor:pointer;width:100%">CONFIGURAR ODÔMETRO</button>' +
+      '</div>';
+    return;
+  }
+
+  // Migração: odômetro configurado antes da flag de condição
+  if (o.usada === undefined) {
+    c.innerHTML =
+      '<div style="max-width:480px;margin:24px auto;padding:0 16px;text-align:center">' +
+      '<p style="font-family:DM Sans,sans-serif;font-size:13px;color:var(--text)">A bike foi comprada nova ou usada? (Define se o odômetro exibe a marcação "&gt;" de km mínima.)</p>' +
+      '<div style="display:flex;gap:8px">' +
+      '<button onclick="state.bikeOdo.usada=true;saveState();renderBikeTab()" style="flex:1;font-family:DM Mono,monospace;font-size:11px;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);cursor:pointer">USADA</button>' +
+      '<button onclick="state.bikeOdo.usada=false;saveState();renderBikeTab()" style="flex:1;font-family:DM Mono,monospace;font-size:11px;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);cursor:pointer">NOVA</button>' +
+      '</div></div>';
+    return;
+  }
+
+  var dataFmt = o.dataUltima ? new Date(o.dataUltima).toLocaleDateString('pt-BR') : '—';
+  var kmDia = _bikeOdoMediaKmDia();
+  var logHTML = (o.leituras || []).slice(0, 20).map(function(l) {
+    var d = new Date(l.data).toLocaleDateString('pt-BR');
+    var desc = '';
+    if (l.tipo === 'setup') desc = 'Configuração inicial — total ' + l.totalApos + 'km, parcial ' + (l.parcial || 0) + 'km';
+    else if (l.tipo === 'parcial') desc = 'Parcial ' + l.parcial + 'km (+' + l.delta + 'km) — total ' + l.totalApos + 'km';
+    else if (l.tipo === 'reset') desc = 'RESET do parcial (era ' + (l.parcialAnterior || 0) + 'km)';
+    else if (l.tipo === 'data') desc = 'Bike parada — apenas data atualizada';
+    else if (l.tipo === 'edicao') desc = 'Correção de leitura — parcial ' + l.parcial + 'km, total ' + l.totalApos + 'km';
+    else if (l.tipo === 'edicao-total') desc = 'EDIÇÃO MANUAL do total — ' + l.totalApos + 'km';
+    var obsHTML = l.obs ? ' <span style="color:var(--accent)">— ' + escHtml(l.obs) + '</span>' : '';
+    return '<div style="padding:8px 0;border-bottom:1px solid var(--border);font-family:DM Mono,monospace;font-size:11px;color:var(--text)"><span style="color:var(--muted)">' + d + '</span> · ' + desc + obsHTML + '</div>';
+  }).join('');
+
+  c.innerHTML =
+    '<div style="max-width:560px;margin:16px auto;padding:0 16px">' +
+    '<input value="' + escHtml(o.nome || '') + '" placeholder="Nome/modelo da bike" onchange="state.bikeOdo.nome=this.value.trim()||\'Bike\';saveState()" style="display:block;width:100%;box-sizing:border-box;margin:0 0 12px;padding:6px 2px;border:none;border-bottom:1px solid var(--border);background:transparent;color:var(--accent);font-family:Bebas Neue,sans-serif;font-size:24px;letter-spacing:2px">' +
+    '<div style="display:flex;gap:12px;flex-wrap:wrap">' +
+    '<div style="flex:1;min-width:150px;background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:16px;text-align:center">' +
+    '<div style="font-family:DM Mono,monospace;font-size:9px;letter-spacing:2px;color:var(--muted)">ODÔMETRO TOTAL' + (o.usada ? ' <span title="Bike usada — km real é maior que o registrado">(BIKE USADA)</span>' : '') + '</div>' +
+    '<div style="font-family:Bebas Neue,sans-serif;font-size:38px;color:var(--accent);line-height:1.1">' + (o.usada ? '&gt;' : '') + (Math.round(o.total * 10) / 10) + '<span style="font-size:16px"> km</span></div>' +
+    '</div>' +
+    '<div style="flex:1;min-width:150px;background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:16px;text-align:center">' +
+    '<div style="font-family:DM Mono,monospace;font-size:9px;letter-spacing:2px;color:var(--muted)">PARCIAL (GPS)</div>' +
+    '<div style="font-family:Bebas Neue,sans-serif;font-size:38px;color:var(--text);line-height:1.1">' + (Math.round(o.parcial * 10) / 10) + '<span style="font-size:16px"> km</span></div>' +
+    '</div>' +
+    '</div>' +
+    '<div style="font-family:DM Mono,monospace;font-size:10px;color:var(--muted);margin:10px 2px">Última atualização: ' + dataFmt + (kmDia > 0 ? ' · média ' + (Math.round(kmDia * 10) / 10) + ' km/dia (30d)' : '') + '</div>' +
+    '<div style="display:flex;gap:8px;flex-wrap:wrap;margin:12px 0 20px">' +
+    '<button onclick="bikeAtualizarParcialPrompt()" style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;padding:8px 14px;border-radius:8px;border:none;background:var(--accent);color:#000;cursor:pointer">ATUALIZAR PARCIAL</button>' +
+    '<button onclick="bikeResetParcial()" style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;padding:8px 14px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text);cursor:pointer">RESET PARCIAL</button>' +
+    '<button onclick="bikeAtualizarData()" style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;padding:8px 14px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer">BIKE PARADA (SÓ DATA)</button>' +
+    '<button onclick="bikeEditarTotal()" style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;padding:8px 14px;border-radius:8px;border:1px solid var(--perdido,#a33);background:transparent;color:var(--muted);cursor:pointer">EDITAR TOTAL</button>' +
+    '</div>' +
+    '<div style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:2px;color:var(--muted);margin-bottom:4px">HISTÓRICO DE LEITURAS</div>' +
+    (logHTML || '<div style="font-family:DM Sans,sans-serif;font-size:12px;color:var(--muted)">Nenhuma leitura registrada.</div>') +
+    '</div>';
+}
+
+function bikeSetupConfirmar() {
+  var dataStr = (document.getElementById('bike-setup-data').value || '').trim();
+  var total = parseFloat(document.getElementById('bike-setup-total').value);
+  var parcial = parseFloat(document.getElementById('bike-setup-parcial').value);
+  var m = dataStr.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (!m) { toast('Data inválida — use dd/mm/aaaa'); return; }
+  if (isNaN(total) || total < 0) { toast('Km total inválido'); return; }
+  if (isNaN(parcial) || parcial < 0) { toast('Parcial inválido'); return; }
+  var dataCompra = new Date(parseInt(m[3]), parseInt(m[2]) - 1, parseInt(m[1]));
+  var condicaoEl = document.querySelector('input[name="bike-setup-condicao"]:checked');
+  var nomeEl = document.getElementById('bike-setup-nome');
+  state.bikeOdo = {
+    nome: (nomeEl && nomeEl.value.trim()) || 'Bike',
+    dataCompra: dataCompra.toISOString(),
+    usada: !condicaoEl || condicaoEl.value === 'usada',
+    total: total,
+    parcial: parcial,
+    dataUltima: new Date().toISOString(),
+    leituras: []
+  };
+  _bikeOdoLog('setup', { parcial: parcial, totalApos: total });
+  saveState();
+  renderBikeTab();
+  toast('Odômetro configurado ✓');
+}
+
+function bikeAtualizarParcialPrompt() {
+  var title = document.getElementById('modal-title');
+  var body = document.getElementById('modal-body');
+  var confirmBtn = document.getElementById('modal-confirm');
+  if (title) title.textContent = 'ATUALIZAR PARCIAL';
+  if (body) body.innerHTML =
+    '<p style="font-family:DM Sans,sans-serif;font-size:13px;color:var(--text);margin:0 0 10px">Leitura atual do odômetro parcial do GPS (atual: ' + state.bikeOdo.parcial + 'km):</p>' +
+    '<input id="bike-novo-parcial" type="number" step="0.1" min="0" style="display:block;width:100%;box-sizing:border-box;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:DM Mono,monospace;margin-bottom:10px">' +
+    '<input id="bike-obs-parcial" type="text" placeholder="Observação (opcional — ex: limpeza da corrente)" style="display:block;width:100%;box-sizing:border-box;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:DM Sans,sans-serif;font-size:12px;margin-bottom:10px">' +
+    '<button onclick="bikeAtualizarParcialCalcular()" style="display:block;width:100%;font-family:DM Mono,monospace;font-size:11px;padding:10px;border-radius:8px;border:none;background:var(--accent);color:#000;cursor:pointer">CALCULAR</button>';
+  if (confirmBtn) confirmBtn.style.display = 'none';
+  document.getElementById('modal').classList.add('open');
+  setTimeout(function() { var el = document.getElementById('bike-novo-parcial'); if (el) el.focus(); }, 100);
+}
+
+function bikeAtualizarParcialCalcular() {
+  var novo = parseFloat(document.getElementById('bike-novo-parcial').value);
+  if (isNaN(novo) || novo < 0) { toast('Valor inválido'); return; }
+  var obsEl = document.getElementById('bike-obs-parcial');
+  window._bikeObsTmp = (obsEl && obsEl.value.trim()) || '';
+  var o = state.bikeOdo;
+  var body = document.getElementById('modal-body');
+  var delta = Math.round((novo - o.parcial) * 10) / 10;
+
+  if (delta === 0) {
+    body.innerHTML =
+      '<p style="font-family:DM Sans,sans-serif;font-size:13px;color:var(--text);margin:0 0 10px">Parcial sem alteração (' + novo + 'km). Apenas atualizar a data da leitura?</p>' +
+      '<button onclick="bikeAtualizarData();closeModal()" style="display:block;width:100%;font-family:DM Mono,monospace;font-size:11px;padding:10px;border-radius:8px;border:none;background:var(--accent);color:#000;cursor:pointer">SIM — ATUALIZAR DATA</button>';
+    return;
+  }
+
+  if (delta > 0) {
+    var novoTotal = Math.round((o.total + delta) * 10) / 10;
+    body.innerHTML =
+      '<p style="font-family:DM Sans,sans-serif;font-size:13px;color:var(--text);margin:0 0 10px">Parcial ' + o.parcial + 'km → ' + novo + 'km (<b>+' + delta + 'km</b>)<br>Total: ' + o.total + 'km → <b>' + novoTotal + 'km</b></p>' +
+      '<button onclick="bikeAtualizarParcialAplicar(' + novo + ',' + delta + ')" style="display:block;width:100%;font-family:DM Mono,monospace;font-size:11px;padding:10px;border-radius:8px;border:none;background:var(--accent);color:#000;cursor:pointer;margin-bottom:8px">CONFIRMAR</button>' +
+      '<button onclick="bikeAtualizarParcialPrompt()" style="display:block;width:100%;font-family:DM Mono,monospace;font-size:11px;padding:10px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer">VOLTAR (corrigir valor)</button>';
+    return;
+  }
+
+  // delta < 0 — valor menor que o atual: perguntar o motivo
+  body.innerHTML =
+    '<p style="font-family:DM Sans,sans-serif;font-size:13px;color:var(--text);margin:0 0 10px">O valor informado (' + novo + 'km) é <b>menor</b> que o parcial atual (' + o.parcial + 'km). Por quê?</p>' +
+    '<button onclick="bikeAtualizarParcialPrompt()" style="display:block;width:100%;font-family:DM Mono,monospace;font-size:11px;padding:10px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text);cursor:pointer;margin-bottom:8px;text-align:left">DIGITEI ERRADO — voltar e corrigir</button>' +
+    '<button onclick="bikeAtualizarParcialZeradoNaoReportado(' + novo + ')" style="display:block;width:100%;font-family:DM Mono,monospace;font-size:11px;padding:10px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text);cursor:pointer;margin-bottom:8px;text-align:left">O PARCIAL FOI ZERADO e não reportei — os ' + novo + 'km contam a partir do zero</button>' +
+    '<button onclick="bikeAtualizarParcialCorrigirAnterior(' + novo + ')" style="display:block;width:100%;font-family:DM Mono,monospace;font-size:11px;padding:10px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text);cursor:pointer;text-align:left">A LEITURA ANTERIOR ESTAVA ERRADA — corrigir (total será ajustado para baixo)</button>';
+}
+
+function bikeAtualizarParcialAplicar(novo, delta) {
+  var o = state.bikeOdo;
+  o.parcial = novo;
+  o.total = Math.round((o.total + delta) * 10) / 10;
+  o.dataUltima = new Date().toISOString();
+  _bikeOdoLog('parcial', { parcial: novo, delta: delta, totalApos: o.total, obs: window._bikeObsTmp || '' });
+  window._bikeObsTmp = '';
+  saveState();
+  closeModal();
+  renderBikeTab();
+  toast('Odômetro atualizado: total ' + o.total + 'km ✓');
+}
+
+function bikeAtualizarParcialZeradoNaoReportado(novo) {
+  var o = state.bikeOdo;
+  _bikeOdoLog('reset', { parcialAnterior: o.parcial, obs: window._bikeObsTmp || '' });
+  o.parcial = 0;
+  var delta = novo;
+  var novoTotal = Math.round((o.total + delta) * 10) / 10;
+  var body = document.getElementById('modal-body');
+  body.innerHTML =
+    '<p style="font-family:DM Sans,sans-serif;font-size:13px;color:var(--text);margin:0 0 10px">Zeragem registrada. Parcial 0km → ' + novo + 'km (<b>+' + delta + 'km</b>)<br>Total: ' + o.total + 'km → <b>' + novoTotal + 'km</b></p>' +
+    '<button onclick="bikeAtualizarParcialAplicar(' + novo + ',' + delta + ')" style="display:block;width:100%;font-family:DM Mono,monospace;font-size:11px;padding:10px;border-radius:8px;border:none;background:var(--accent);color:#000;cursor:pointer">CONFIRMAR</button>';
+  saveState();
+}
+
+function bikeAtualizarParcialCorrigirAnterior(novo) {
+  var o = state.bikeOdo;
+  var delta = Math.round((novo - o.parcial) * 10) / 10; // negativo
+  var novoTotal = Math.round((o.total + delta) * 10) / 10;
+  var body = document.getElementById('modal-body');
+  body.innerHTML =
+    '<p style="font-family:DM Sans,sans-serif;font-size:13px;color:var(--text);margin:0 0 10px">Correção: parcial ' + o.parcial + 'km → ' + novo + 'km (<b>' + delta + 'km</b>)<br>Total: ' + o.total + 'km → <b>' + novoTotal + 'km</b></p>' +
+    '<button onclick="bikeAtualizarParcialAplicarCorrecao(' + novo + ',' + delta + ')" style="display:block;width:100%;font-family:DM Mono,monospace;font-size:11px;padding:10px;border-radius:8px;border:none;background:var(--accent);color:#000;cursor:pointer">CONFIRMAR CORREÇÃO</button>';
+}
+
+function bikeAtualizarParcialAplicarCorrecao(novo, delta) {
+  var o = state.bikeOdo;
+  o.parcial = novo;
+  o.total = Math.round((o.total + delta) * 10) / 10;
+  o.dataUltima = new Date().toISOString();
+  _bikeOdoLog('edicao', { parcial: novo, delta: delta, totalApos: o.total, obs: window._bikeObsTmp || '' });
+  window._bikeObsTmp = '';
+  saveState();
+  closeModal();
+  renderBikeTab();
+  toast('Leitura corrigida: total ' + o.total + 'km ✓');
+}
+
+function bikeResetParcial() {
+  var title = document.getElementById('modal-title');
+  var body = document.getElementById('modal-body');
+  var confirmBtn = document.getElementById('modal-confirm');
+  if (title) title.textContent = 'RESET PARCIAL';
+  if (body) body.innerHTML =
+    '<p style="font-family:DM Sans,sans-serif;font-size:13px;color:var(--text);margin:0 0 10px">Isso irá zerar o odômetro parcial (atual: ' + state.bikeOdo.parcial + 'km). O total não muda.</p>' +
+    '<input id="bike-obs-reset" type="text" placeholder="Observação (opcional — ex: troca de corrente)" style="display:block;width:100%;box-sizing:border-box;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:DM Sans,sans-serif;font-size:12px;margin-bottom:10px">' +
+    '<button onclick="bikeResetParcialAplicar()" style="display:block;width:100%;font-family:DM Mono,monospace;font-size:11px;padding:10px;border-radius:8px;border:none;background:var(--accent);color:#000;cursor:pointer">CONFIRMAR RESET</button>';
+  if (confirmBtn) confirmBtn.style.display = 'none';
+  document.getElementById('modal').classList.add('open');
+}
+
+function bikeResetParcialAplicar() {
+  var o = state.bikeOdo;
+  var obsEl = document.getElementById('bike-obs-reset');
+  _bikeOdoLog('reset', { parcialAnterior: o.parcial, obs: (obsEl && obsEl.value.trim()) || '' });
+  o.parcial = 0;
+  o.dataUltima = new Date().toISOString();
+  saveState();
+  closeModal();
+  renderBikeTab();
+  toast('Parcial zerado ✓');
+}
+
+function bikeAtualizarData() {
+  var o = state.bikeOdo;
+  o.dataUltima = new Date().toISOString();
+  _bikeOdoLog('data', { totalApos: o.total });
+  saveState();
+  closeModal();
+  renderBikeTab();
+  toast('Data atualizada — bike sem rodagem no período ✓');
+}
+
+function bikeEditarTotal() {
+  var title = document.getElementById('modal-title');
+  var body = document.getElementById('modal-body');
+  var confirmBtn = document.getElementById('modal-confirm');
+  if (title) title.textContent = 'EDITAR TOTAL';
+  if (body) body.innerHTML =
+    '<p style="font-family:DM Sans,sans-serif;font-size:12px;color:var(--muted);margin:0 0 10px">⚠ Editar o total afeta os cálculos de manutenção. Use para inserir km manualmente quando o GPS não estiver disponível (ex: bateria acabou) — o parcial não é alterado.</p>' +
+    '<p style="font-family:DM Sans,sans-serif;font-size:13px;color:var(--text);margin:0 0 10px">Novo valor do odômetro total (atual: ' + state.bikeOdo.total + 'km):</p>' +
+    '<input id="bike-novo-total" type="number" step="0.1" min="0" style="display:block;width:100%;box-sizing:border-box;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:DM Mono,monospace;margin-bottom:10px">' +
+    '<input id="bike-obs-total" type="text" placeholder="Observação (opcional — ex: GPS sem bateria, km estimada do trajeto)" style="display:block;width:100%;box-sizing:border-box;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:DM Sans,sans-serif;font-size:12px;margin-bottom:10px">' +
+    '<button onclick="bikeEditarTotalAplicar()" style="display:block;width:100%;font-family:DM Mono,monospace;font-size:11px;padding:10px;border-radius:8px;border:none;background:var(--accent);color:#000;cursor:pointer">APLICAR NOVO TOTAL</button>';
+  if (confirmBtn) confirmBtn.style.display = 'none';
+  document.getElementById('modal').classList.add('open');
+}
+
+function bikeEditarTotalAplicar() {
+  var novo = parseFloat(document.getElementById('bike-novo-total').value);
+  if (isNaN(novo) || novo < 0) { toast('Valor inválido'); return; }
+  var o = state.bikeOdo;
+  var obsEl = document.getElementById('bike-obs-total');
+  o.total = Math.round(novo * 10) / 10;
+  o.dataUltima = new Date().toISOString();
+  _bikeOdoLog('edicao-total', { totalApos: o.total, obs: (obsEl && obsEl.value.trim()) || '' });
+  saveState();
+  closeModal();
+  renderBikeTab();
+  toast('Total editado: ' + o.total + 'km ✓');
+}
+
 function corrigirDiaComoBike(dayKey, serieLabel, bikeData) {
   // 1. Desfaz conclusao — remove status e entrada do historico
   if (state.plano.diasStatus) delete state.plano.diasStatus[dayKey];
@@ -9131,14 +9485,49 @@ function _dpSelect(key, day) {
   st.selected = new Date(st.year, st.month, day, 12, 0, 0);
   var d = String(day).padStart(2,'0');
   var m = String(st.month + 1).padStart(2,'0');
-  document.getElementById('mf-' + key).value = d + '/' + m + '/' + st.year;
+  var mf = document.getElementById('mf-' + key);
+  mf.value = d + '/' + m + '/' + st.year;
+  // Ponte genérica: se o hidden tem data-target, copia a data para o input visível
+  if (mf.dataset && mf.dataset.target) {
+    var alvo = document.getElementById(mf.dataset.target);
+    if (alvo) alvo.value = mf.value;
+  }
   _dpRender(key);
+}
+
+// Abre/fecha um datepicker inline vinculado a um input visível. Uso: qualquer data do sistema.
+function toggleDatepickerInline(key, wrapId) {
+  var wrap = document.getElementById(wrapId);
+  if (!wrap) return;
+  var aberto = wrap.style.display !== 'none';
+  if (aberto) { wrap.style.display = 'none'; return; }
+  wrap.style.display = 'block';
+  var today = new Date();
+  window._dpState = window._dpState || {};
+  if (!window._dpState[key]) window._dpState[key] = { year: today.getFullYear(), month: today.getMonth(), selected: null };
+  _dpRender(key);
+}
+
+// Gera o HTML de um datepicker inline (mesmo visual do date-br dos modais)
+function datepickerInlineHTML(key, targetInputId) {
+  return '<div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px;user-select:none">' +
+    '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">' +
+    '<button type="button" onclick="_dpNav(\'' + key + '\',-1)" style="background:none;border:none;color:var(--text);cursor:pointer;font-size:16px;padding:0 8px">‹</button>' +
+    '<span id="dp-label-' + key + '" style="font-family:DM Mono,monospace;font-size:12px;color:var(--text)"></span>' +
+    '<button type="button" onclick="_dpNav(\'' + key + '\',1)" style="background:none;border:none;color:var(--text);cursor:pointer;font-size:16px;padding:0 8px">›</button>' +
+    '</div>' +
+    '<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;text-align:center;margin-bottom:4px">' +
+    ['S','T','Q','Q','S','S','D'].map(function(d){return '<div style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted);padding:2px 0">'+d+'</div>';}).join('') +
+    '</div>' +
+    '<div id="dp-days-' + key + '" style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;text-align:center"></div>' +
+    '<input type="hidden" id="mf-' + key + '" data-target="' + targetInputId + '">' +
+    '</div>';
 }
 
 function closeModal() {
   document.getElementById('modal').classList.remove('open');
   var cb = document.getElementById('modal-confirm');
-  if (cb) cb.style.display = '';
+  if (cb) { cb.style.display = ''; cb.textContent = 'CONFIRMAR'; }
   modalCallback = null;
 }
 document.getElementById('modal').addEventListener('click', e => { if (e.target === e.currentTarget) closeModal(); });

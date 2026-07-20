@@ -28246,7 +28246,7 @@
     "bikeObjetivo": "Perda de gordura, resistência, cardio e ganho de força"
   },
   "planoDia": 0,
-  "_updatedAt": "2026-07-19T17:20:47.731Z",
+  "_updatedAt": "2026-07-20T01:38:06.953Z",
   "lastBibTab": "workout-core",
   "_migrations": {
     "bikeFocoCleared": true
@@ -28708,5 +28708,22 @@
     }
   ],
   "_pendingPrimeiroTreino": null,
-  "_pendingCicloDataInicio": null
+  "_pendingCicloDataInicio": null,
+  "bikeOdo": {
+    "nome": "Specialized Crux Expert 56",
+    "dataCompra": "2026-07-13T03:00:00.000Z",
+    "usada": true,
+    "total": 70,
+    "parcial": 25.39,
+    "dataUltima": "2026-07-20T01:34:52.919Z",
+    "leituras": [
+      {
+        "id": "xxu9bcbx",
+        "tipo": "setup",
+        "data": "2026-07-20T01:34:52.919Z",
+        "parcial": 25.39,
+        "totalApos": 70
+      }
+    ]
+  }
 }
