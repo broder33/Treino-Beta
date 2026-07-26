@@ -28246,7 +28246,7 @@
     "bikeObjetivo": "Perda de gordura, resistência, cardio e ganho de força"
   },
   "planoDia": 0,
-  "_updatedAt": "2026-07-20T01:38:06.953Z",
+  "_updatedAt": "2026-07-26T17:32:16.007Z",
   "lastBibTab": "workout-core",
   "_migrations": {
     "bikeFocoCleared": true
@@ -28537,7 +28537,7 @@
       "chatOpen": false
     },
     "sem8_Segunda": {
-      "open": false,
+      "open": true,
       "chatOpen": false
     },
     "sem8_Sábado": {
@@ -28713,10 +28713,55 @@
     "nome": "Specialized Crux Expert 56",
     "dataCompra": "2026-07-13T03:00:00.000Z",
     "usada": true,
-    "total": 70,
-    "parcial": 25.39,
-    "dataUltima": "2026-07-20T01:34:52.919Z",
+    "total": 140.9,
+    "parcial": 96.26,
+    "dataUltima": "2026-07-26T17:19:37.922Z",
     "leituras": [
+      {
+        "id": "xeom4wyf",
+        "tipo": "parcial",
+        "data": "2026-07-26T17:19:37.922Z",
+        "parcial": 96.26,
+        "delta": 26.7,
+        "totalApos": 140.9,
+        "obs": ""
+      },
+      {
+        "id": "xil4eo9f",
+        "tipo": "data",
+        "data": "2026-07-25T15:55:42.625Z",
+        "totalApos": 114.2
+      },
+      {
+        "id": "xp9drivf",
+        "tipo": "data",
+        "data": "2026-07-23T16:00:48.395Z",
+        "totalApos": 114.2
+      },
+      {
+        "id": "xxhipvsf",
+        "tipo": "data",
+        "data": "2026-07-22T23:21:48.199Z",
+        "totalApos": 114.2
+      },
+      {
+        "id": "x6uqn6gb",
+        "tipo": "parcial",
+        "data": "2026-07-21T22:29:25.322Z",
+        "parcial": 69.61,
+        "delta": 33.1,
+        "totalApos": 114.2,
+        "obs": ""
+      },
+      {
+        "id": "x2x04ybw",
+        "tipo": "parcial",
+        "data": "2026-07-20T15:02:06.961Z",
+        "parcial": 36.49,
+        "delta": 11.1,
+        "totalApos": 81.1,
+        "obs": ""
+      },
       {
         "id": "xxu9bcbx",
         "tipo": "setup",
@@ -28724,6 +28769,273 @@
         "parcial": 25.39,
         "totalApos": 70
       }
-    ]
-  }
+    ],
+    "correntes": [
+      {
+        "id": "x9152731",
+        "nome": "Corrente SRAM Rival Flattop",
+        "status": "ativa",
+        "dataInstalacao": "2026-07-13T03:00:00.000Z",
+        "kmInstalacao": 3000,
+        "kmAcumulado": 81.1,
+        "kmInicioSessaoAtual": 81.1,
+        "medicoes": [
+          {
+            "id": "x0wlfxfz",
+            "data": "2026-07-21T03:14:55.207Z",
+            "kmIndividual": 81.1,
+            "degrau": 0,
+            "obs": "",
+            "ferramentaId": "cc42"
+          }
+        ],
+        "imersoes": [],
+        "powerlockContador": 2
+      }
+    ],
+    "correnteExpectativaKm": 5000,
+    "correnteIntervaloLimpezaKm": 300,
+    "correnteExtensaoTopoffKm": 150,
+    "correnteMaxTopoffs": 2,
+    "cera": {
+      "imersoesSujasMax": 25,
+      "pesoPanelaVazia": 95,
+      "pesagens": [
+        {
+          "id": "xnispiqj",
+          "data": "2026-07-23T23:44:34.476Z",
+          "pesoTotal": 390,
+          "obs": "Primeira pesagem - 8 roletes secos"
+        }
+      ],
+      "trocas": [],
+      "topUpsPote": []
+    },
+    "correnteIntervaloImersaoKm": 300,
+    "ferramentasFolga": [
+      {
+        "id": "cc42",
+        "nome": "Park Tool CC-4.2",
+        "tipo": "steps",
+        "degraus": [
+          {
+            "valor": 0,
+            "label": "<0,5"
+          },
+          {
+            "valor": 0.5,
+            "label": "0,5"
+          },
+          {
+            "valor": 0.75,
+            "label": "0,75"
+          },
+          {
+            "valor": 1,
+            "label": "1,00"
+          }
+        ],
+        "idealValor": 0.5,
+        "limiteValor": 0.75,
+        "nota": "Uma das poucas ferramentas compatíveis com correntes SRAM Flattop (roletes mais grossos) — verifique compatibilidade antes de usar outra."
+      },
+      {
+        "id": "sram-oficial",
+        "nome": "Medidor oficial SRAM",
+        "tipo": "steps",
+        "degraus": [
+          {
+            "valor": 0,
+            "label": "<0,80"
+          },
+          {
+            "valor": 0.8,
+            "label": "0,80"
+          }
+        ],
+        "idealValor": null,
+        "limiteValor": 0.8,
+        "nota": "Ferramenta binária — só indica se a corrente já passou de 0,80% de desgaste, sem degraus intermediários."
+      }
+    ],
+    "ferramentaFolgaAtivaId": "cc42",
+    "usoAnterior": {
+      "modo": "fixo",
+      "fixoKm": 3000,
+      "kmDiaFixo": null,
+      "dataInicial": null,
+      "dataFinal": null,
+      "divisor": 2
+    },
+    "cuboIntervaloManutencaoKm": 5000,
+    "selanteIntervaloDias": 180,
+    "selante": {
+      "garrafaAtual": {
+        "pesoCheiaNova": 151,
+        "volumeMl": 118,
+        "dataInicio": "2026-07-25T23:06:14.167Z"
+      },
+      "pesagens": [],
+      "garrafasAnteriores": []
+    },
+    "_migracaoKmSelanteV2": true,
+    "jogosDeRodas": [
+      {
+        "id": "xhvz12jw",
+        "nome": "Roval Terra C",
+        "status": "ativo",
+        "dianteira": {
+          "pneu": {
+            "nome": "Pathfinder Pro 2BR 700x38",
+            "dataInstalacao": "2025-03-12T03:00:00.000Z",
+            "kmInstalacaoTotal": 0,
+            "kmAcumulado": 0,
+            "kmInicioSessaoAtual": 0,
+            "kmEsperado": 8000,
+            "selante": {
+              "aplicacoes": [
+                {
+                  "id": "xnx1r3nn",
+                  "data": "2026-07-13T03:00:00.000Z",
+                  "kmTotal": 0,
+                  "quantidadeMl": 50,
+                  "obs": "Selante estimado na entrega da bike (pode estar errado)."
+                }
+              ]
+            }
+          },
+          "cubo": {
+            "dataInstalacao": null,
+            "kmInstalacaoTotal": null,
+            "kmAcumulado": 0,
+            "kmInicioSessaoAtual": null,
+            "manutencoes": []
+          },
+          "pneusAnteriores": [],
+          "disco": {
+            "dataInstalacao": null,
+            "kmInstalacaoTotal": null,
+            "kmAcumulado": 0,
+            "kmInicioSessaoAtual": null,
+            "espessuraMinima": 1.5,
+            "medicoes": [],
+            "anteriores": []
+          }
+        },
+        "traseira": {
+          "pneu": {
+            "nome": "Pathfinder Pro 2BR 700x38",
+            "dataInstalacao": "2025-03-12T03:00:00.000Z",
+            "kmInstalacaoTotal": 0,
+            "kmAcumulado": 0,
+            "kmInicioSessaoAtual": 0,
+            "kmEsperado": 5000,
+            "selante": {
+              "aplicacoes": []
+            }
+          },
+          "cubo": {
+            "dataInstalacao": null,
+            "kmInstalacaoTotal": null,
+            "kmAcumulado": 0,
+            "kmInicioSessaoAtual": null,
+            "manutencoes": []
+          },
+          "pneusAnteriores": [],
+          "disco": {
+            "dataInstalacao": null,
+            "kmInstalacaoTotal": null,
+            "kmAcumulado": 0,
+            "kmInicioSessaoAtual": null,
+            "espessuraMinima": 1.5,
+            "medicoes": [],
+            "anteriores": []
+          },
+          "cassete": {
+            "nome": "Cassete SRAM XG-1251 XPLR 10-44",
+            "dataInstalacao": "2026-07-13T03:00:00.000Z",
+            "kmInstalacaoTotal": 3000,
+            "kmAcumulado": 0,
+            "kmInicioSessaoAtual": 3000,
+            "kmEsperadoTroca": 25000,
+            "anteriores": []
+          }
+        }
+      }
+    ],
+    "_jogoRodasSelecionado": "xhvz12jw",
+    "powerlockLimiteMontagens": 10,
+    "_subTabBike": "rodas",
+    "_migracaoDiscoParaJogoV1": true,
+    "freios": {
+      "dianteiro": {
+        "pastilha": {
+          "dataInstalacao": null,
+          "kmInstalacaoTotal": null,
+          "espessuraMinima": 1,
+          "medicoes": [],
+          "anteriores": []
+        }
+      },
+      "traseiro": {
+        "pastilha": {
+          "dataInstalacao": null,
+          "kmInstalacaoTotal": null,
+          "espessuraMinima": 1,
+          "medicoes": [],
+          "anteriores": []
+        }
+      }
+    },
+    "rolamentos": {
+      "bb": {
+        "dataInstalacao": "2025-03-12T03:00:00.000Z",
+        "kmInstalacaoTotal": 0,
+        "kmEsperadoTroca": 25000,
+        "intervaloManutencaoKm": 7500,
+        "manutencoes": [],
+        "anteriores": [],
+        "nome": "BB SRAM DUB BSA"
+      },
+      "headset-inferior": {
+        "dataInstalacao": "2025-03-12T03:00:00.000Z",
+        "kmInstalacaoTotal": 0,
+        "kmEsperadoTroca": 25000,
+        "intervaloManutencaoKm": 3000,
+        "manutencoes": [
+          {
+            "id": "xck6cn7c",
+            "data": "2026-07-25T03:00:00.000Z",
+            "kmIndividual": 3114.2,
+            "obs": "Limpeza do conjunto p/ troca do headset superior (Cane Creek)"
+          }
+        ],
+        "anteriores": [],
+        "nome": "Specialized  S162500005"
+      },
+      "headset-superior": {
+        "nome": "Cane Creek 40 (BAA0094K)",
+        "dataInstalacao": "2026-07-25T03:00:00.000Z",
+        "kmInstalacaoTotal": 114.2,
+        "kmEsperadoTroca": 25000,
+        "intervaloManutencaoKm": 3000,
+        "manutencoes": [],
+        "anteriores": [
+          {
+            "id": "xw0f87sx",
+            "nome": "Specialized S212500024",
+            "dataInstalacao": "2025-03-12T03:00:00.000Z",
+            "dataRemocao": "2026-07-25T03:00:00.000Z",
+            "kmInstalacaoTotal": 0,
+            "kmRodados": 3114.2,
+            "obs": "Headset (superior) novo p/ corrigir folga"
+          }
+        ]
+      }
+    },
+    "_migracaoCuboManutencaoEstimativaV1": true,
+    "_migracaoManutencaoEstimativaV1": true,
+    "_migracaoAnterioresEstimativaV1": true
+  },
+  "_bikeCorrenteSelecionada": "x9152731"
 }
