@@ -28372,7 +28372,8 @@
               }
             ],
             "anteriores": [],
-            "espessuraNova": 1.85
+            "espessuraNova": 1.85,
+            "nome": "SRAM Paceline 160mm"
           },
           "raios": {
             "verificacoes": []
@@ -28424,7 +28425,8 @@
               }
             ],
             "anteriores": [],
-            "espessuraNova": 1.85
+            "espessuraNova": 1.85,
+            "nome": "SRAM Paceline 160mm"
           },
           "cassete": {
             "nome": "SRAM XG-1251 XPLR 10-44",
@@ -28457,7 +28459,8 @@
           "espessuraMinima": 1,
           "medicoes": [],
           "anteriores": [],
-          "espessuraNova": null
+          "espessuraNova": null,
+          "nome": "Pastilha"
         }
       },
       "traseiro": {
@@ -28467,7 +28470,8 @@
           "espessuraMinima": 1,
           "medicoes": [],
           "anteriores": [],
-          "espessuraNova": null
+          "espessuraNova": null,
+          "nome": "Pastilha"
         }
       }
     },
@@ -28531,10 +28535,24 @@
       "kmInstalacaoTotal": 0,
       "kmEsperadoTroca": 30000,
       "anteriores": []
+    },
+    "dot": {
+      "intervaloDias": 365,
+      "trocas": []
+    },
+    "headsetPreload": {
+      "historico": [
+        {
+          "id": "xyuteumi",
+          "data": "2026-07-27T03:00:00.000Z",
+          "torqueNm": 3,
+          "obs": "Teste de folga com 3Nm - verificar se vai haver \"knock\" em frenagens."
+        }
+      ]
     }
   },
   "planoDia": 0,
-  "_updatedAt": "2026-07-27T19:37:02.902Z",
+  "_updatedAt": "2026-07-27T20:30:15.820Z",
   "lastBibTab": "workout-s4",
   "_migrations": {
     "bikeFocoCleared": true

@@ -1410,7 +1410,7 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
     <button id="undo-btn" onclick="undoAction()" title="Nada para desfazer" disabled style="font-family:'DM Mono',monospace;font-size:11px;background:none;border:1px solid var(--border);color:var(--muted);border-radius:4px;padding:3px 10px;cursor:default;opacity:0.3;transition:opacity .2s">↩</button>
     <button class="btn btn-header-only" onclick="exportData()">EXPORTAR</button>
     <button class="btn btn-header-only" onclick="importData()">IMPORTAR</button>
-    <span style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted);margin-left:4px">v0.9.1.13</span>
+    <span style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted);margin-left:4px">v0.9.1.20</span>
     <div id="auth-status" style="display:flex;align-items:center;margin-left:4px"></div>
 
     <div class="mobile-menu-wrap" id="mobile-menu-wrap">
@@ -6886,6 +6886,11 @@ function _bikeRolamentosInit() {
     });
     o._migracaoRolamentoKmCombinadoV1 = true;
   }
+
+  // Torque de pre-load do headset — só registro (sem cálculo de vida útil), fica fora de
+  // o.rolamentos pra não interferir nos loops genéricos que iteram os componentes ali.
+  if (!o.headsetPreload) o.headsetPreload = { historico: [] };
+  if (!o.headsetPreload.historico) o.headsetPreload.historico = [];
 }
 
 function _bikeRolamentoLabel(tipo) {
@@ -7012,9 +7017,32 @@ function renderBikeRolamentosHTML() {
       corpoHTML;
   }
 
+  var preloadHTML = (o.headsetPreload.historico || []).slice(1, 11).map(function(p) {
+    var d = new Date(p.data).toLocaleDateString('pt-BR');
+    var obsHTML = p.obs ? ' <span style="color:var(--muted)">— ' + escHtml(p.obs) + '</span>' : '';
+    return '<div style="padding:6px 0;border-bottom:1px solid var(--border);font-family:DM Mono,monospace;font-size:11px;color:var(--text);display:flex;justify-content:space-between;align-items:center"><span><span style="color:var(--muted)">' + d + '</span> · ' + p.torqueNm + 'Nm' + obsHTML + '</span><span onclick="bikeHeadsetPreloadExcluirConfirm(\'' + p.id + '\')" style="color:var(--perdido,#a33);cursor:pointer;padding:2px 6px;flex-shrink:0" title="Excluir">✕</span></div>';
+  }).join('');
+  var ultimoPreload = o.headsetPreload.historico[0]; // unshift — mais recente primeiro
+  var preloadAtualHTML = ultimoPreload ?
+    '<div style="margin-bottom:10px;display:flex;justify-content:space-between;align-items:flex-start">' +
+    '<div>' +
+    '<div style="font-family:DM Mono,monospace;font-size:9px;letter-spacing:1px;color:var(--muted)">ÚLTIMO TORQUE REGISTRADO</div>' +
+    '<div style="font-family:Bebas Neue,sans-serif;font-size:28px;color:var(--text);line-height:1.2">' + ultimoPreload.torqueNm + '<span style="font-size:13px"> Nm</span></div>' +
+    '<div style="font-family:DM Mono,monospace;font-size:10px;color:var(--muted)">em ' + new Date(ultimoPreload.data).toLocaleDateString('pt-BR') + (ultimoPreload.obs ? ' — ' + escHtml(ultimoPreload.obs) : '') + '</div>' +
+    '</div>' +
+    '<span onclick="bikeHeadsetPreloadExcluirConfirm(\'' + ultimoPreload.id + '\')" style="color:var(--perdido,#a33);cursor:pointer;padding:2px 6px;flex-shrink:0" title="Excluir">✕</span>' +
+    '</div>' :
+    '<p style="font-family:DM Sans,sans-serif;font-size:12px;color:var(--muted);margin:0 0 10px">Nenhum registro ainda.</p>';
+
   var headsetHTML = '<div style="background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:10px">' +
     '<div style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;color:var(--muted);margin-bottom:12px">DIREÇÃO (HEADSET)</div>' +
     blocoHTML('headset-superior', 'SUPERIOR') +
+    '<div style="border-top:1px solid var(--border);margin-top:12px;padding-top:12px">' +
+    '<div style="font-family:DM Mono,monospace;font-size:9px;letter-spacing:1px;color:var(--muted);margin-bottom:8px">TORQUE DE PRE-LOAD (SÓ REGISTRO)</div>' +
+    preloadAtualHTML +
+    '<button onclick="bikeHeadsetPreloadPrompt()" style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;padding:8px 14px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text);cursor:pointer;margin-bottom:' + (preloadHTML ? '12px' : '0') + '">REGISTRAR PRE-LOAD</button>' +
+    (preloadHTML ? '<div style="font-family:DM Mono,monospace;font-size:9px;letter-spacing:1px;color:var(--muted);margin-bottom:2px">HISTÓRICO</div>' + preloadHTML : '') +
+    '</div>' +
     '<div style="border-top:1px solid var(--border);margin-top:12px;padding-top:12px">' +
     blocoHTML('headset-inferior', 'INFERIOR (CROWN)') +
     '</div>' +
@@ -7216,6 +7244,72 @@ function bikeRolamentoManutencaoExcluirAplicar(tipo, id) {
   toast('Manutenção excluída ✓');
 }
 
+function bikeHeadsetPreloadPrompt() {
+  _bikeRolamentosInit();
+  var ultimo = state.bikeOdo.headsetPreload.historico[0]; // unshift — mais recente primeiro
+  var title = document.getElementById('modal-title');
+  var body = document.getElementById('modal-body');
+  var confirmBtn = document.getElementById('modal-confirm');
+  if (title) title.textContent = 'TORQUE DE PRE-LOAD DO HEADSET';
+  if (body) body.innerHTML =
+    '<p style="font-family:DM Sans,sans-serif;font-size:12px;color:var(--muted);margin:0 0 10px">Só um registro de referência — sem cálculo de vida útil.</p>' +
+    (ultimo ?
+      '<div style="font-family:DM Sans,sans-serif;font-size:13px;color:var(--text);background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin:0 0 14px">Último registrado: <b>' + ultimo.torqueNm + 'Nm</b> em ' + new Date(ultimo.data).toLocaleDateString('pt-BR') + (ultimo.obs ? ' <span style="color:var(--muted)">— ' + escHtml(ultimo.obs) + '</span>' : '') + '</div>' :
+      '<p style="font-family:DM Sans,sans-serif;font-size:12px;color:var(--muted);margin:0 0 14px">Nenhum registro anterior ainda.</p>') +
+    '<label style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;color:var(--muted)">DATA (dd/mm/aaaa)</label>' +
+    '<div style="display:flex;gap:6px;margin:4px 0 8px">' +
+    '<input id="headset-preload-data" type="text" inputmode="numeric" value="' + new Date().toLocaleDateString('pt-BR') + '" style="flex:1;box-sizing:border-box;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:DM Mono,monospace">' +
+    '<button type="button" onclick="toggleDatepickerInline(\'headsetpreload\',\'headset-preload-dp-wrap\')" title="Abrir calendário" style="padding:0 14px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);cursor:pointer;font-size:16px">&#128197;</button>' +
+    '</div>' +
+    '<div id="headset-preload-dp-wrap" style="display:none;margin:0 0 12px">' + datepickerInlineHTML('headsetpreload', 'headset-preload-data') + '</div>' +
+    '<label style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;color:var(--muted)">TORQUE (Nm)</label>' +
+    '<input id="headset-preload-nm" type="number" step="0.1" min="0" value="' + (ultimo ? ultimo.torqueNm : '') + '" placeholder="Ex: 1.5" style="display:block;width:100%;box-sizing:border-box;margin:4px 0 12px;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:DM Mono,monospace">' +
+    '<input id="headset-preload-obs" type="text" placeholder="Observação (opcional)" style="display:block;width:100%;box-sizing:border-box;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:DM Sans,sans-serif;font-size:12px;margin-bottom:10px">' +
+    '<button onclick="bikeHeadsetPreloadAplicar()" style="display:block;width:100%;font-family:DM Mono,monospace;font-size:11px;padding:10px;border-radius:8px;border:none;background:var(--accent);color:#000;cursor:pointer">REGISTRAR</button>';
+  if (confirmBtn) confirmBtn.style.display = 'none';
+  document.getElementById('modal').classList.add('open');
+}
+
+function bikeHeadsetPreloadAplicar() {
+  _bikeRolamentosInit();
+  var dataStr = (document.getElementById('headset-preload-data').value || '').trim();
+  var dm = dataStr.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (!dm) { toast('Data inválida — use dd/mm/aaaa'); return; }
+  var v = parseFloat(document.getElementById('headset-preload-nm').value);
+  if (isNaN(v) || v < 0) { toast('Valor inválido'); return; }
+  var obsEl = document.getElementById('headset-preload-obs');
+  pushUndo('Torque de pre-load do headset');
+  state.bikeOdo.headsetPreload.historico.unshift({ id: uid(), data: new Date(parseInt(dm[3]), parseInt(dm[2]) - 1, parseInt(dm[1])).toISOString(), torqueNm: v, obs: (obsEl && obsEl.value.trim()) || '' });
+  saveState();
+  closeModal();
+  renderBikeTab();
+  toast('Pre-load registrado ✓');
+}
+
+function bikeHeadsetPreloadExcluirConfirm(id) {
+  var p = state.bikeOdo.headsetPreload.historico.find(function(x) { return x.id === id; });
+  if (!p) return;
+  var title = document.getElementById('modal-title');
+  var body = document.getElementById('modal-body');
+  var confirmBtn = document.getElementById('modal-confirm');
+  if (title) title.textContent = 'EXCLUIR REGISTRO DE PRE-LOAD';
+  if (body) body.innerHTML =
+    '<p style="font-family:DM Sans,sans-serif;font-size:13px;color:var(--text);margin:0 0 4px">Excluir o registro de <b>' + new Date(p.data).toLocaleDateString('pt-BR') + ' — ' + p.torqueNm + 'Nm</b>?</p>' +
+    '<p style="font-family:DM Sans,sans-serif;font-size:11px;color:var(--muted);margin:0 0 14px">Se for engano, dá pra reverter logo em seguida pelo botão ↩ de desfazer no topo.</p>' +
+    '<button onclick="bikeHeadsetPreloadExcluirAplicar(\'' + id + '\')" style="display:block;width:100%;font-family:DM Mono,monospace;font-size:11px;padding:10px;border-radius:8px;border:none;background:var(--perdido,#a33);color:#fff;cursor:pointer">EXCLUIR</button>';
+  if (confirmBtn) confirmBtn.style.display = 'none';
+  document.getElementById('modal').classList.add('open');
+}
+
+function bikeHeadsetPreloadExcluirAplicar(id) {
+  pushUndo('Excluir registro de pre-load do headset');
+  state.bikeOdo.headsetPreload.historico = state.bikeOdo.headsetPreload.historico.filter(function(x) { return x.id !== id; });
+  saveState();
+  closeModal();
+  renderBikeTab();
+  toast('Registro excluído ✓');
+}
+
 function bikeRolamentoAnteriorDetalhePrompt(tipo, id) {
   var comp = _bikeRolamentoComp(tipo);
   var a = (comp.anteriores || []).find(function(x) { return x.id === id; });
@@ -7321,6 +7415,7 @@ function _bikeFreiosInit() {
     if (!o.freios[pos]) o.freios[pos] = {};
     if (!o.freios[pos].pastilha) {
       o.freios[pos].pastilha = {
+        nome: 'Pastilha',
         dataInstalacao: null,
         kmInstalacaoTotal: null,
         espessuraNova: null,
@@ -7330,12 +7425,39 @@ function _bikeFreiosInit() {
       };
     }
     if (o.freios[pos].pastilha.espessuraNova === undefined) o.freios[pos].pastilha.espessuraNova = null;
+    if (!o.freios[pos].pastilha.nome) o.freios[pos].pastilha.nome = 'Pastilha';
   });
+  // Fluido DOT — único pra bike toda (os dois freios são trocados juntos na prática),
+  // rastreado por TEMPO (dias), não por km — o fluido degrada por absorção de umidade
+  // independente de uso.
+  if (!o.dot) o.dot = { intervaloDias: 365, trocas: [] };
+  if (!o.dot.trocas) o.dot.trocas = [];
+  if (o.dot.intervaloDias === undefined || o.dot.intervaloDias === null) o.dot.intervaloDias = 365;
 }
 
 function _bikeFreioComp(pos, tipo) {
   _bikeFreiosInit();
   return state.bikeOdo.freios[pos][tipo];
+}
+
+// Dias desde a última troca de fluido DOT — null se nunca registrada.
+function _bikeDotDiasDesde() {
+  _bikeFreiosInit();
+  var trocas = state.bikeOdo.dot.trocas;
+  if (!trocas.length) return null;
+  var ultima = trocas[0]; // unshift — mais recente primeiro
+  return Math.floor((Date.now() - new Date(ultima.data).getTime()) / 86400000);
+}
+
+// PRÓXIMA TROCA — intervalo fixo em DIAS (fluido DOT degrada por tempo, não por km rodado).
+function _bikeDotProximaTroca() {
+  var diasDesde = _bikeDotDiasDesde();
+  if (diasDesde === null) return { status: 'sem-dados' };
+  var intervalo = state.bikeOdo.dot.intervaloDias || 365;
+  var diasRestantes = intervalo - diasDesde;
+  var dataEstimada = new Date();
+  dataEstimada.setDate(dataEstimada.getDate() + Math.max(diasRestantes, 0));
+  return { status: 'ok', diasRestantes: diasRestantes, dataEstimada: dataEstimada };
 }
 
 function _bikeFreioLabel(tipo) {
@@ -7424,7 +7546,8 @@ function renderBikeFreiosHTML() {
       var discoAnterioresHTML = (disco.anteriores || []).slice().reverse().slice(0, 5).map(function(a) {
         var d = new Date(a.dataRemocao).toLocaleDateString('pt-BR');
         var obsHTML = a.obs ? ' <span style="color:var(--muted)">· Motivo: ' + escHtml(a.obs) + '</span>' : '';
-        return '<div style="padding:6px 0;border-bottom:1px solid var(--border);font-family:DM Mono,monospace;font-size:11px;color:var(--text)"><span style="color:var(--muted)">REMOVIDO em ' + d + '</span> — rodou ' + a.kmRodados + 'km' + obsHTML + '</div>';
+        var nomeHTML = a.nome ? '<b>' + escHtml(a.nome) + '</b> — ' : '';
+        return '<div style="padding:6px 0;border-bottom:1px solid var(--border);font-family:DM Mono,monospace;font-size:11px;color:var(--text)">' + nomeHTML + '<span style="color:var(--muted)">REMOVIDO em ' + d + '</span> — rodou ' + a.kmRodados + 'km' + obsHTML + '</div>';
       }).join('');
       var discoCorpoHTML;
       if (disco.dataInstalacao === null) {
@@ -7441,6 +7564,7 @@ function renderBikeFreiosHTML() {
           'Original da bicicleta — acompanha a km total dela' :
           'Trocado em ' + new Date(disco.dataInstalacao).toLocaleDateString('pt-BR') + ' (bike com ' + (Math.round(disco.kmInstalacaoTotal * 10) / 10) + 'km combinado)';
         discoCorpoHTML =
+          '<input value="' + escHtml(disco.nome || 'Disco') + '" placeholder="Disco" onchange="bikeRodaDiscoRenomear(\'' + posRoda + '\',this.value)" style="display:block;width:100%;box-sizing:border-box;margin:0 0 10px;padding:4px 2px;border:none;border-bottom:1px solid var(--border);background:transparent;color:var(--text);font-family:DM Sans,sans-serif;font-size:15px;font-weight:600">' +
           '<div style="font-family:DM Mono,monospace;font-size:10px;color:var(--muted);margin-bottom:8px">Jogo de rodas ativo: ' + escHtml(jogo.nome) + '</div>' +
           '<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:10px">' +
           '<div style="flex:1;min-width:100px">' +
@@ -7484,7 +7608,8 @@ function renderBikeFreiosHTML() {
       var anterioresHTML = (comp.anteriores || []).slice().reverse().slice(0, 5).map(function(a) {
         var d = new Date(a.dataRemocao).toLocaleDateString('pt-BR');
         var obsHTML = a.obs ? ' <span style="color:var(--muted)">· Motivo: ' + escHtml(a.obs) + '</span>' : '';
-        return '<div style="padding:6px 0;border-bottom:1px solid var(--border);font-family:DM Mono,monospace;font-size:11px;color:var(--text)"><span style="color:var(--muted)">REMOVIDO em ' + d + '</span> — rodou ' + a.kmRodados + 'km' + obsHTML + '</div>';
+        var nomeHTML = a.nome ? '<b>' + escHtml(a.nome) + '</b> — ' : '';
+        return '<div style="padding:6px 0;border-bottom:1px solid var(--border);font-family:DM Mono,monospace;font-size:11px;color:var(--text)">' + nomeHTML + '<span style="color:var(--muted)">REMOVIDO em ' + d + '</span> — rodou ' + a.kmRodados + 'km' + obsHTML + '</div>';
       }).join('');
 
       var corpoHTML;
@@ -7498,6 +7623,7 @@ function renderBikeFreiosHTML() {
         var dinamica = _bikeFreioDinamica(pos, tipo);
         var dataInst = new Date(comp.dataInstalacao).toLocaleDateString('pt-BR');
         corpoHTML =
+          '<input value="' + escHtml(comp.nome || label) + '" placeholder="' + label + '" onchange="bikeFreioRenomear(\'' + pos + '\',\'' + tipo + '\',this.value)" style="display:block;width:100%;box-sizing:border-box;margin:0 0 10px;padding:4px 2px;border:none;border-bottom:1px solid var(--border);background:transparent;color:var(--text);font-family:DM Sans,sans-serif;font-size:15px;font-weight:600">' +
           '<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:10px">' +
           '<div style="flex:1;min-width:100px">' +
           '<div style="font-family:DM Mono,monospace;font-size:9px;letter-spacing:1px;color:var(--muted)">IDADE</div>' +
@@ -7535,7 +7661,115 @@ function renderBikeFreiosHTML() {
   return '<div style="margin:12px 0 20px">' +
     '<div style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:2px;color:var(--muted);margin-bottom:8px">FREIOS</div>' +
     cardsHTML +
+    renderBikeDotHTML() +
     '</div>';
+}
+
+// ─── FLUIDO DOT — único pra bike toda (os dois freios trocados juntos na prática), por TEMPO
+// (dias), não por km. Mesmo padrão visual/funcional da garrafa de selante. ───
+function renderBikeDotHTML() {
+  var o = state.bikeOdo;
+  if (!o) return '';
+  _bikeFreiosInit();
+  var dot = o.dot;
+  var proxima = _bikeDotProximaTroca();
+
+  var trocasHTML = (dot.trocas || []).slice(0, 10).map(function(t) {
+    var d = new Date(t.data).toLocaleDateString('pt-BR');
+    var obsHTML = t.obs ? ' <span style="color:var(--muted)">— ' + escHtml(t.obs) + '</span>' : '';
+    return '<div style="padding:6px 0;border-bottom:1px solid var(--border);font-family:DM Mono,monospace;font-size:11px;color:var(--text);display:flex;justify-content:space-between;align-items:center"><span><span style="color:var(--muted)">' + d + '</span>' + obsHTML + '</span><span onclick="bikeDotTrocaExcluirConfirm(\'' + t.id + '\')" style="color:var(--perdido,#a33);cursor:pointer;padding:2px 6px;flex-shrink:0" title="Excluir">✕</span></div>';
+  }).join('');
+
+  return '<div style="background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:10px">' +
+    '<div style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;color:var(--muted);margin-bottom:12px">FLUIDO DOT (BIKE TODA)</div>' +
+    _bikeDiasLinhaHTML('PRÓXIMA TROCA — a cada <span onclick="bikeDotIntervaloPrompt()" style="color:var(--accent);text-decoration:underline;cursor:pointer">' + dot.intervaloDias + ' dias</span>', proxima) +
+    '<div style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 ' + (trocasHTML ? '12px' : '0') + '">' +
+    '<button onclick="bikeDotTrocaPrompt()" style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;padding:8px 14px;border-radius:8px;border:none;background:var(--accent);color:#000;cursor:pointer">REGISTRAR TROCA</button>' +
+    '</div>' +
+    (trocasHTML ? '<div style="font-family:DM Mono,monospace;font-size:9px;letter-spacing:1px;color:var(--muted);margin-bottom:2px">HISTÓRICO</div>' + trocasHTML : '') +
+    '</div>';
+}
+
+function bikeDotIntervaloPrompt() {
+  var o = state.bikeOdo;
+  var title = document.getElementById('modal-title');
+  var body = document.getElementById('modal-body');
+  var confirmBtn = document.getElementById('modal-confirm');
+  if (title) title.textContent = 'INTERVALO DE TROCA DO FLUIDO DOT';
+  if (body) body.innerHTML =
+    '<p style="font-family:DM Sans,sans-serif;font-size:12px;color:var(--muted);margin:0 0 10px">Dias fixos entre trocas — o fluido DOT degrada por absorção de umidade com o tempo, independente de quanto você rodou. Comum: 365 dias (1x/ano).</p>' +
+    '<input id="dot-intervalo" type="number" step="30" min="0" value="' + o.dot.intervaloDias + '" style="display:block;width:100%;box-sizing:border-box;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:DM Mono,monospace;margin-bottom:10px">' +
+    '<button onclick="bikeDotIntervaloAplicar()" style="display:block;width:100%;font-family:DM Mono,monospace;font-size:11px;padding:10px;border-radius:8px;border:none;background:var(--accent);color:#000;cursor:pointer">SALVAR</button>';
+  if (confirmBtn) confirmBtn.style.display = 'none';
+  document.getElementById('modal').classList.add('open');
+}
+
+function bikeDotIntervaloAplicar() {
+  var v = parseFloat(document.getElementById('dot-intervalo').value);
+  if (isNaN(v) || v <= 0) { toast('Valor inválido'); return; }
+  pushUndo('Intervalo de troca do fluido DOT');
+  state.bikeOdo.dot.intervaloDias = v;
+  saveState();
+  closeModal();
+  renderBikeTab();
+  toast('Intervalo atualizado: ' + v + ' dias ✓');
+}
+
+function bikeDotTrocaPrompt() {
+  var title = document.getElementById('modal-title');
+  var body = document.getElementById('modal-body');
+  var confirmBtn = document.getElementById('modal-confirm');
+  if (title) title.textContent = 'TROCA DE FLUIDO DOT';
+  if (body) body.innerHTML =
+    '<p style="font-family:DM Sans,sans-serif;font-size:12px;color:var(--muted);margin:0 0 10px">Registra a purga/troca do fluido DOT nos dois freios.</p>' +
+    '<label style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;color:var(--muted)">DATA (dd/mm/aaaa)</label>' +
+    '<div style="display:flex;gap:6px;margin:4px 0 8px">' +
+    '<input id="dot-troca-data" type="text" inputmode="numeric" value="' + new Date().toLocaleDateString('pt-BR') + '" style="flex:1;box-sizing:border-box;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:DM Mono,monospace">' +
+    '<button type="button" onclick="toggleDatepickerInline(\'dottroca\',\'dot-troca-dp-wrap\')" title="Abrir calendário" style="padding:0 14px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);cursor:pointer;font-size:16px">&#128197;</button>' +
+    '</div>' +
+    '<div id="dot-troca-dp-wrap" style="display:none;margin:0 0 12px">' + datepickerInlineHTML('dottroca', 'dot-troca-data') + '</div>' +
+    '<input id="dot-troca-obs" type="text" placeholder="Observação (opcional — ex: tipo de fluido, DOT 5.1)" style="display:block;width:100%;box-sizing:border-box;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:DM Sans,sans-serif;font-size:12px;margin-bottom:10px">' +
+    '<button onclick="bikeDotTrocaAplicar()" style="display:block;width:100%;font-family:DM Mono,monospace;font-size:11px;padding:10px;border-radius:8px;border:none;background:var(--accent);color:#000;cursor:pointer">REGISTRAR</button>';
+  if (confirmBtn) confirmBtn.style.display = 'none';
+  document.getElementById('modal').classList.add('open');
+}
+
+function bikeDotTrocaAplicar() {
+  _bikeFreiosInit();
+  var dataStr = (document.getElementById('dot-troca-data').value || '').trim();
+  var dm = dataStr.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (!dm) { toast('Data inválida — use dd/mm/aaaa'); return; }
+  var obsEl = document.getElementById('dot-troca-obs');
+  pushUndo('Troca de fluido DOT');
+  state.bikeOdo.dot.trocas.unshift({ id: uid(), data: new Date(parseInt(dm[3]), parseInt(dm[2]) - 1, parseInt(dm[1])).toISOString(), kmTotal: Math.round(state.bikeOdo.total * 10) / 10, obs: (obsEl && obsEl.value.trim()) || '' });
+  saveState();
+  closeModal();
+  renderBikeTab();
+  toast('Troca de fluido DOT registrada ✓');
+}
+
+function bikeDotTrocaExcluirConfirm(id) {
+  var t = state.bikeOdo.dot.trocas.find(function(x) { return x.id === id; });
+  if (!t) return;
+  var title = document.getElementById('modal-title');
+  var body = document.getElementById('modal-body');
+  var confirmBtn = document.getElementById('modal-confirm');
+  if (title) title.textContent = 'EXCLUIR TROCA DE DOT';
+  if (body) body.innerHTML =
+    '<p style="font-family:DM Sans,sans-serif;font-size:13px;color:var(--text);margin:0 0 4px">Excluir a troca de fluido DOT de <b>' + new Date(t.data).toLocaleDateString('pt-BR') + '</b>?</p>' +
+    '<p style="font-family:DM Sans,sans-serif;font-size:11px;color:var(--muted);margin:0 0 14px">Se for engano, dá pra reverter logo em seguida pelo botão ↩ de desfazer no topo.</p>' +
+    '<button onclick="bikeDotTrocaExcluirAplicar(\'' + id + '\')" style="display:block;width:100%;font-family:DM Mono,monospace;font-size:11px;padding:10px;border-radius:8px;border:none;background:var(--perdido,#a33);color:#fff;cursor:pointer">EXCLUIR</button>';
+  if (confirmBtn) confirmBtn.style.display = 'none';
+  document.getElementById('modal').classList.add('open');
+}
+
+function bikeDotTrocaExcluirAplicar(id) {
+  pushUndo('Excluir troca de fluido DOT');
+  state.bikeOdo.dot.trocas = state.bikeOdo.dot.trocas.filter(function(x) { return x.id !== id; });
+  saveState();
+  closeModal();
+  renderBikeTab();
+  toast('Troca excluída ✓');
 }
 
 function bikeFreioInstalacaoPrompt(pos, tipo) {
@@ -7577,6 +7811,14 @@ function bikeFreioInstalacaoAplicar(pos, tipo) {
   closeModal();
   renderBikeTab();
   toast(_bikeFreioLabel(tipo) + ' atualizado(a) ✓');
+}
+
+function bikeFreioRenomear(pos, tipo, valor) {
+  var comp = _bikeFreioComp(pos, tipo);
+  if (!comp) return;
+  pushUndo('Renomear ' + _bikeFreioLabel(tipo) + ' ' + pos);
+  comp.nome = valor.trim() || _bikeFreioLabel(tipo);
+  saveState();
 }
 
 function bikeFreioMinimaPrompt(pos, tipo) {
@@ -7692,6 +7934,8 @@ function bikeFreioTrocarPrompt(pos, tipo) {
     '<button type="button" onclick="toggleDatepickerInline(\'freiotrocar\',\'freio-trocar-dp-wrap\')" title="Abrir calendário" style="padding:0 14px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);cursor:pointer;font-size:16px">&#128197;</button>' +
     '</div>' +
     '<div id="freio-trocar-dp-wrap" style="display:none;margin:0 0 12px">' + datepickerInlineHTML('freiotrocar', 'freio-trocar-data') + '</div>' +
+    '<label style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;color:var(--muted)">NOME DA NOVA ' + label.toUpperCase() + '</label>' +
+    '<input id="freio-trocar-nome" type="text" value="' + escHtml(comp.nome || label) + '" style="display:block;width:100%;box-sizing:border-box;margin:4px 0 12px;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:DM Sans,sans-serif">' +
     '<input id="freio-trocar-obs" type="text" placeholder="Observação (opcional — ex: marca/modelo)" style="display:block;width:100%;box-sizing:border-box;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:DM Sans,sans-serif;font-size:12px;margin-bottom:10px">' +
     '<button onclick="bikeFreioTrocarAplicar(\'' + pos + '\',\'' + tipo + '\')" style="display:block;width:100%;font-family:DM Mono,monospace;font-size:11px;padding:10px;border-radius:8px;border:none;background:var(--accent);color:#000;cursor:pointer">CONFIRMAR TROCA</button>';
   if (confirmBtn) confirmBtn.style.display = 'none';
@@ -7707,12 +7951,14 @@ function bikeFreioTrocarAplicar(pos, tipo) {
   var dataISO = new Date(parseInt(dm[3]), parseInt(dm[2]) - 1, parseInt(dm[1])).toISOString();
   var estimativa = bikeEstimarKmNaData(dataISO);
   var kmNaData = estimativa ? Math.round(estimativa.km * 10) / 10 : state.bikeOdo.total;
+  var nomeNovo = (document.getElementById('freio-trocar-nome').value || '').trim() || _bikeFreioLabel(tipo);
   var obsEl = document.getElementById('freio-trocar-obs');
   var kmRodados = _bikeKmMelhorEstimativa(_bikeFreioKm(pos, tipo), comp.kmInstalacaoTotal);
   pushUndo('Trocar ' + _bikeFreioLabel(tipo) + ' ' + pos);
   if (!comp.anteriores) comp.anteriores = [];
   comp.anteriores.push({
     id: uid(),
+    nome: comp.nome,
     dataInstalacao: comp.dataInstalacao,
     dataRemocao: dataISO,
     kmInstalacaoTotal: comp.kmInstalacaoTotal,
@@ -7723,6 +7969,7 @@ function bikeFreioTrocarAplicar(pos, tipo) {
     obs: (obsEl && obsEl.value.trim()) || ''
   });
   freios[pos][tipo] = {
+    nome: nomeNovo,
     dataInstalacao: dataISO,
     kmInstalacaoTotal: kmNaData,
     espessuraNova: comp.espessuraNova !== undefined ? comp.espessuraNova : null,
@@ -9597,8 +9844,9 @@ function _bikeRodasInit() {
       // entre dianteira/traseira) — agora cada cubo tem o seu próprio, editável separado.
       // O valor global vira só o ponto de partida na primeira vez que cada cubo é visto.
       if (jogo[pos].cubo.intervaloManutencaoKm === undefined || jogo[pos].cubo.intervaloManutencaoKm === null) jogo[pos].cubo.intervaloManutencaoKm = o.cuboIntervaloManutencaoKm || 5000;
-      if (!jogo[pos].disco) jogo[pos].disco = { dataInstalacao: null, kmInstalacaoTotal: null, kmAcumulado: 0, kmInicioSessaoAtual: null, espessuraNova: null, espessuraMinima: 1.5, medicoes: [], anteriores: [] };
+      if (!jogo[pos].disco) jogo[pos].disco = { nome: 'Disco', dataInstalacao: null, kmInstalacaoTotal: null, kmAcumulado: 0, kmInicioSessaoAtual: null, espessuraNova: null, espessuraMinima: 1.5, medicoes: [], anteriores: [] };
       if (jogo[pos].disco.espessuraNova === undefined) jogo[pos].disco.espessuraNova = null;
+      if (!jogo[pos].disco.nome) jogo[pos].disco.nome = 'Disco';
       if (!jogo[pos].raios) jogo[pos].raios = { verificacoes: [] };
       if (jogo[pos].pneu && !jogo[pos].pneu.selante) jogo[pos].pneu.selante = { aplicacoes: [] };
       if (!jogo[pos].pneusAnteriores) jogo[pos].pneusAnteriores = [];
@@ -9631,6 +9879,7 @@ function _bikeRodasInit() {
         if (discoAntigo && (discoAntigo.dataInstalacao !== null || (discoAntigo.medicoes || []).length)) {
           var ativo = jogoDestino.status === 'ativo';
           jogoDestino[pos].disco = {
+            nome: discoAntigo.nome || 'Disco',
             dataInstalacao: discoAntigo.dataInstalacao,
             kmInstalacaoTotal: discoAntigo.kmInstalacaoTotal,
             kmAcumulado: 0,
@@ -10311,8 +10560,8 @@ function bikeJogoRodasNovoAplicar() {
     id: uid(),
     nome: nome,
     status: 'espera',
-    dianteira: { pneu: null, cubo: { dataInstalacao: null, kmInstalacaoTotal: null, kmAcumulado: 0, kmInicioSessaoAtual: null, manutencoes: [] }, disco: { dataInstalacao: null, kmInstalacaoTotal: null, kmAcumulado: 0, kmInicioSessaoAtual: null, espessuraNova: null, espessuraMinima: 1.5, medicoes: [], anteriores: [] }, pneusAnteriores: [] },
-    traseira: { pneu: null, cubo: { dataInstalacao: null, kmInstalacaoTotal: null, kmAcumulado: 0, kmInicioSessaoAtual: null, manutencoes: [] }, disco: { dataInstalacao: null, kmInstalacaoTotal: null, kmAcumulado: 0, kmInicioSessaoAtual: null, espessuraNova: null, espessuraMinima: 1.5, medicoes: [], anteriores: [] }, pneusAnteriores: [] }
+    dianteira: { pneu: null, cubo: { dataInstalacao: null, kmInstalacaoTotal: null, kmAcumulado: 0, kmInicioSessaoAtual: null, manutencoes: [] }, disco: { nome: 'Disco', dataInstalacao: null, kmInstalacaoTotal: null, kmAcumulado: 0, kmInicioSessaoAtual: null, espessuraNova: null, espessuraMinima: 1.5, medicoes: [], anteriores: [] }, pneusAnteriores: [] },
+    traseira: { pneu: null, cubo: { dataInstalacao: null, kmInstalacaoTotal: null, kmAcumulado: 0, kmInicioSessaoAtual: null, manutencoes: [] }, disco: { nome: 'Disco', dataInstalacao: null, kmInstalacaoTotal: null, kmAcumulado: 0, kmInicioSessaoAtual: null, espessuraNova: null, espessuraMinima: 1.5, medicoes: [], anteriores: [] }, pneusAnteriores: [] }
   };
 
   if (ativarAgora) {
@@ -11110,6 +11359,14 @@ function bikeRodaDiscoInstalacaoAplicar(pos) {
   toast('Instalação do disco atualizada ✓');
 }
 
+function bikeRodaDiscoRenomear(pos, valor) {
+  var disco = _bikeRodaAtual(pos).disco;
+  if (!disco) return;
+  pushUndo('Renomear disco ' + _bikeRodaLabel(pos));
+  disco.nome = valor.trim() || 'Disco';
+  saveState();
+}
+
 function bikeRodaDiscoMinimaPrompt(pos) {
   var disco = _bikeRodaAtual(pos).disco;
   var title = document.getElementById('modal-title');
@@ -11226,6 +11483,8 @@ function bikeRodaDiscoTrocarPrompt(pos) {
     '<div id="roda-disco-trocar-dp-wrap" style="display:none;margin:0 0 12px">' + datepickerInlineHTML('rodadiscotrocar', 'roda-disco-trocar-data') + '</div>' +
     '<label style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;color:var(--muted)">KM DA BIKE NESSA DATA (COMBINADO)</label>' +
     '<input id="roda-disco-trocar-km" type="number" step="0.1" min="0" value="' + combinadoAtual + '" style="display:block;width:100%;box-sizing:border-box;margin:4px 0 12px;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:DM Mono,monospace">' +
+    '<label style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;color:var(--muted)">NOME DO NOVO DISCO</label>' +
+    '<input id="roda-disco-trocar-nome" type="text" value="' + escHtml(disco.nome || 'Disco') + '" style="display:block;width:100%;box-sizing:border-box;margin:4px 0 12px;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:DM Sans,sans-serif">' +
     '<input id="roda-disco-trocar-obs" type="text" placeholder="Observação (opcional — ex: marca/modelo)" style="display:block;width:100%;box-sizing:border-box;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:DM Sans,sans-serif;font-size:12px;margin-bottom:10px">' +
     '<button onclick="bikeRodaDiscoTrocarAplicar(\'' + pos + '\')" style="display:block;width:100%;font-family:DM Mono,monospace;font-size:11px;padding:10px;border-radius:8px;border:none;background:var(--accent);color:#000;cursor:pointer">CONFIRMAR TROCA</button>';
   if (confirmBtn) confirmBtn.style.display = 'none';
@@ -11241,6 +11500,7 @@ function bikeRodaDiscoTrocarAplicar(pos) {
   var dataISO = new Date(parseInt(dm[3]), parseInt(dm[2]) - 1, parseInt(dm[1])).toISOString();
   var kmNaData = parseFloat(document.getElementById('roda-disco-trocar-km').value);
   if (isNaN(kmNaData) || kmNaData < 0) { toast('Km inválido'); return; }
+  var nomeNovo = (document.getElementById('roda-disco-trocar-nome').value || '').trim() || 'Disco';
   var obsEl = document.getElementById('roda-disco-trocar-obs');
   var kmRodados = _bikeRodaDiscoKm(pos);
   var jogo = _bikeJogoSelecionado();
@@ -11249,6 +11509,7 @@ function bikeRodaDiscoTrocarAplicar(pos) {
   if (!disco.anteriores) disco.anteriores = [];
   disco.anteriores.push({
     id: uid(),
+    nome: disco.nome,
     dataInstalacao: disco.dataInstalacao,
     dataRemocao: dataISO,
     kmInstalacaoTotal: disco.kmInstalacaoTotal,
@@ -11259,6 +11520,7 @@ function bikeRodaDiscoTrocarAplicar(pos) {
     obs: (obsEl && obsEl.value.trim()) || ''
   });
   roda.disco = {
+    nome: nomeNovo,
     dataInstalacao: dataISO,
     kmInstalacaoTotal: kmNaData,
     kmAcumulado: 0,
