@@ -1410,7 +1410,7 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
     <button id="undo-btn" onclick="undoAction()" title="Nada para desfazer" disabled style="font-family:'DM Mono',monospace;font-size:11px;background:none;border:1px solid var(--border);color:var(--muted);border-radius:4px;padding:3px 10px;cursor:default;opacity:0.3;transition:opacity .2s">↩</button>
     <button class="btn btn-header-only" onclick="exportData()">EXPORTAR</button>
     <button class="btn btn-header-only" onclick="importData()">IMPORTAR</button>
-    <span style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted);margin-left:4px">v0.9.1.02</span>
+    <span style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted);margin-left:4px">v0.9.1.13</span>
     <div id="auth-status" style="display:flex;align-items:center;margin-left:4px"></div>
 
     <div class="mobile-menu-wrap" id="mobile-menu-wrap">
@@ -6356,83 +6356,6 @@ function gerarOrientacaoBike(dayKey) {
 }
 
 function desfazerSubstitutoD(dayKey, diaNome, semana) {
-  // Remove diasBike entry
-  if (state.plano.diasBike) delete state.plano.diasBike[dayKey];
-  // Restore day to D via desfazerRelocamento
-  desfazerRelocamento();
-  toast('D→Bike desfeito.');
-}
-
-function gerarOrientacaoBike(dayKey) {
-  var bikePlano = _getBikePlano(dayKey);
-  var foco = bikePlano ? bikePlano.foco : 'Z2 Endurance';
-  var duracao = bikePlano ? bikePlano.duracao : '1h';
-  var intensidade = bikePlano ? bikePlano.intensidade : 'Ritmo confortável.';
-  var obs = bikePlano ? (bikePlano.obs || '') : '';
-
-  // Bike history — last 5 rides
-  var bikeHist = (state.bikeHistory || []).slice(0, 5);
-  var bikeHistStr = bikeHist.length ? bikeHist.map(function(b) {
-    return b.dia + ': ' + [b.distancia ? b.distancia+'km' : '', b.tempoMov ? b.tempoMov+' mov' : '', b.velocidade || ''].filter(Boolean).join(', ');
-  }).join('\n') : 'Nenhum ride registrado ainda.';
-
-  // Recent gym sessions
-  var recentGym = (state.history || []).slice(0, 3).map(function(h) {
-    return h.serieLabel + ' ' + (h.date || '').slice(0,10);
-  }).join(', ') || 'Nenhum';
-
-  // Semana foco
-  var semParts = dayKey.match(/^sem(\d+)_/);
-  var semFoco = '';
-  if (semParts) {
-    var semObj = state.plano.semanas && state.plano.semanas.find(function(s) { return s.semana === parseInt(semParts[1]); });
-    if (semObj) semFoco = semObj.foco || '';
-  }
-
-  // Perfil bike
-  var p = state.perfil || {};
-  var metaRides = p.bikeRides || '4';
-  var bikeObj = p.bikeObjetivo || '';
-  var bikeTiming = p.bikeTiming || 'flexivel';
-
-  var prompt = 'Gere uma orientação detalhada para o treino de bike de hoje.\n\n' +
-    'PLANO DO DIA:\n' +
-    'Foco: ' + foco + '\n' +
-    'Duração sugerida: ' + duracao + '\n' +
-    'Intensidade: ' + intensidade + '\n' +
-    (obs ? 'Obs: ' + obs + '\n' : '') +
-    '\nCONTEXTO DA SEMANA: ' + semFoco + '\n' +
-    '\nHISTÓRICO DE RIDES RECENTES:\n' + bikeHistStr + '\n' +
-    '\nTREINOS DE MUSCULAÇÃO RECENTES: ' + recentGym + '\n' +
-    '\nPERFIL:\n' +
-    '- Meta: ' + metaRides + ' rides/semana\n' +
-    (bikeObj ? '- Objetivo: ' + bikeObj + '\n' : '') +
-    '- Timing preferido: ' + bikeTiming + '\n' +
-    '- Restrição: tendão patelar direito — sem sprints, cadência alta (>85rpm)\n' +
-    '\nIncluir na orientação: distância sugerida, tempo total, estrutura (aquecimento/desenvolvimento/volta à calma), zona FC alvo, cadência recomendada, pontos de atenção.';
-
-  var chat = document.getElementById('chat-inline-' + dayKey);
-  var isOpen = chat && chat.style.display !== 'none';
-  if (isOpen) {
-    toggleChatInline(dayKey, '');
-    return;
-  }
-  toggleChatInline(dayKey, '');
-  setTimeout(function() {
-    // Only send if chat has no AI response yet
-    var msgs = document.getElementById('chat-inline-msgs-' + dayKey);
-    var jaTemResposta = msgs && msgs.children.length > 1; // >1 = beyond initial greeting
-    if (!jaTemResposta) {
-      var input = document.getElementById('chat-inline-input-' + dayKey);
-      if (input) {
-        input.value = prompt;
-        enviarChatInline(dayKey, '');
-      }
-    }
-  }, 200);
-}
-
-function desfazerSubstitutoD(dayKey, diaNome, semana) {
   var info = state.plano.diasBike && state.plano.diasBike[dayKey];
   var foiRelocado = !(info && info.relocado === false); // legado sem flag = relocado
   if (foiRelocado) {
@@ -6480,6 +6403,12 @@ function substituirDPorBike(dayKey, diaNome, semana) {
 function _dParaBikeMarcarDia(dayKey, orientacaoTexto) {
   if (!state.plano.diasStatus) state.plano.diasStatus = {};
   delete state.plano.diasStatus[dayKey];
+  // O treino "expandido" (gerado via GERAR TREINO) fica guardado à parte, em
+  // diasExpandidos[dayKey] — a agenda mostra esse card INDEPENDENTE de diaObj.serie/tipo.
+  // Sem isso, o dia virava Bike mas o card de exercícios do D continuava aparecendo embaixo.
+  // (No fluxo RELOCAR isso já é limpo por aplicarRelocamento antes de chegar aqui — a linha
+  // abaixo é o que faltava pro fluxo SUBSTITUIR, mas é seguro rodar nos dois.)
+  if (state.plano.diasExpandidos) delete state.plano.diasExpandidos[dayKey];
   var parts = dayKey.match(/^sem(\d+)_(.+)$/);
   if (parts) {
     var semObj = state.plano.semanas && state.plano.semanas.find(function(s) { return s.semana === parseInt(parts[1]); });
@@ -6769,7 +6698,7 @@ var BIKE_SUBTABS = [
   { id: 'drivetrain', label: 'DRIVETRAIN' },
   { id: 'rodas', label: 'RODAS/PNEUS' },
   { id: 'freios', label: 'FREIOS' },
-  { id: 'rolamentos', label: 'ROLAMENTOS' }
+  { id: 'rolamentos', label: 'QUADRO' }
 ];
 
 function _bikeSubTabAtiva() {
@@ -6796,10 +6725,10 @@ function _bikeSubTabsHTML() {
 function _bikeSubTabConteudoHTML() {
   var ativa = _bikeSubTabAtiva();
   if (ativa === 'drivetrain') {
-    return renderBikeCorrentesHTML() + renderBikeCeraHTML() + renderBikeCasseteHTML();
+    return renderBikeCorrentesHTML() + renderBikeCeraHTML() + renderBikeCasseteHTML() + renderBikeCoroaHTML();
   }
   if (ativa === 'rodas') {
-    return renderBikeJogosDeRodasHTML() + renderBikeRodasHTML() + renderBikeSelanteGarrafaHTML();
+    return renderBikeJogosDeRodasHTML() + renderBikeRodasHTML() + renderBikeCubosRaiosHTML() + renderBikeSelanteGarrafaHTML();
   }
   if (ativa === 'freios') {
     return renderBikeFreiosHTML();
@@ -6933,6 +6862,30 @@ function _bikeRolamentosInit() {
     });
     o._migracaoAnterioresEstimativaV1 = true;
   }
+
+  // Migração v0.9.1.06: rolamento passou a usar km COMBINADO como âncora única (igual
+  // pneu/cubo/disco). As migrações anteriores só cobriam âncora=0 — esta cobre o caso de
+  // âncora não-zero (peça trocada durante o uso rastreado), que ainda estava em km bruto.
+  if (!o._migracaoRolamentoKmCombinadoV1) {
+    var usoAnteriorMigRol = _bikeUsoAnteriorEstimado() || 0;
+    Object.keys(o.rolamentos).forEach(function(tipo) {
+      var comp = o.rolamentos[tipo];
+      if (comp && comp.kmInstalacaoTotal !== null && comp.kmInstalacaoTotal !== 0) {
+        comp.kmInstalacaoTotal = Math.round((comp.kmInstalacaoTotal + usoAnteriorMigRol) * 10) / 10;
+        (comp.manutencoes || []).forEach(function(m) {
+          m.kmIndividual = Math.round((m.kmIndividual + usoAnteriorMigRol) * 10) / 10;
+        });
+      }
+      if (comp && comp.anteriores) {
+        comp.anteriores.forEach(function(a) {
+          if (a.kmInstalacaoTotal !== null && a.kmInstalacaoTotal !== 0) {
+            a.kmRodados = Math.round((a.kmRodados + usoAnteriorMigRol) * 10) / 10;
+          }
+        });
+      }
+    });
+    o._migracaoRolamentoKmCombinadoV1 = true;
+  }
 }
 
 function _bikeRolamentoLabel(tipo) {
@@ -6946,17 +6899,19 @@ function _bikeRolamentoComp(tipo) {
   return state.bikeOdo.rolamentos[tipo];
 }
 
+// Km individual = km combinado atual - âncora de instalação (combinada). Rolamento não
+// acompanha jogo de rodas (fica fixo no quadro), então não precisa de sessão.
 function _bikeRolamentoKm(tipo) {
   var comp = _bikeRolamentoComp(tipo);
   if (!comp || comp.kmInstalacaoTotal === null) return 0;
-  return Math.round((state.bikeOdo.total - comp.kmInstalacaoTotal) * 10) / 10;
+  return Math.round((_bikeCombinadoAtual() - comp.kmInstalacaoTotal) * 10) / 10;
 }
 
 // FIXO — expectativa de troca em km, mesmo padrão do pneu.
 function _bikeRolamentoFixo(tipo) {
   var comp = _bikeRolamentoComp(tipo);
   if (!comp || comp.kmInstalacaoTotal === null) return { status: 'sem-dados' };
-  var kmAtual = _bikeKmMelhorEstimativa(_bikeRolamentoKm(tipo), comp.kmInstalacaoTotal);
+  var kmAtual = _bikeRolamentoKm(tipo);
   var kmRestante = Math.round((comp.kmEsperadoTroca - kmAtual) * 10) / 10;
   var dataEstimada = null;
   var media = _bikeOdoMediaKmDia();
@@ -6973,7 +6928,7 @@ function _bikeRolamentoFixo(tipo) {
 function _bikeRolamentoKmDesdeManutencao(tipo) {
   var comp = _bikeRolamentoComp(tipo);
   if (!comp) return null;
-  var kmAtual = _bikeKmMelhorEstimativa(_bikeRolamentoKm(tipo), comp.kmInstalacaoTotal);
+  var kmAtual = _bikeRolamentoKm(tipo);
   if (comp.manutencoes && comp.manutencoes.length) {
     var ultima = comp.manutencoes[0]; // unshift — mais recente primeiro
     return Math.round((kmAtual - ultima.kmIndividual) * 10) / 10;
@@ -7029,17 +6984,21 @@ function renderBikeRolamentosHTML() {
       var kmAtual = _bikeRolamentoKm(tipo);
       var fixo = _bikeRolamentoFixo(tipo);
       var proxima = _bikeRolamentoProximaManutencao(tipo);
-      var dataInst = new Date(comp.dataInstalacao).toLocaleDateString('pt-BR');
+      var temEstimativa = _bikeUsoAnteriorEstimado() !== null;
+      var kmDisplay = (temEstimativa ? '≈' : '') + kmAtual;
+      var instaladoTxt = comp.kmInstalacaoTotal === 0 ?
+        'Original da bicicleta — acompanha a km total dela' :
+        'Trocado em ' + new Date(comp.dataInstalacao).toLocaleDateString('pt-BR') + ' (bike com ' + (Math.round(comp.kmInstalacaoTotal * 10) / 10) + 'km combinado)';
       corpoHTML =
         '<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:10px">' +
         '<div style="flex:1;min-width:110px">' +
         '<div style="font-family:DM Mono,monospace;font-size:9px;letter-spacing:1px;color:var(--muted)">KM INDIVIDUAL</div>' +
-        '<div style="font-family:Bebas Neue,sans-serif;font-size:28px;color:var(--text);line-height:1.2">' + _bikeKmDisplay(kmAtual, comp.dataInstalacao, comp.kmInstalacaoTotal) + '<span style="font-size:13px"> km</span></div>' +
+        '<div style="font-family:Bebas Neue,sans-serif;font-size:28px;color:var(--text);line-height:1.2">' + kmDisplay + '<span style="font-size:13px"> km</span></div>' +
         '</div>' +
         '</div>' +
         _bikeVidaUtilLinhaHTML('FIXO — expectativa <span onclick="bikeRolamentoExpectativaPrompt(\'' + tipo + '\')" style="color:var(--accent);text-decoration:underline;cursor:pointer">' + comp.kmEsperadoTroca + 'km</span>', fixo) +
         _bikeVidaUtilLinhaHTML('PRÓXIMA MANUTENÇÃO — a cada <span onclick="bikeRolamentoIntervaloPrompt(\'' + tipo + '\')" style="color:var(--accent);text-decoration:underline;cursor:pointer">' + comp.intervaloManutencaoKm + 'km</span>', proxima) +
-        '<div onclick="bikeRolamentoInstalacaoPrompt(\'' + tipo + '\')" style="font-family:DM Mono,monospace;font-size:10px;color:var(--muted);margin:10px 0;cursor:pointer;border-bottom:1px dotted var(--border);display:inline-block">Instalado em ' + dataInst + ' (bike com ' + (Math.round(comp.kmInstalacaoTotal * 10) / 10) + 'km)</div>' +
+        '<div onclick="bikeRolamentoInstalacaoPrompt(\'' + tipo + '\')" style="font-family:DM Mono,monospace;font-size:10px;color:var(--muted);margin:10px 0;cursor:pointer;border-bottom:1px dotted var(--border);display:inline-block">' + instaladoTxt + '</div>' +
         '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:' + (manutencoesHTML || anterioresHTML ? '12px' : '0') + '">' +
         '<button onclick="bikeRolamentoManutencaoPrompt(\'' + tipo + '\')" style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;padding:8px 14px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text);cursor:pointer">REGISTRAR MANUTENÇÃO</button>' +
         '<button onclick="bikeRolamentoTrocarPrompt(\'' + tipo + '\')" style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;padding:8px 14px;border-radius:8px;border:1px solid var(--perdido,#a33);background:transparent;color:var(--muted);cursor:pointer">TROCAR</button>' +
@@ -7074,26 +7033,39 @@ function renderBikeRolamentosHTML() {
 
 function bikeRolamentoInstalacaoPrompt(tipo) {
   var comp = _bikeRolamentoComp(tipo);
-  var totalAtual = Math.round(state.bikeOdo.total * 10) / 10;
-  var dataDefault = comp.dataInstalacao ? new Date(comp.dataInstalacao).toLocaleDateString('pt-BR') : new Date().toLocaleDateString('pt-BR');
-  var kmDefault = comp.kmInstalacaoTotal !== null ? Math.round(comp.kmInstalacaoTotal * 10) / 10 : 0;
+  var combinadoAtual = _bikeCombinadoAtual();
+  var opcaoAtual = (comp.kmInstalacaoTotal === 0) ? 'original' : 'trocado';
+  var dataDefault = (opcaoAtual === 'trocado' && comp.dataInstalacao) ? new Date(comp.dataInstalacao).toLocaleDateString('pt-BR') : new Date().toLocaleDateString('pt-BR');
+  var kmDefault = (opcaoAtual === 'trocado' && comp.kmInstalacaoTotal !== null) ? Math.round(comp.kmInstalacaoTotal * 10) / 10 : combinadoAtual;
   var title = document.getElementById('modal-title');
   var body = document.getElementById('modal-body');
   var confirmBtn = document.getElementById('modal-confirm');
   if (title) title.textContent = (comp.dataInstalacao === null ? 'CADASTRAR — ' : 'EDITAR INSTALAÇÃO — ') + _bikeRolamentoLabel(tipo).toUpperCase();
+
+  function radio(valor, texto) {
+    return '<label style="display:flex;align-items:flex-start;gap:8px;font-family:DM Sans,sans-serif;font-size:12px;color:var(--text);cursor:pointer;margin-bottom:10px">' +
+      '<input type="radio" name="rolamento-inst-quando" value="' + valor + '" ' + (opcaoAtual === valor ? 'checked' : '') + ' onchange="document.getElementById(\'rolamento-inst-trocado-wrap\').style.display=(this.value===\'trocado\'?\'block\':\'none\')" style="margin-top:3px">' +
+      '<span>' + texto + '</span>' +
+      '</label>';
+  }
+
   if (body) body.innerHTML =
     '<label style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;color:var(--muted)">NOME</label>' +
-    '<input id="rolamento-inst-nome" type="text" value="' + escHtml(comp.nome) + '" style="display:block;width:100%;box-sizing:border-box;margin:4px 0 12px;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:DM Sans,sans-serif">' +
-    '<label style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;color:var(--muted)">DATA DE INSTALAÇÃO (dd/mm/aaaa)</label>' +
+    '<input id="rolamento-inst-nome" type="text" value="' + escHtml(comp.nome) + '" style="display:block;width:100%;box-sizing:border-box;margin:4px 0 16px;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:DM Sans,sans-serif">' +
+    '<label style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;color:var(--muted);display:block;margin-bottom:8px">ESSE COMPONENTE É:</label>' +
+    radio('original', 'Original da bicicleta — a km dele sempre acompanha a km total da bike') +
+    radio('trocado', 'Trocado — a km dele começa a contar a partir da km da bike na data da troca') +
+    '<div id="rolamento-inst-trocado-wrap" style="display:' + (opcaoAtual === 'trocado' ? 'block' : 'none') + ';margin:8px 0 0 26px">' +
+    '<label style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;color:var(--muted)">DATA DA TROCA (dd/mm/aaaa)</label>' +
     '<div style="display:flex;gap:6px;margin:4px 0 8px">' +
     '<input id="rolamento-inst-data" type="text" inputmode="numeric" value="' + dataDefault + '" style="flex:1;box-sizing:border-box;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:DM Mono,monospace">' +
     '<button type="button" onclick="toggleDatepickerInline(\'rolamentoinst\',\'rolamento-inst-dp-wrap\')" title="Abrir calendário" style="padding:0 14px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);cursor:pointer;font-size:16px">&#128197;</button>' +
     '</div>' +
     '<div id="rolamento-inst-dp-wrap" style="display:none;margin:0 0 12px">' + datepickerInlineHTML('rolamentoinst', 'rolamento-inst-data') + '</div>' +
-    '<label style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;color:var(--muted)">KM DA BIKE (TOTAL) NA INSTALAÇÃO</label>' +
+    '<label style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;color:var(--muted)">KM DA BIKE NESSA DATA (COMBINADO)</label>' +
     '<input id="rolamento-inst-km" type="number" step="0.1" min="0" value="' + kmDefault + '" style="display:block;width:100%;box-sizing:border-box;margin:4px 0 4px;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:DM Mono,monospace">' +
-    '<p style="font-family:DM Sans,sans-serif;font-size:11px;color:var(--muted);margin:0 0 12px">Padrão 0 = peça original da bike, nunca trocada. Se está instalando agora, troque pro valor atual (' + totalAtual + ').</p>' +
-    '<button onclick="bikeRolamentoInstalacaoAplicar(\'' + tipo + '\')" style="display:block;width:100%;font-family:DM Mono,monospace;font-size:11px;padding:10px;border-radius:8px;border:none;background:var(--accent);color:#000;cursor:pointer">SALVAR</button>';
+    '</div>' +
+    '<button onclick="bikeRolamentoInstalacaoAplicar(\'' + tipo + '\')" style="display:block;width:100%;font-family:DM Mono,monospace;font-size:11px;padding:10px;border-radius:8px;border:none;background:var(--accent);color:#000;cursor:pointer;margin-top:8px">SALVAR</button>';
   if (confirmBtn) confirmBtn.style.display = 'none';
   document.getElementById('modal').classList.add('open');
 }
@@ -7101,14 +7073,26 @@ function bikeRolamentoInstalacaoPrompt(tipo) {
 function bikeRolamentoInstalacaoAplicar(tipo) {
   var comp = _bikeRolamentoComp(tipo);
   var nome = (document.getElementById('rolamento-inst-nome').value || '').trim();
-  var dataStr = (document.getElementById('rolamento-inst-data').value || '').trim();
-  var km = parseFloat(document.getElementById('rolamento-inst-km').value);
-  var m = dataStr.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
-  if (!m) { toast('Data inválida — use dd/mm/aaaa'); return; }
-  if (isNaN(km) || km < 0) { toast('Km inválido'); return; }
+  var opcaoEl = document.querySelector('input[name="rolamento-inst-quando"]:checked');
+  var opcao = opcaoEl ? opcaoEl.value : 'trocado';
+
+  var dataISO, km;
+  if (opcao === 'original') {
+    dataISO = state.bikeOdo.dataCompra || new Date().toISOString();
+    km = 0;
+  } else {
+    var dataStr = (document.getElementById('rolamento-inst-data').value || '').trim();
+    var m = dataStr.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+    if (!m) { toast('Data inválida — use dd/mm/aaaa'); return; }
+    var kmVal = parseFloat(document.getElementById('rolamento-inst-km').value);
+    if (isNaN(kmVal) || kmVal < 0) { toast('Km inválido'); return; }
+    dataISO = new Date(parseInt(m[3]), parseInt(m[2]) - 1, parseInt(m[1])).toISOString();
+    km = kmVal;
+  }
+
   pushUndo('Instalação ' + _bikeRolamentoLabel(tipo));
   comp.nome = nome || _bikeRolamentoLabel(tipo);
-  comp.dataInstalacao = new Date(parseInt(m[3]), parseInt(m[2]) - 1, parseInt(m[1])).toISOString();
+  comp.dataInstalacao = dataISO;
   comp.kmInstalacaoTotal = km;
   saveState();
   closeModal();
@@ -7199,7 +7183,7 @@ function bikeRolamentoManutencaoAplicar(tipo) {
   if (!m) { toast('Data inválida — use dd/mm/aaaa'); return; }
   var obsEl = document.getElementById('rolamento-manutencao-obs');
   pushUndo('Manutenção ' + _bikeRolamentoLabel(tipo));
-  comp.manutencoes.unshift({ id: uid(), data: new Date(parseInt(m[3]), parseInt(m[2]) - 1, parseInt(m[1])).toISOString(), kmIndividual: _bikeKmMelhorEstimativa(_bikeRolamentoKm(tipo), comp.kmInstalacaoTotal), obs: (obsEl && obsEl.value.trim()) || '' });
+  comp.manutencoes.unshift({ id: uid(), data: new Date(parseInt(m[3]), parseInt(m[2]) - 1, parseInt(m[1])).toISOString(), kmIndividual: _bikeRolamentoKm(tipo), obs: (obsEl && obsEl.value.trim()) || '' });
   saveState();
   closeModal();
   renderBikeTab();
@@ -7259,18 +7243,22 @@ function bikeRolamentoAnteriorDetalhePrompt(tipo, id) {
 
 function bikeRolamentoTrocarPrompt(tipo) {
   var comp = _bikeRolamentoComp(tipo);
+  var combinadoAtual = _bikeCombinadoAtual();
+  var temEstimativa = _bikeUsoAnteriorEstimado() !== null;
   var title = document.getElementById('modal-title');
   var body = document.getElementById('modal-body');
   var confirmBtn = document.getElementById('modal-confirm');
   if (title) title.textContent = 'TROCAR — ' + _bikeRolamentoLabel(tipo).toUpperCase();
   if (body) body.innerHTML =
-    '<p style="font-family:DM Sans,sans-serif;font-size:12px;color:var(--muted);margin:0 0 10px">Arquiva a peça atual (' + escHtml(comp.nome) + ', ' + _bikeKmDisplay(_bikeRolamentoKm(tipo), comp.dataInstalacao, comp.kmInstalacaoTotal) + 'km rodados) no histórico e começa a nova do zero.</p>' +
+    '<p style="font-family:DM Sans,sans-serif;font-size:12px;color:var(--muted);margin:0 0 10px">Arquiva a peça atual (' + escHtml(comp.nome) + ', ' + (temEstimativa ? '≈' : '') + _bikeRolamentoKm(tipo) + 'km rodados) no histórico e começa a nova do zero.</p>' +
     '<label style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;color:var(--muted)">DATA DA TROCA (dd/mm/aaaa)</label>' +
     '<div style="display:flex;gap:6px;margin:4px 0 8px">' +
     '<input id="rolamento-trocar-data" type="text" inputmode="numeric" value="' + new Date().toLocaleDateString('pt-BR') + '" style="flex:1;box-sizing:border-box;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:DM Mono,monospace">' +
     '<button type="button" onclick="toggleDatepickerInline(\'rolamentotrocar\',\'rolamento-trocar-dp-wrap\')" title="Abrir calendário" style="padding:0 14px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);cursor:pointer;font-size:16px">&#128197;</button>' +
     '</div>' +
     '<div id="rolamento-trocar-dp-wrap" style="display:none;margin:0 0 12px">' + datepickerInlineHTML('rolamentotrocar', 'rolamento-trocar-data') + '</div>' +
+    '<label style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;color:var(--muted)">KM DA BIKE NESSA DATA (COMBINADO)</label>' +
+    '<input id="rolamento-trocar-km" type="number" step="0.1" min="0" value="' + combinadoAtual + '" style="display:block;width:100%;box-sizing:border-box;margin:4px 0 12px;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:DM Mono,monospace">' +
     '<label style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;color:var(--muted)">NOME DO NOVO ITEM</label>' +
     '<input id="rolamento-trocar-nome" type="text" value="' + escHtml(comp.nome) + '" style="display:block;width:100%;box-sizing:border-box;margin:4px 0 12px;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:DM Sans,sans-serif">' +
     '<input id="rolamento-trocar-obs" type="text" placeholder="Observação (opcional — ex: marca/modelo)" style="display:block;width:100%;box-sizing:border-box;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:DM Sans,sans-serif;font-size:12px;margin-bottom:10px">' +
@@ -7286,11 +7274,11 @@ function bikeRolamentoTrocarAplicar(tipo) {
   var dm = dataStr.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
   if (!dm) { toast('Data inválida — use dd/mm/aaaa'); return; }
   var dataISO = new Date(parseInt(dm[3]), parseInt(dm[2]) - 1, parseInt(dm[1])).toISOString();
-  var estimativa = bikeEstimarKmNaData(dataISO);
-  var kmNaData = estimativa ? Math.round(estimativa.km * 10) / 10 : state.bikeOdo.total;
+  var kmNaData = parseFloat(document.getElementById('rolamento-trocar-km').value);
+  if (isNaN(kmNaData) || kmNaData < 0) { toast('Km inválido'); return; }
   var nomeNovo = (document.getElementById('rolamento-trocar-nome').value || '').trim() || _bikeRolamentoLabel(tipo);
   var obsEl = document.getElementById('rolamento-trocar-obs');
-  var kmRodados = _bikeKmMelhorEstimativa(_bikeRolamentoKm(tipo), comp.kmInstalacaoTotal);
+  var kmRodados = _bikeRolamentoKm(tipo);
   pushUndo('Trocar ' + _bikeRolamentoLabel(tipo));
   if (!comp.anteriores) comp.anteriores = [];
   comp.anteriores.push({
@@ -7335,11 +7323,13 @@ function _bikeFreiosInit() {
       o.freios[pos].pastilha = {
         dataInstalacao: null,
         kmInstalacaoTotal: null,
+        espessuraNova: null,
         espessuraMinima: 1.0,
         medicoes: [],
         anteriores: []
       };
     }
+    if (o.freios[pos].pastilha.espessuraNova === undefined) o.freios[pos].pastilha.espessuraNova = null;
   });
 }
 
@@ -7365,7 +7355,10 @@ function _bikeFreioUltimaEspessura(pos, tipo) {
 }
 
 // DINÂMICO: taxa de desgaste (mm/km) a partir do último segmento entre duas medições
-// consecutivas, projetada até a espessura mínima definida.
+// consecutivas, projetada até a espessura mínima definida. Com só 1 medição real, usa a
+// espessura de fábrica (se informada) como ponto de partida virtual (km 0), pra já dar uma
+// estimativa em vez de esperar uma 2ª medição — assim que houver 2 medições reais, o cálculo
+// volta a usar só o último segmento real (mais preciso, capta mudança de ritmo de desgaste).
 function _bikeFreioDinamica(pos, tipo) {
   var comp = _bikeFreioComp(pos, tipo);
   if (!comp) return { status: 'sem-dados' };
@@ -7373,11 +7366,27 @@ function _bikeFreioDinamica(pos, tipo) {
   if (!medicoes.length) return { status: 'sem-dados' };
   var ultima = medicoes[medicoes.length - 1];
   if (ultima.espessuraMm <= comp.espessuraMinima) return { status: 'atingido' };
-  if (medicoes.length < 2) return { status: 'sem-dados' };
-  var penultima = medicoes[medicoes.length - 2];
-  var deltaEspessura = penultima.espessuraMm - ultima.espessuraMm;
-  var deltaKm = ultima.kmIndividual - penultima.kmIndividual;
-  if (deltaEspessura <= 0 || deltaKm <= 0) return { status: 'sem-dados' };
+  var kmAnterior, espessuraAnterior, viaEspessuraNova;
+  if (medicoes.length >= 2) {
+    var penultima = medicoes[medicoes.length - 2];
+    kmAnterior = penultima.kmIndividual;
+    espessuraAnterior = penultima.espessuraMm;
+    viaEspessuraNova = false;
+  } else if (comp.espessuraNova !== null && comp.espessuraNova !== undefined) {
+    kmAnterior = 0;
+    espessuraAnterior = comp.espessuraNova;
+    viaEspessuraNova = true;
+  } else {
+    return { status: 'sem-dados' };
+  }
+  var deltaEspessura = espessuraAnterior - ultima.espessuraMm;
+  var deltaKm = ultima.kmIndividual - kmAnterior;
+  if (deltaKm <= 0) return { status: 'sem-dados' };
+  // deltaEspessura <= 0 não é erro: com pouco desgaste real, a resolução do paquímetro
+  // (tipicamente 0,1mm) pode arredondar a leitura pra IGUAL ou até ACIMA da referência
+  // (ex: nova = 1.85mm real, paquímetro só lê 1.9mm). Não dá pra calcular taxa ainda, mas
+  // é diferente de "sem dados" — é "ainda não há desgaste detectável nessa precisão".
+  if (deltaEspessura <= 0) return { status: 'sem-desgaste-detectavel' };
   var taxaPorKm = deltaEspessura / deltaKm;
   var espessuraRestante = ultima.espessuraMm - comp.espessuraMinima;
   var kmRestante = Math.round((espessuraRestante / taxaPorKm) * 10) / 10;
@@ -7389,15 +7398,79 @@ function _bikeFreioDinamica(pos, tipo) {
     d.setDate(d.getDate() + dias);
     dataEstimada = d;
   }
-  return { status: 'ok', kmRestante: kmRestante, dataEstimada: dataEstimada };
+  return { status: 'ok', kmRestante: kmRestante, dataEstimada: dataEstimada, notaEstimativa: viaEspessuraNova ? 'estimativa com só 1 medição, base: espessura nova' : null };
 }
 
 function renderBikeFreiosHTML() {
   var o = state.bikeOdo;
   if (!o) return '';
   _bikeFreiosInit();
+  _bikeRodasInit();
+  var jogo = _bikeJogoSelecionado();
 
   var cardsHTML = ['dianteiro', 'traseiro'].map(function(pos) {
+    var posRoda = pos === 'dianteiro' ? 'dianteira' : 'traseira';
+    var roda = jogo ? jogo[posRoda] : null;
+    var disco = roda ? roda.disco : null;
+    var labelPos = _bikeRodaLabel(posRoda);
+
+    var discoBlocoHTML = '';
+    if (disco) {
+      var medicoesDiscoHTML = (disco.medicoes || []).slice().reverse().slice(0, 10).map(function(m) {
+        var d = new Date(m.data).toLocaleDateString('pt-BR');
+        var obsHTML = m.obs ? ' <span style="color:var(--muted)">— ' + escHtml(m.obs) + '</span>' : '';
+        return '<div style="padding:6px 0;border-bottom:1px solid var(--border);font-family:DM Mono,monospace;font-size:11px;color:var(--text)"><span style="color:var(--muted)">' + d + '</span> · ' + m.espessuraMm + 'mm · ' + m.kmIndividual + 'km' + obsHTML + '</div>';
+      }).join('');
+      var discoAnterioresHTML = (disco.anteriores || []).slice().reverse().slice(0, 5).map(function(a) {
+        var d = new Date(a.dataRemocao).toLocaleDateString('pt-BR');
+        var obsHTML = a.obs ? ' <span style="color:var(--muted)">· Motivo: ' + escHtml(a.obs) + '</span>' : '';
+        return '<div style="padding:6px 0;border-bottom:1px solid var(--border);font-family:DM Mono,monospace;font-size:11px;color:var(--text)"><span style="color:var(--muted)">REMOVIDO em ' + d + '</span> — rodou ' + a.kmRodados + 'km' + obsHTML + '</div>';
+      }).join('');
+      var discoCorpoHTML;
+      if (disco.dataInstalacao === null) {
+        discoCorpoHTML =
+          '<p style="font-family:DM Sans,sans-serif;font-size:12px;color:var(--muted);margin:0 0 10px">Nenhum disco cadastrado ainda.</p>' +
+          '<button onclick="bikeRodaDiscoInstalacaoPrompt(\'' + posRoda + '\')" style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;padding:8px 14px;border-radius:8px;border:none;background:var(--accent);color:#000;cursor:pointer">CADASTRAR DISCO ' + labelPos + '</button>';
+      } else {
+        var kmDisco = _bikeRodaDiscoKm(posRoda);
+        var ultimaEspDisco = _bikeRodaDiscoUltimaEspessura(posRoda);
+        var dinamicaDisco = _bikeRodaDiscoDinamica(posRoda);
+        var temEstimativaDisco = _bikeUsoAnteriorEstimado() !== null;
+        var kmDiscoDisplay = (temEstimativaDisco ? '≈' : '') + kmDisco;
+        var instaladoTxtDisco = disco.kmInstalacaoTotal === 0 ?
+          'Original da bicicleta — acompanha a km total dela' :
+          'Trocado em ' + new Date(disco.dataInstalacao).toLocaleDateString('pt-BR') + ' (bike com ' + (Math.round(disco.kmInstalacaoTotal * 10) / 10) + 'km combinado)';
+        discoCorpoHTML =
+          '<div style="font-family:DM Mono,monospace;font-size:10px;color:var(--muted);margin-bottom:8px">Jogo de rodas ativo: ' + escHtml(jogo.nome) + '</div>' +
+          '<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:10px">' +
+          '<div style="flex:1;min-width:100px">' +
+          '<div style="font-family:DM Mono,monospace;font-size:9px;letter-spacing:1px;color:var(--muted)">IDADE</div>' +
+          '<div style="font-family:Bebas Neue,sans-serif;font-size:26px;color:var(--text);line-height:1.2">' + kmDiscoDisplay + '<span style="font-size:12px"> km</span></div>' +
+          '</div>' +
+          '<div style="flex:1;min-width:100px">' +
+          '<div style="font-family:DM Mono,monospace;font-size:9px;letter-spacing:1px;color:var(--muted)">ESPESSURA ATUAL</div>' +
+          '<div style="font-family:Bebas Neue,sans-serif;font-size:26px;color:var(--text);line-height:1.2">' + (ultimaEspDisco === null ? '—' : ultimaEspDisco + '<span style="font-size:12px">mm</span>') + '</div>' +
+          '</div>' +
+          '</div>' +
+          '<div style="font-family:DM Mono,monospace;font-size:10px;color:var(--muted);margin:0 0 8px">Espessura nova (fábrica): <span onclick="bikeRodaDiscoNovaPrompt(\'' + posRoda + '\')" style="color:var(--accent);text-decoration:underline;cursor:pointer">' + (disco.espessuraNova !== null && disco.espessuraNova !== undefined ? disco.espessuraNova + 'mm' : 'não informada') + '</span></div>' +
+          _bikeVidaUtilLinhaHTML('DINÂMICO — mínima <span onclick="bikeRodaDiscoMinimaPrompt(\'' + posRoda + '\')" style="color:var(--accent);text-decoration:underline;cursor:pointer">' + disco.espessuraMinima + 'mm</span>', dinamicaDisco) +
+          '<div onclick="bikeRodaDiscoInstalacaoPrompt(\'' + posRoda + '\')" style="font-family:DM Mono,monospace;font-size:10px;color:var(--muted);margin:10px 0;cursor:pointer;border-bottom:1px dotted var(--border);display:inline-block">' + instaladoTxtDisco + '</div>' +
+          '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:' + (medicoesDiscoHTML || discoAnterioresHTML ? '12px' : '0') + '">' +
+          '<button onclick="bikeRodaDiscoMedicaoPrompt(\'' + posRoda + '\')" style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;padding:8px 14px;border-radius:8px;border:none;background:var(--accent);color:#000;cursor:pointer">REGISTRAR MEDIÇÃO</button>' +
+          '<button onclick="bikeRodaDiscoTrocarPrompt(\'' + posRoda + '\')" style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;padding:8px 14px;border-radius:8px;border:1px solid var(--perdido,#a33);background:transparent;color:var(--muted);cursor:pointer">TROCAR DISCO</button>' +
+          '<button onclick="bikeRodaDiscoMoverPrompt(\'' + posRoda + '\')" style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;padding:8px 14px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text);cursor:pointer">MOVER P/ OUTRO JOGO</button>' +
+          '</div>' +
+          (medicoesDiscoHTML ? '<div style="font-family:DM Mono,monospace;font-size:9px;letter-spacing:1px;color:var(--muted);margin-bottom:2px">MEDIÇÕES</div>' + medicoesDiscoHTML : '') +
+          (discoAnterioresHTML ? '<div style="font-family:DM Mono,monospace;font-size:9px;letter-spacing:1px;color:var(--muted);margin:' + (medicoesDiscoHTML ? '12px' : '0') + ' 0 2px">DISCOS ANTERIORES</div>' + discoAnterioresHTML : '');
+      }
+      discoBlocoHTML =
+        '<div style="margin-bottom:12px">' +
+        '<div style="font-family:DM Mono,monospace;font-size:9px;letter-spacing:1px;color:var(--muted);margin-bottom:8px">DISCO (ITEM DE DESGASTE — ACOMPANHA O JOGO DE RODAS)</div>' +
+        discoCorpoHTML +
+        '</div>' +
+        '<div style="border-top:1px solid var(--border);margin-bottom:12px;padding-top:12px"></div>';
+    }
+
     var blocosHTML = ['pastilha'].map(function(tipo, i) {
       var comp = _bikeFreioComp(pos, tipo);
       var label = _bikeFreioLabel(tipo);
@@ -7435,6 +7508,7 @@ function renderBikeFreiosHTML() {
           '<div style="font-family:Bebas Neue,sans-serif;font-size:26px;color:var(--text);line-height:1.2">' + (ultimaEsp === null ? '—' : ultimaEsp + '<span style="font-size:12px">mm</span>') + '</div>' +
           '</div>' +
           '</div>' +
+          '<div style="font-family:DM Mono,monospace;font-size:10px;color:var(--muted);margin:0 0 8px">Espessura nova (fábrica): <span onclick="bikeFreioNovaPrompt(\'' + pos + '\',\'' + tipo + '\')" style="color:var(--accent);text-decoration:underline;cursor:pointer">' + (comp.espessuraNova !== null && comp.espessuraNova !== undefined ? comp.espessuraNova + 'mm' : 'não informada') + '</span></div>' +
           _bikeVidaUtilLinhaHTML('DINÂMICO — mínima <span onclick="bikeFreioMinimaPrompt(\'' + pos + '\',\'' + tipo + '\')" style="color:var(--accent);text-decoration:underline;cursor:pointer">' + comp.espessuraMinima + 'mm</span>', dinamica) +
           '<div onclick="bikeFreioInstalacaoPrompt(\'' + pos + '\',\'' + tipo + '\')" style="font-family:DM Mono,monospace;font-size:10px;color:var(--muted);margin:10px 0;cursor:pointer;border-bottom:1px dotted var(--border);display:inline-block">Instalado em ' + dataInst + ' (bike com ' + (Math.round(comp.kmInstalacaoTotal * 10) / 10) + 'km)</div>' +
           '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:' + (medicoesHTML || anterioresHTML ? '12px' : '0') + '">' +
@@ -7453,6 +7527,7 @@ function renderBikeFreiosHTML() {
 
     return '<div style="background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:10px">' +
       '<div style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;color:var(--muted);margin-bottom:12px">FREIO ' + pos.toUpperCase() + '</div>' +
+      discoBlocoHTML +
       blocosHTML +
       '</div>';
   }).join('');
@@ -7528,6 +7603,42 @@ function bikeFreioMinimaAplicar(pos, tipo) {
   closeModal();
   renderBikeTab();
   toast('Espessura mínima atualizada: ' + v + 'mm ✓');
+}
+
+function bikeFreioNovaPrompt(pos, tipo) {
+  var comp = _bikeFreioComp(pos, tipo);
+  var title = document.getElementById('modal-title');
+  var body = document.getElementById('modal-body');
+  var confirmBtn = document.getElementById('modal-confirm');
+  if (title) title.textContent = 'ESPESSURA NOVA — ' + _bikeFreioLabel(tipo).toUpperCase();
+  if (body) body.innerHTML =
+    '<p style="font-family:DM Sans,sans-serif;font-size:12px;color:var(--muted);margin:0 0 10px">Espessura de fábrica, em mm, quando ' + (tipo === 'disco' ? 'o disco está' : 'a pastilha está') + ' nova (folha de especificação do fabricante). Deixe em branco se não souber — o cálculo DINÂMICO passa a usar isso só como ponto de partida com a 1ª medição, antes de haver 2 medições reais.</p>' +
+    '<input id="freio-nova" type="number" step="0.1" min="0" value="' + (comp.espessuraNova !== null && comp.espessuraNova !== undefined ? comp.espessuraNova : '') + '" placeholder="Ex: 2.3" style="display:block;width:100%;box-sizing:border-box;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:DM Mono,monospace;margin-bottom:10px">' +
+    '<button onclick="bikeFreioNovaAplicar(\'' + pos + '\',\'' + tipo + '\')" style="display:block;width:100%;font-family:DM Mono,monospace;font-size:11px;padding:10px;border-radius:8px;border:none;background:var(--accent);color:#000;cursor:pointer">SALVAR</button>';
+  if (confirmBtn) confirmBtn.style.display = 'none';
+  document.getElementById('modal').classList.add('open');
+}
+
+function bikeFreioNovaAplicar(pos, tipo) {
+  var comp = _bikeFreioComp(pos, tipo);
+  var raw = (document.getElementById('freio-nova').value || '').trim();
+  if (raw === '') {
+    pushUndo('Espessura nova ' + _bikeFreioLabel(tipo) + ' ' + pos);
+    comp.espessuraNova = null;
+    saveState();
+    closeModal();
+    renderBikeTab();
+    toast('Espessura nova removida ✓');
+    return;
+  }
+  var v = parseFloat(raw);
+  if (isNaN(v) || v < 0) { toast('Valor inválido'); return; }
+  pushUndo('Espessura nova ' + _bikeFreioLabel(tipo) + ' ' + pos);
+  comp.espessuraNova = v;
+  saveState();
+  closeModal();
+  renderBikeTab();
+  toast('Espessura nova atualizada: ' + v + 'mm ✓');
 }
 
 function bikeFreioMedicaoPrompt(pos, tipo) {
@@ -7606,6 +7717,7 @@ function bikeFreioTrocarAplicar(pos, tipo) {
     dataRemocao: dataISO,
     kmInstalacaoTotal: comp.kmInstalacaoTotal,
     kmRodados: kmRodados,
+    espessuraNova: comp.espessuraNova !== undefined ? comp.espessuraNova : null,
     espessuraMinima: comp.espessuraMinima,
     medicoes: comp.medicoes || [],
     obs: (obsEl && obsEl.value.trim()) || ''
@@ -7613,6 +7725,7 @@ function bikeFreioTrocarAplicar(pos, tipo) {
   freios[pos][tipo] = {
     dataInstalacao: dataISO,
     kmInstalacaoTotal: kmNaData,
+    espessuraNova: comp.espessuraNova !== undefined ? comp.espessuraNova : null,
     espessuraMinima: comp.espessuraMinima,
     medicoes: [],
     anteriores: comp.anteriores
@@ -8426,12 +8539,16 @@ function _bikeVidaUtilLinhaHTML(titulo, r) {
   if (r.status === 'sem-limiar') {
     return '<div style="padding:7px 0;border-bottom:1px solid var(--border)"><div style="font-family:DM Mono,monospace;font-size:9px;letter-spacing:1px;color:var(--muted)">' + titulo + '</div><div style="font-family:DM Sans,sans-serif;font-size:12px;color:var(--muted)">A ferramenta ativa não define esse limiar.</div></div>';
   }
+  if (r.status === 'sem-desgaste-detectavel') {
+    return '<div style="padding:7px 0;border-bottom:1px solid var(--border)"><div style="font-family:DM Mono,monospace;font-size:9px;letter-spacing:1px;color:var(--muted)">' + titulo + '</div><div style="font-family:DM Sans,sans-serif;font-size:12px;color:var(--muted)">Ainda sem desgaste detectável na precisão do seu instrumento — normal logo após a troca. Continue medindo periodicamente.</div></div>';
+  }
   var kmTxt = r.kmRestante <= 0 ?
     '<span style="color:var(--perdido,#c33)">⚠ já passou (' + Math.abs(r.kmRestante) + 'km atrás)</span>' :
     ('faltam ' + r.kmRestante + 'km');
   var dataTxt = r.dataEstimada ? ' · ≈ ' + r.dataEstimada.toLocaleDateString('pt-BR') : '';
   var excedeuTxt = r.excedeu ? ' <span style="color:var(--perdido,#c33)">⚠ já fez mais Drip-wax Top-offs que o combinado</span>' : '';
-  return '<div style="padding:7px 0;border-bottom:1px solid var(--border)"><div style="font-family:DM Mono,monospace;font-size:9px;letter-spacing:1px;color:var(--muted)">' + titulo + '</div><div style="font-family:DM Sans,sans-serif;font-size:12px;color:var(--text)">' + kmTxt + dataTxt + excedeuTxt + '</div></div>';
+  var notaTxt = r.notaEstimativa ? ' <span style="color:var(--muted)">(' + r.notaEstimativa + ')</span>' : '';
+  return '<div style="padding:7px 0;border-bottom:1px solid var(--border)"><div style="font-family:DM Mono,monospace;font-size:9px;letter-spacing:1px;color:var(--muted)">' + titulo + '</div><div style="font-family:DM Sans,sans-serif;font-size:12px;color:var(--text)">' + kmTxt + dataTxt + excedeuTxt + notaTxt + '</div></div>';
 }
 
 function renderBikeCorrentesHTML() {
@@ -9474,14 +9591,30 @@ function _bikeRodasInit() {
   o.jogosDeRodas.forEach(function(jogo) {
     ['dianteira', 'traseira'].forEach(function(pos) {
       if (!jogo[pos]) jogo[pos] = {};
-      if (!jogo[pos].cubo) jogo[pos].cubo = { dataInstalacao: null, kmInstalacaoTotal: null, kmAcumulado: 0, kmInicioSessaoAtual: null, manutencoes: [] };
-      if (!jogo[pos].disco) jogo[pos].disco = { dataInstalacao: null, kmInstalacaoTotal: null, kmAcumulado: 0, kmInicioSessaoAtual: null, espessuraMinima: 1.5, medicoes: [], anteriores: [] };
+      if (!jogo[pos].cubo) jogo[pos].cubo = { nome: 'Cubo', dataInstalacao: null, kmInstalacaoTotal: null, kmAcumulado: 0, kmInicioSessaoAtual: null, intervaloManutencaoKm: o.cuboIntervaloManutencaoKm || 5000, manutencoes: [] };
+      if (!jogo[pos].cubo.nome) jogo[pos].cubo.nome = 'Cubo';
+      // Migração: intervalo de manutenção do cubo era um único valor global (compartilhado
+      // entre dianteira/traseira) — agora cada cubo tem o seu próprio, editável separado.
+      // O valor global vira só o ponto de partida na primeira vez que cada cubo é visto.
+      if (jogo[pos].cubo.intervaloManutencaoKm === undefined || jogo[pos].cubo.intervaloManutencaoKm === null) jogo[pos].cubo.intervaloManutencaoKm = o.cuboIntervaloManutencaoKm || 5000;
+      if (!jogo[pos].disco) jogo[pos].disco = { dataInstalacao: null, kmInstalacaoTotal: null, kmAcumulado: 0, kmInicioSessaoAtual: null, espessuraNova: null, espessuraMinima: 1.5, medicoes: [], anteriores: [] };
+      if (jogo[pos].disco.espessuraNova === undefined) jogo[pos].disco.espessuraNova = null;
+      if (!jogo[pos].raios) jogo[pos].raios = { verificacoes: [] };
       if (jogo[pos].pneu && !jogo[pos].pneu.selante) jogo[pos].pneu.selante = { aplicacoes: [] };
       if (!jogo[pos].pneusAnteriores) jogo[pos].pneusAnteriores = [];
       if (jogo[pos].pneu && !jogo[pos].pneu.nome) jogo[pos].pneu.nome = 'Pneu ' + _bikeRodaLabel(pos);
     });
     // Cassete só existe na traseira (fica no freehub) — acompanha o jogo, igual ao disco.
     if (!jogo.traseira.cassete) jogo.traseira.cassete = { nome: 'Cassete', dataInstalacao: null, kmInstalacaoTotal: null, kmAcumulado: 0, kmInicioSessaoAtual: null, kmEsperadoTroca: 15000, anteriores: [] };
+    // Freehub — rolamento distinto do rolamento do cubo, só existe na traseira.
+    if (!jogo.traseira.freehub) jogo.traseira.freehub = { manutencoes: [] };
+    else if (jogo.traseira.freehub.dataInstalacao !== undefined) jogo.traseira.freehub = { manutencoes: jogo.traseira.freehub.manutencoes || [] };
+    // Migração: freehub reaproveitava o intervalo do cubo — agora tem o seu próprio,
+    // editável separado (o ciclo de manutenção de um não precisa ser igual ao do outro).
+    // O valor do cubo traseiro vira só o ponto de partida na primeira vez.
+    if (jogo.traseira.freehub.intervaloManutencaoKm === undefined || jogo.traseira.freehub.intervaloManutencaoKm === null) {
+      jogo.traseira.freehub.intervaloManutencaoKm = jogo.traseira.cubo.intervaloManutencaoKm || o.cuboIntervaloManutencaoKm || 5000;
+    }
   });
   if (!o._jogoRodasSelecionado || !o.jogosDeRodas.some(function(j) { return j.id === o._jogoRodasSelecionado; })) {
     o._jogoRodasSelecionado = (o.jogosDeRodas.find(function(j) { return j.status === 'ativo'; }) || o.jogosDeRodas[0]).id;
@@ -9502,6 +9635,7 @@ function _bikeRodasInit() {
             kmInstalacaoTotal: discoAntigo.kmInstalacaoTotal,
             kmAcumulado: 0,
             kmInicioSessaoAtual: ativo ? discoAntigo.kmInstalacaoTotal : null,
+            espessuraNova: discoAntigo.espessuraNova || null,
             espessuraMinima: discoAntigo.espessuraMinima || 1.5,
             medicoes: discoAntigo.medicoes || [],
             anteriores: discoAntigo.anteriores || []
@@ -9529,6 +9663,62 @@ function _bikeRodasInit() {
     o._migracaoCuboManutencaoEstimativaV1 = true;
   }
 
+  // Migração v0.9.1.04: cubo passou a usar km COMBINADO como âncora única (igual ao
+  // cassete) — âncoras não-zero (cubo trocado durante o uso rastreado) precisam somar a
+  // estimativa de uso anterior pra virar "combinado". Âncora 0 continua 0 nos dois modelos.
+  if (!o._migracaoCuboKmCombinadoV1) {
+    o.jogosDeRodas.forEach(function(jogo) {
+      ['dianteira', 'traseira'].forEach(function(pos) {
+        var cubo = jogo[pos] && jogo[pos].cubo;
+        if (cubo && cubo.kmInstalacaoTotal !== null && cubo.kmInstalacaoTotal !== 0) {
+          var usoAnterior = _bikeUsoAnteriorEstimado() || 0;
+          cubo.kmInstalacaoTotal = Math.round((cubo.kmInstalacaoTotal + usoAnterior) * 10) / 10;
+          if (cubo.kmInicioSessaoAtual !== null) cubo.kmInicioSessaoAtual = Math.round((cubo.kmInicioSessaoAtual + usoAnterior) * 10) / 10;
+        }
+      });
+    });
+    o._migracaoCuboKmCombinadoV1 = true;
+  }
+
+  // Migração v0.9.1.05: pneu passou a usar km COMBINADO como âncora única, mesmo padrão
+  // do cubo/cassete.
+  if (!o._migracaoPneuKmCombinadoV1) {
+    o.jogosDeRodas.forEach(function(jogo) {
+      ['dianteira', 'traseira'].forEach(function(pos) {
+        var pneu = jogo[pos] && jogo[pos].pneu;
+        if (pneu && pneu.kmInstalacaoTotal !== null && pneu.kmInstalacaoTotal !== 0) {
+          var usoAnterior = _bikeUsoAnteriorEstimado() || 0;
+          pneu.kmInstalacaoTotal = Math.round((pneu.kmInstalacaoTotal + usoAnterior) * 10) / 10;
+          if (pneu.kmInicioSessaoAtual !== null) pneu.kmInicioSessaoAtual = Math.round((pneu.kmInicioSessaoAtual + usoAnterior) * 10) / 10;
+        }
+      });
+    });
+    o._migracaoPneuKmCombinadoV1 = true;
+  }
+
+  // Migração v0.9.1.05: disco passou a usar km COMBINADO como âncora única. As medições
+  // já registradas guardavam km bruto (a fórmula antiga nunca somava a estimativa pro
+  // cálculo real, só pra exibição) — precisam ser corrigidas independente da âncora, senão
+  // o DINÂMICO (que compara as duas últimas medições) vê um salto artificial.
+  if (!o._migracaoDiscoKmCombinadoV1) {
+    var usoAnteriorMigDisco = _bikeUsoAnteriorEstimado() || 0;
+    o.jogosDeRodas.forEach(function(jogo) {
+      ['dianteira', 'traseira'].forEach(function(pos) {
+        var disco = jogo[pos] && jogo[pos].disco;
+        if (disco && disco.dataInstalacao !== null) {
+          if (disco.kmInstalacaoTotal !== 0) {
+            disco.kmInstalacaoTotal = Math.round((disco.kmInstalacaoTotal + usoAnteriorMigDisco) * 10) / 10;
+            if (disco.kmInicioSessaoAtual !== null) disco.kmInicioSessaoAtual = Math.round((disco.kmInicioSessaoAtual + usoAnteriorMigDisco) * 10) / 10;
+          }
+          (disco.medicoes || []).forEach(function(m) {
+            m.kmIndividual = Math.round((m.kmIndividual + usoAnteriorMigDisco) * 10) / 10;
+          });
+        }
+      });
+    });
+    o._migracaoDiscoKmCombinadoV1 = true;
+  }
+
   // Migração v0.9.0.78: recalcula o km informativo das aplicações de selante já
   // registradas, agora que bikeEstimarKmNaData considera a data de compra corretamente.
   if (!o._migracaoKmSelanteV2) {
@@ -9546,6 +9736,7 @@ function _bikeRodasInit() {
     o._migracaoKmSelanteV2 = true;
   }
   if (o.cuboIntervaloManutencaoKm === undefined || o.cuboIntervaloManutencaoKm === null) o.cuboIntervaloManutencaoKm = 5000;
+  if (o.raiosIntervaloVerificacaoKm === undefined || o.raiosIntervaloVerificacaoKm === null) o.raiosIntervaloVerificacaoKm = 2000;
   if (o.selanteIntervaloDias === undefined || o.selanteIntervaloDias === null) o.selanteIntervaloDias = 60;
   // Migração: modelo antigo (peso vazio + peso cheio) vira o novo (garrafa atual em ml).
   // Se já havia peso cheio configurado no modelo antigo, aproveita como ponto de partida.
@@ -9713,15 +9904,37 @@ function renderBikeSelanteGarrafaHTML() {
 }
 
 // Idade do cubo (km desde a instalação) — igual ao pneu, sem sessão/acumulado.
+// Km individual do cubo = km combinado atual - âncora de instalação (também combinada).
+// kmAcumulado/kmInicioSessaoAtual seguem o rodízio de jogo de rodas, na escala combinada.
 function _bikeRodaCuboKm(pos) {
   var roda = _bikeRodaAtual(pos);
   if (!roda || !roda.cubo || roda.cubo.kmInstalacaoTotal === null) return 0;
   var jogo = _bikeJogoSelecionado();
-  return _bikeCompKm(roda.cubo, jogo && jogo.status === 'ativo');
+  var ativo = jogo && jogo.status === 'ativo';
+  var cubo = roda.cubo;
+  if (ativo && cubo.kmInicioSessaoAtual !== null) {
+    return Math.round((cubo.kmAcumulado + (_bikeCombinadoAtual() - cubo.kmInicioSessaoAtual)) * 10) / 10;
+  }
+  return Math.round((cubo.kmAcumulado || 0) * 10) / 10;
 }
 
-// Km desde a última manutenção — se nunca fez, cai pra idade (desde a instalação). Compara
-// km INDIVIDUAL (não total da bike), pra ficar correto mesmo se o jogo ficou em espera.
+function _bikeRodaCuboCongelar(jogo, pos) {
+  var cubo = jogo[pos].cubo;
+  if (!cubo || cubo.kmInstalacaoTotal === null) return;
+  if (cubo.kmInicioSessaoAtual !== null) {
+    cubo.kmAcumulado = Math.round((cubo.kmAcumulado + (_bikeCombinadoAtual() - cubo.kmInicioSessaoAtual)) * 10) / 10;
+  }
+  cubo.kmInicioSessaoAtual = null;
+}
+
+function _bikeRodaCuboRetomar(jogo, pos) {
+  var cubo = jogo[pos].cubo;
+  if (!cubo || cubo.kmInstalacaoTotal === null) return;
+  cubo.kmInicioSessaoAtual = _bikeCombinadoAtual();
+}
+
+// Km desde a última manutenção — se nunca fez, cai pra idade (desde a instalação). Já em
+// escala combinada, então não precisa de nenhum ajuste extra.
 function _bikeRodaCuboKmDesdeManutencao(pos) {
   var roda = _bikeRodaAtual(pos);
   if (!roda || !roda.cubo) return null;
@@ -9730,14 +9943,50 @@ function _bikeRodaCuboKmDesdeManutencao(pos) {
     var ultima = roda.cubo.manutencoes[0]; // unshift — mais recente primeiro
     return Math.round((kmAtual - ultima.kmTotal) * 10) / 10;
   }
-  return roda.cubo.kmInstalacaoTotal === null ? null : _bikeKmMelhorEstimativa(kmAtual, roda.cubo.kmInstalacaoTotal);
+  return roda.cubo.kmInstalacaoTotal === null ? null : kmAtual;
 }
 
-// PRÓXIMA MANUTENÇÃO — intervalo fixo em km, mesmo padrão da PRÓXIMA IMERSÃO da corrente.
+// PRÓXIMA MANUTENÇÃO — intervalo fixo em km, próprio de cada cubo (dianteiro e traseiro
+// têm ciclos independentes, cada um editável separadamente).
 function _bikeRodaCuboProximaManutencao(pos) {
   var kmDesde = _bikeRodaCuboKmDesdeManutencao(pos);
   if (kmDesde === null) return { status: 'sem-dados' };
-  var intervalo = state.bikeOdo.cuboIntervaloManutencaoKm || 5000;
+  var roda = _bikeRodaAtual(pos);
+  var intervalo = (roda && roda.cubo && roda.cubo.intervaloManutencaoKm) || 5000;
+  var kmRestante = Math.round((intervalo - kmDesde) * 10) / 10;
+  var dataEstimada = null;
+  var media = _bikeOdoMediaKmDia();
+  if (kmRestante > 0 && media > 0) {
+    var dias = Math.ceil(kmRestante / media);
+    var d = new Date();
+    d.setDate(d.getDate() + dias);
+    dataEstimada = d;
+  }
+  return { status: 'ok', kmRestante: kmRestante, dataEstimada: dataEstimada };
+}
+
+// ─── FREEHUB — parte do cubo traseiro (não é peça à parte, não tem instalação própria).
+// É um segundo item de manutenção dentro do mesmo cubo, já que os rolamentos do freehub
+// desgastam/precisam de graxa em ciclo diferente dos rolamentos do cubo em si. Usa o km
+// individual do PRÓPRIO CUBO como referência (que já tem sessão de rodízio correta). ───
+function _bikeFreehubKmDesdeManutencao() {
+  var roda = _bikeRodaAtual('traseira');
+  if (!roda || !roda.freehub || !roda.cubo || roda.cubo.kmInstalacaoTotal === null) return null;
+  var kmCubo = _bikeRodaCuboKm('traseira');
+  if (roda.freehub.manutencoes && roda.freehub.manutencoes.length) {
+    var ultima = roda.freehub.manutencoes[0];
+    return Math.round((kmCubo - ultima.kmTotal) * 10) / 10;
+  }
+  return kmCubo;
+}
+
+// Intervalo PRÓPRIO do freehub (independente do intervalo do cubo) — usa apenas o km do
+// cubo traseiro como referência de escala, já que os rolamentos giram junto.
+function _bikeFreehubProximaManutencao() {
+  var kmDesde = _bikeFreehubKmDesdeManutencao();
+  if (kmDesde === null) return { status: 'sem-dados' };
+  var roda = _bikeRodaAtual('traseira');
+  var intervalo = (roda && roda.freehub && roda.freehub.intervaloManutencaoKm) || 5000;
   var kmRestante = Math.round((intervalo - kmDesde) * 10) / 10;
   var dataEstimada = null;
   var media = _bikeOdoMediaKmDia();
@@ -9754,9 +10003,29 @@ function _bikeRodaCuboProximaManutencao(pos) {
 // enquanto o jogo está em espera.
 function _bikeRodaDiscoKm(pos) {
   var roda = _bikeRodaAtual(pos);
-  if (!roda || !roda.disco) return 0;
+  if (!roda || !roda.disco || roda.disco.kmInstalacaoTotal === null) return 0;
   var jogo = _bikeJogoSelecionado();
-  return _bikeCompKm(roda.disco, jogo && jogo.status === 'ativo');
+  var ativo = jogo && jogo.status === 'ativo';
+  var disco = roda.disco;
+  if (ativo && disco.kmInicioSessaoAtual !== null) {
+    return Math.round((disco.kmAcumulado + (_bikeCombinadoAtual() - disco.kmInicioSessaoAtual)) * 10) / 10;
+  }
+  return Math.round((disco.kmAcumulado || 0) * 10) / 10;
+}
+
+function _bikeRodaDiscoCongelar(jogo, pos) {
+  var disco = jogo[pos].disco;
+  if (!disco || disco.kmInstalacaoTotal === null) return;
+  if (disco.kmInicioSessaoAtual !== null) {
+    disco.kmAcumulado = Math.round((disco.kmAcumulado + (_bikeCombinadoAtual() - disco.kmInicioSessaoAtual)) * 10) / 10;
+  }
+  disco.kmInicioSessaoAtual = null;
+}
+
+function _bikeRodaDiscoRetomar(jogo, pos) {
+  var disco = jogo[pos].disco;
+  if (!disco || disco.kmInstalacaoTotal === null) return;
+  disco.kmInicioSessaoAtual = _bikeCombinadoAtual();
 }
 
 function _bikeRodaDiscoUltimaEspessura(pos) {
@@ -9765,8 +10034,9 @@ function _bikeRodaDiscoUltimaEspessura(pos) {
   return roda.disco.medicoes[roda.disco.medicoes.length - 1].espessuraMm;
 }
 
-// DINÂMICO: mesma lógica de _bikeFreioDinamica (taxa mm/km via último segmento), só que
-// usando o km individual COM sessão do disco (não o km bruto da bike).
+// DINÂMICO: mesma lógica de _bikeFreioDinamica (taxa mm/km via último segmento, com bootstrap
+// pela espessura nova quando só há 1 medição), só que usando o km individual COM sessão do
+// disco (não o km bruto da bike).
 function _bikeRodaDiscoDinamica(pos) {
   var roda = _bikeRodaAtual(pos);
   if (!roda || !roda.disco) return { status: 'sem-dados' };
@@ -9775,11 +10045,27 @@ function _bikeRodaDiscoDinamica(pos) {
   if (!medicoes.length) return { status: 'sem-dados' };
   var ultima = medicoes[medicoes.length - 1];
   if (ultima.espessuraMm <= comp.espessuraMinima) return { status: 'atingido' };
-  if (medicoes.length < 2) return { status: 'sem-dados' };
-  var penultima = medicoes[medicoes.length - 2];
-  var deltaEspessura = penultima.espessuraMm - ultima.espessuraMm;
-  var deltaKm = ultima.kmIndividual - penultima.kmIndividual;
-  if (deltaEspessura <= 0 || deltaKm <= 0) return { status: 'sem-dados' };
+  var kmAnterior, espessuraAnterior, viaEspessuraNova;
+  if (medicoes.length >= 2) {
+    var penultima = medicoes[medicoes.length - 2];
+    kmAnterior = penultima.kmIndividual;
+    espessuraAnterior = penultima.espessuraMm;
+    viaEspessuraNova = false;
+  } else if (comp.espessuraNova !== null && comp.espessuraNova !== undefined) {
+    kmAnterior = 0;
+    espessuraAnterior = comp.espessuraNova;
+    viaEspessuraNova = true;
+  } else {
+    return { status: 'sem-dados' };
+  }
+  var deltaEspessura = espessuraAnterior - ultima.espessuraMm;
+  var deltaKm = ultima.kmIndividual - kmAnterior;
+  if (deltaKm <= 0) return { status: 'sem-dados' };
+  // deltaEspessura <= 0 não é erro: com pouco desgaste real, a resolução do paquímetro
+  // (tipicamente 0,1mm) pode arredondar a leitura pra IGUAL ou até ACIMA da referência
+  // (ex: nova = 1.85mm real, paquímetro só lê 1.9mm). Não dá pra calcular taxa ainda, mas
+  // é diferente de "sem dados" — é "ainda não há desgaste detectável nessa precisão".
+  if (deltaEspessura <= 0) return { status: 'sem-desgaste-detectavel' };
   var taxaPorKm = deltaEspessura / deltaKm;
   var espessuraRestante = ultima.espessuraMm - comp.espessuraMinima;
   var kmRestante = Math.round((espessuraRestante / taxaPorKm) * 10) / 10;
@@ -9794,7 +10080,7 @@ function _bikeRodaDiscoDinamica(pos) {
       dataEstimada = d;
     }
   }
-  return { status: 'ok', kmRestante: kmRestante, dataEstimada: dataEstimada };
+  return { status: 'ok', kmRestante: kmRestante, dataEstimada: dataEstimada, notaEstimativa: viaEspessuraNova ? 'estimativa com só 1 medição, base: espessura nova' : null };
 }
 
 // CASSETE — só existe na roda traseira (fica no freehub), acompanha o jogo de rodas
@@ -9862,18 +10148,78 @@ function _bikeCasseteFixo() {
   return { status: 'ok', kmRestante: kmRestante, dataEstimada: dataEstimada };
 }
 
+// ─── COROA — único ponto de desgaste do conjunto pedivela/coroa (a pedivela em si tem vida
+// útil ilimitada). Fica presa ao quadro (não acompanha jogo de rodas), então segue a mesma
+// lógica de rolamentos: km individual = km combinado atual - âncora de instalação. Sem
+// manutenção periódica — só FIXO (expectativa de troca), igual pneu/cassete.
+function _bikeCoroaInit() {
+  var o = state.bikeOdo;
+  if (!o) return;
+  if (!o.coroa) {
+    o.coroa = { nome: 'Coroa', dataInstalacao: null, kmInstalacaoTotal: null, kmEsperadoTroca: 10000, anteriores: [] };
+  }
+}
 
+function _bikeCoroaComp() {
+  _bikeCoroaInit();
+  return state.bikeOdo ? state.bikeOdo.coroa : null;
+}
+
+function _bikeCoroaKm() {
+  var comp = _bikeCoroaComp();
+  if (!comp || comp.kmInstalacaoTotal === null) return 0;
+  return Math.round((_bikeCombinadoAtual() - comp.kmInstalacaoTotal) * 10) / 10;
+}
+
+function _bikeCoroaFixo() {
+  var comp = _bikeCoroaComp();
+  if (!comp || comp.kmInstalacaoTotal === null) return { status: 'sem-dados' };
+  var kmAtual = _bikeCoroaKm();
+  var kmRestante = Math.round((comp.kmEsperadoTroca - kmAtual) * 10) / 10;
+  var dataEstimada = null;
+  var media = _bikeOdoMediaKmDia();
+  if (kmRestante > 0 && media > 0) {
+    var dias = Math.ceil(kmRestante / media);
+    var d = new Date();
+    d.setDate(d.getDate() + dias);
+    dataEstimada = d;
+  }
+  return { status: 'ok', kmRestante: kmRestante, dataEstimada: dataEstimada };
+}
+
+// Km individual do pneu = km combinado atual - âncora de instalação (combinada). Sessão
+// segue o rodízio de jogo de rodas, na escala combinada — igual cubo/cassete.
 function _bikeRodaPneuKm(pos) {
   var roda = _bikeRodaAtual(pos);
   if (!roda || !roda.pneu) return 0;
   var jogo = _bikeJogoSelecionado();
-  return _bikeCompKm(roda.pneu, jogo && jogo.status === 'ativo');
+  var ativo = jogo && jogo.status === 'ativo';
+  var pneu = roda.pneu;
+  if (ativo && pneu.kmInicioSessaoAtual !== null) {
+    return Math.round((pneu.kmAcumulado + (_bikeCombinadoAtual() - pneu.kmInicioSessaoAtual)) * 10) / 10;
+  }
+  return Math.round((pneu.kmAcumulado || 0) * 10) / 10;
+}
+
+function _bikeRodaPneuCongelar(jogo, pos) {
+  var pneu = jogo[pos].pneu;
+  if (!pneu) return;
+  if (pneu.kmInicioSessaoAtual !== null) {
+    pneu.kmAcumulado = Math.round((pneu.kmAcumulado + (_bikeCombinadoAtual() - pneu.kmInicioSessaoAtual)) * 10) / 10;
+  }
+  pneu.kmInicioSessaoAtual = null;
+}
+
+function _bikeRodaPneuRetomar(jogo, pos) {
+  var pneu = jogo[pos].pneu;
+  if (!pneu) return;
+  pneu.kmInicioSessaoAtual = _bikeCombinadoAtual();
 }
 
 function _bikeRodaPneuFixo(pos) {
   var roda = _bikeRodaAtual(pos);
   if (!roda || !roda.pneu) return { status: 'sem-dados' };
-  var kmAtual = _bikeKmMelhorEstimativa(_bikeRodaPneuKm(pos), roda.pneu.kmInstalacaoTotal);
+  var kmAtual = _bikeRodaPneuKm(pos);
   var kmRestante = Math.round((roda.pneu.kmEsperado - kmAtual) * 10) / 10;
   var dataEstimada = null;
   var media = _bikeOdoMediaKmDia();
@@ -9965,17 +10311,17 @@ function bikeJogoRodasNovoAplicar() {
     id: uid(),
     nome: nome,
     status: 'espera',
-    dianteira: { pneu: null, cubo: { dataInstalacao: null, kmInstalacaoTotal: null, kmAcumulado: 0, kmInicioSessaoAtual: null, manutencoes: [] }, disco: { dataInstalacao: null, kmInstalacaoTotal: null, kmAcumulado: 0, kmInicioSessaoAtual: null, espessuraMinima: 1.5, medicoes: [], anteriores: [] }, pneusAnteriores: [] },
-    traseira: { pneu: null, cubo: { dataInstalacao: null, kmInstalacaoTotal: null, kmAcumulado: 0, kmInicioSessaoAtual: null, manutencoes: [] }, disco: { dataInstalacao: null, kmInstalacaoTotal: null, kmAcumulado: 0, kmInicioSessaoAtual: null, espessuraMinima: 1.5, medicoes: [], anteriores: [] }, pneusAnteriores: [] }
+    dianteira: { pneu: null, cubo: { dataInstalacao: null, kmInstalacaoTotal: null, kmAcumulado: 0, kmInicioSessaoAtual: null, manutencoes: [] }, disco: { dataInstalacao: null, kmInstalacaoTotal: null, kmAcumulado: 0, kmInicioSessaoAtual: null, espessuraNova: null, espessuraMinima: 1.5, medicoes: [], anteriores: [] }, pneusAnteriores: [] },
+    traseira: { pneu: null, cubo: { dataInstalacao: null, kmInstalacaoTotal: null, kmAcumulado: 0, kmInicioSessaoAtual: null, manutencoes: [] }, disco: { dataInstalacao: null, kmInstalacaoTotal: null, kmAcumulado: 0, kmInicioSessaoAtual: null, espessuraNova: null, espessuraMinima: 1.5, medicoes: [], anteriores: [] }, pneusAnteriores: [] }
   };
 
   if (ativarAgora) {
     var atual = o.jogosDeRodas.find(function(j) { return j.status === 'ativo'; });
     if (atual) {
       ['dianteira', 'traseira'].forEach(function(pos) {
-        _bikeCompCongelar(atual[pos].pneu);
-        _bikeCompCongelar(atual[pos].cubo);
-        _bikeCompCongelar(atual[pos].disco);
+        _bikeRodaPneuCongelar(atual, pos);
+        _bikeRodaCuboCongelar(atual, pos);
+        _bikeRodaDiscoCongelar(atual, pos);
       });
       _bikeCasseteCongelar(atual);
       atual.status = 'espera';
@@ -10015,17 +10361,17 @@ function bikeJogoRodasAtivarAplicar(id) {
   pushUndo('Ativar jogo de rodas: ' + novo.nome);
   if (atual && atual.id !== novo.id) {
     ['dianteira', 'traseira'].forEach(function(pos) {
-      _bikeCompCongelar(atual[pos].pneu);
-      _bikeCompCongelar(atual[pos].cubo);
-      _bikeCompCongelar(atual[pos].disco);
+      _bikeRodaPneuCongelar(atual, pos);
+      _bikeRodaCuboCongelar(atual, pos);
+      _bikeRodaDiscoCongelar(atual, pos);
     });
     _bikeCasseteCongelar(atual);
     atual.status = 'espera';
   }
   ['dianteira', 'traseira'].forEach(function(pos) {
-    _bikeCompRetomar(novo[pos].pneu);
-    _bikeCompRetomar(novo[pos].cubo);
-    _bikeCompRetomar(novo[pos].disco);
+    _bikeRodaPneuRetomar(novo, pos);
+    _bikeRodaCuboRetomar(novo, pos);
+    _bikeRodaDiscoRetomar(novo, pos);
   });
   _bikeCasseteRetomar(novo);
   novo.status = 'ativo';
@@ -10044,94 +10390,21 @@ function renderBikeRodasHTML() {
   var cardsHTML = ['dianteira', 'traseira'].map(function(pos) {
     var roda = _bikeRodaAtual(pos);
     var labelPos = _bikeRodaLabel(pos);
-    var cubo = roda.cubo;
-
-    // ── RODA (cubo/rolamento/freehub, raios) — durável, não é item de desgaste ──
-    var manutencoesHTML = (cubo.manutencoes || []).slice(0, 10).map(function(m) {
-      var d = new Date(m.data).toLocaleDateString('pt-BR');
-      var obsHTML = m.obs ? ' <span style="color:var(--muted)">— ' + escHtml(m.obs) + '</span>' : '';
-      return '<div style="padding:6px 0;border-bottom:1px solid var(--border);font-family:DM Mono,monospace;font-size:11px;color:var(--text)"><span style="color:var(--muted)">' + d + '</span> · ' + m.kmTotal + 'km' + obsHTML + '</div>';
-    }).join('');
-    var cuboCorpoHTML;
-    if (cubo.dataInstalacao === null) {
-      cuboCorpoHTML = '<div style="font-family:DM Sans,sans-serif;font-size:11px;color:var(--muted);margin-bottom:12px">Instalação não configurada — <span onclick="bikeRodaCuboInstalacaoPrompt(\'' + pos + '\')" style="color:var(--accent);text-decoration:underline;cursor:pointer">configurar</span> pra calcular idade e próxima manutenção.</div>';
-    } else {
-      var kmCubo = _bikeRodaCuboKm(pos);
-      var proximaCubo = _bikeRodaCuboProximaManutencao(pos);
-      var dataInstCubo = new Date(cubo.dataInstalacao).toLocaleDateString('pt-BR');
-      cuboCorpoHTML =
-        '<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:10px">' +
-        '<div style="flex:1;min-width:110px">' +
-        '<div style="font-family:DM Mono,monospace;font-size:9px;letter-spacing:1px;color:var(--muted)">IDADE</div>' +
-        '<div style="font-family:Bebas Neue,sans-serif;font-size:28px;color:var(--text);line-height:1.2">' + _bikeKmDisplay(kmCubo, cubo.dataInstalacao, cubo.kmInstalacaoTotal) + '<span style="font-size:13px"> km</span></div>' +
-        '</div>' +
-        '</div>' +
-        _bikeVidaUtilLinhaHTML('PRÓXIMA MANUTENÇÃO — a cada <span onclick="bikeCuboIntervaloPrompt()" style="color:var(--accent);text-decoration:underline;cursor:pointer">' + (o.cuboIntervaloManutencaoKm || 5000) + 'km</span>', proximaCubo) +
-        '<div onclick="bikeRodaCuboInstalacaoPrompt(\'' + pos + '\')" style="font-family:DM Mono,monospace;font-size:10px;color:var(--muted);margin:10px 0 12px;cursor:pointer;border-bottom:1px dotted var(--border);display:inline-block">Instalado em ' + dataInstCubo + ' (bike com ' + (Math.round(cubo.kmInstalacaoTotal * 10) / 10) + 'km)</div>';
-    }
-    var rodaHTML =
-      '<div style="font-family:DM Mono,monospace;font-size:9px;letter-spacing:1px;color:var(--muted);margin-bottom:8px">RODA (CUBO' + (pos === 'traseira' ? '/FREEHUB' : '') + ', RAIOS — DURÁVEL)</div>' +
-      cuboCorpoHTML +
-      '<button onclick="bikeRodaCuboManutencaoPrompt(\'' + pos + '\')" style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;padding:8px 14px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text);cursor:pointer;margin-bottom:' + (manutencoesHTML ? '12px' : '0') + '">REGISTRAR MANUTENÇÃO</button>' +
-      (manutencoesHTML ? '<div style="font-family:DM Mono,monospace;font-size:9px;letter-spacing:1px;color:var(--muted);margin-bottom:2px">HISTÓRICO</div>' + manutencoesHTML : '');
-
-    // ── DISCO — item de desgaste, acompanha a roda (fica no cubo) ──
-    var disco = roda.disco;
-    var medicoesDiscoHTML = (disco.medicoes || []).slice().reverse().slice(0, 10).map(function(m) {
-      var d = new Date(m.data).toLocaleDateString('pt-BR');
-      var obsHTML = m.obs ? ' <span style="color:var(--muted)">— ' + escHtml(m.obs) + '</span>' : '';
-      return '<div style="padding:6px 0;border-bottom:1px solid var(--border);font-family:DM Mono,monospace;font-size:11px;color:var(--text)"><span style="color:var(--muted)">' + d + '</span> · ' + m.espessuraMm + 'mm · ' + m.kmIndividual + 'km' + obsHTML + '</div>';
-    }).join('');
-    var discoAnterioresHTML = (disco.anteriores || []).slice().reverse().slice(0, 5).map(function(a) {
-      var d = new Date(a.dataRemocao).toLocaleDateString('pt-BR');
-      var obsHTML = a.obs ? ' <span style="color:var(--muted)">· Motivo: ' + escHtml(a.obs) + '</span>' : '';
-      return '<div style="padding:6px 0;border-bottom:1px solid var(--border);font-family:DM Mono,monospace;font-size:11px;color:var(--text)"><span style="color:var(--muted)">REMOVIDO em ' + d + '</span> — rodou ' + a.kmRodados + 'km' + obsHTML + '</div>';
-    }).join('');
-    var discoHTML;
-    if (disco.dataInstalacao === null) {
-      discoHTML =
-        '<div style="font-family:DM Mono,monospace;font-size:9px;letter-spacing:1px;color:var(--muted);margin-bottom:8px">DISCO (ITEM DE DESGASTE)</div>' +
-        '<p style="font-family:DM Sans,sans-serif;font-size:12px;color:var(--muted);margin:0 0 10px">Nenhum disco cadastrado ainda.</p>' +
-        '<button onclick="bikeRodaDiscoInstalacaoPrompt(\'' + pos + '\')" style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;padding:8px 14px;border-radius:8px;border:none;background:var(--accent);color:#000;cursor:pointer">CADASTRAR DISCO ' + labelPos + '</button>';
-    } else {
-      var kmDisco = _bikeRodaDiscoKm(pos);
-      var ultimaEspDisco = _bikeRodaDiscoUltimaEspessura(pos);
-      var dinamicaDisco = _bikeRodaDiscoDinamica(pos);
-      var dataInstDisco = new Date(disco.dataInstalacao).toLocaleDateString('pt-BR');
-      discoHTML =
-        '<div style="font-family:DM Mono,monospace;font-size:9px;letter-spacing:1px;color:var(--muted);margin-bottom:8px">DISCO (ITEM DE DESGASTE)</div>' +
-        '<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:10px">' +
-        '<div style="flex:1;min-width:100px">' +
-        '<div style="font-family:DM Mono,monospace;font-size:9px;letter-spacing:1px;color:var(--muted)">IDADE</div>' +
-        '<div style="font-family:Bebas Neue,sans-serif;font-size:26px;color:var(--text);line-height:1.2">' + _bikeKmDisplay(kmDisco, disco.dataInstalacao, disco.kmInstalacaoTotal) + '<span style="font-size:12px"> km</span></div>' +
-        '</div>' +
-        '<div style="flex:1;min-width:100px">' +
-        '<div style="font-family:DM Mono,monospace;font-size:9px;letter-spacing:1px;color:var(--muted)">ESPESSURA ATUAL</div>' +
-        '<div style="font-family:Bebas Neue,sans-serif;font-size:26px;color:var(--text);line-height:1.2">' + (ultimaEspDisco === null ? '—' : ultimaEspDisco + '<span style="font-size:12px">mm</span>') + '</div>' +
-        '</div>' +
-        '</div>' +
-        _bikeVidaUtilLinhaHTML('DINÂMICO — mínima <span onclick="bikeRodaDiscoMinimaPrompt(\'' + pos + '\')" style="color:var(--accent);text-decoration:underline;cursor:pointer">' + disco.espessuraMinima + 'mm</span>', dinamicaDisco) +
-        '<div onclick="bikeRodaDiscoInstalacaoPrompt(\'' + pos + '\')" style="font-family:DM Mono,monospace;font-size:10px;color:var(--muted);margin:10px 0;cursor:pointer;border-bottom:1px dotted var(--border);display:inline-block">Instalado em ' + dataInstDisco + ' (bike com ' + (Math.round(disco.kmInstalacaoTotal * 10) / 10) + 'km)</div>' +
-        '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:' + (medicoesDiscoHTML || discoAnterioresHTML ? '12px' : '0') + '">' +
-        '<button onclick="bikeRodaDiscoMedicaoPrompt(\'' + pos + '\')" style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;padding:8px 14px;border-radius:8px;border:none;background:var(--accent);color:#000;cursor:pointer">REGISTRAR MEDIÇÃO</button>' +
-        '<button onclick="bikeRodaDiscoTrocarPrompt(\'' + pos + '\')" style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;padding:8px 14px;border-radius:8px;border:1px solid var(--perdido,#a33);background:transparent;color:var(--muted);cursor:pointer">TROCAR DISCO</button>' +
-        '<button onclick="bikeRodaDiscoMoverPrompt(\'' + pos + '\')" style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;padding:8px 14px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text);cursor:pointer">MOVER P/ OUTRO JOGO</button>' +
-        '</div>' +
-        (medicoesDiscoHTML ? '<div style="font-family:DM Mono,monospace;font-size:9px;letter-spacing:1px;color:var(--muted);margin-bottom:2px">MEDIÇÕES</div>' + medicoesDiscoHTML : '') +
-        (discoAnterioresHTML ? '<div style="font-family:DM Mono,monospace;font-size:9px;letter-spacing:1px;color:var(--muted);margin:' + (medicoesDiscoHTML ? '12px' : '0') + ' 0 2px">DISCOS ANTERIORES</div>' + discoAnterioresHTML : '');
-    }
 
     // ── PNEU — item de desgaste ──
     var pneuHTML;
     if (!roda.pneu) {
       pneuHTML =
-        '<div style="font-family:DM Mono,monospace;font-size:9px;letter-spacing:1px;color:var(--muted);margin-bottom:8px">PNEU (ITEM DE DESGASTE)</div>' +
         '<p style="font-family:DM Sans,sans-serif;font-size:12px;color:var(--muted);margin:0 0 10px">Nenhum pneu cadastrado ainda.</p>' +
         '<button onclick="bikeRodaPneuNovoPrompt(\'' + pos + '\')" style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;padding:8px 14px;border-radius:8px;border:none;background:var(--accent);color:#000;cursor:pointer">CADASTRAR PNEU ' + labelPos + '</button>';
     } else {
       var kmAtual = _bikeRodaPneuKm(pos);
       var fixo = _bikeRodaPneuFixo(pos);
-      var dataInst = roda.pneu.dataInstalacao ? new Date(roda.pneu.dataInstalacao).toLocaleDateString('pt-BR') : '—';
+      var temEstimativa = _bikeUsoAnteriorEstimado() !== null;
+      var kmDisplay = (temEstimativa ? '≈' : '') + kmAtual;
+      var instaladoTxt = roda.pneu.kmInstalacaoTotal === 0 ?
+        'Original da bicicleta — acompanha a km total dela' :
+        'Trocado em ' + new Date(roda.pneu.dataInstalacao).toLocaleDateString('pt-BR') + ' (bike com ' + (Math.round(roda.pneu.kmInstalacaoTotal * 10) / 10) + 'km combinado)';
 
       var aplicacoes = roda.pneu.selante.aplicacoes || [];
       var ultimaAplicacao = aplicacoes.length ? aplicacoes[0] : null;
@@ -10158,16 +10431,15 @@ function renderBikeRodasHTML() {
       }).join('');
 
       pneuHTML =
-        '<div style="font-family:DM Mono,monospace;font-size:9px;letter-spacing:1px;color:var(--muted);margin-bottom:8px">PNEU (ITEM DE DESGASTE)</div>' +
         '<input value="' + escHtml(roda.pneu.nome) + '" placeholder="Nome do pneu" onchange="bikeRodaPneuRenomear(\'' + pos + '\',this.value)" style="display:block;width:100%;box-sizing:border-box;margin:0 0 10px;padding:4px 2px;border:none;border-bottom:1px solid var(--border);background:transparent;color:var(--text);font-family:DM Sans,sans-serif;font-size:15px;font-weight:600">' +
         '<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:10px">' +
         '<div style="flex:1;min-width:110px">' +
         '<div style="font-family:DM Mono,monospace;font-size:9px;letter-spacing:1px;color:var(--muted)">KM INDIVIDUAL</div>' +
-        '<div style="font-family:Bebas Neue,sans-serif;font-size:28px;color:var(--text);line-height:1.2">' + _bikeKmDisplay(kmAtual, roda.pneu.dataInstalacao, roda.pneu.kmInstalacaoTotal) + '<span style="font-size:13px"> km</span></div>' +
+        '<div style="font-family:Bebas Neue,sans-serif;font-size:28px;color:var(--text);line-height:1.2">' + kmDisplay + '<span style="font-size:13px"> km</span></div>' +
         '</div>' +
         '</div>' +
         _bikeVidaUtilLinhaHTML('FIXO — expectativa <span onclick="bikeRodaPneuExpectativaPrompt(\'' + pos + '\')" style="color:var(--accent);text-decoration:underline;cursor:pointer">' + roda.pneu.kmEsperado + 'km</span>', fixo) +
-        '<div onclick="bikeRodaPneuEditarInstalacaoPrompt(\'' + pos + '\')" style="font-family:DM Mono,monospace;font-size:10px;color:var(--muted);margin:10px 0;cursor:pointer;border-bottom:1px dotted var(--border);display:inline-block">Instalado em ' + dataInst + ' (bike com ' + (Math.round(roda.pneu.kmInstalacaoTotal * 10) / 10) + 'km)</div>' +
+        '<div onclick="bikeRodaPneuEditarInstalacaoPrompt(\'' + pos + '\')" style="font-family:DM Mono,monospace;font-size:10px;color:var(--muted);margin:10px 0;cursor:pointer;border-bottom:1px dotted var(--border);display:inline-block">' + instaladoTxt + '</div>' +
         '<div><button onclick="bikeRodaPneuTrocarPrompt(\'' + pos + '\')" style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;padding:8px 14px;border-radius:8px;border:1px solid var(--perdido,#a33);background:transparent;color:var(--muted);cursor:pointer">TROCAR PNEU</button></div>' +
         (anterioresHTML ? '<div style="font-family:DM Mono,monospace;font-size:9px;letter-spacing:1px;color:var(--muted);margin:12px 0 2px">PNEUS ANTERIORES</div>' + anterioresHTML : '') +
         selanteHTML;
@@ -10176,17 +10448,111 @@ function renderBikeRodasHTML() {
     return '<div style="background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:10px">' +
       '<div style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;color:var(--muted);margin-bottom:12px">' + labelPos + '</div>' +
       pneuHTML +
-      '<div style="border-top:1px solid var(--border);margin-top:12px;padding-top:12px">' +
-      discoHTML +
-      '</div>' +
-      '<div style="border-top:1px solid var(--border);margin-top:12px;padding-top:12px">' +
-      rodaHTML +
-      '</div>' +
       '</div>';
   }).join('');
 
   return '<div style="margin:12px 0 20px">' +
-    '<div style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:2px;color:var(--muted);margin-bottom:8px">RODAS</div>' +
+    '<div style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:2px;color:var(--muted);margin-bottom:8px">PNEUS</div>' +
+    cardsHTML +
+    '</div>';
+}
+
+// ─── CUBOS E RAIOS — durável, não é item de desgaste. Fica no jogo de rodas (cubo é
+// parte da roda em si), exibido em seção própria dentro da sub-aba RODAS/PNEUS. ───
+function renderBikeCubosRaiosHTML() {
+  var o = state.bikeOdo;
+  if (!o) return '';
+  _bikeRodasInit();
+
+  var cardsHTML = ['dianteira', 'traseira'].map(function(pos) {
+    var roda = _bikeRodaAtual(pos);
+    var labelPos = _bikeRodaLabel(pos);
+    var cubo = roda.cubo;
+
+    // ── ROLAMENTO DO CUBO ──
+    var manutencoesHTML = (cubo.manutencoes || []).slice(0, 10).map(function(m) {
+      var d = new Date(m.data).toLocaleDateString('pt-BR');
+      var obsHTML = m.obs ? ' <span style="color:var(--muted)">— ' + escHtml(m.obs) + '</span>' : '';
+      return '<div style="padding:6px 0;border-bottom:1px solid var(--border);font-family:DM Mono,monospace;font-size:11px;color:var(--text)"><span style="color:var(--muted)">' + d + '</span> · ' + m.kmTotal + 'km' + obsHTML + '</div>';
+    }).join('');
+    var cuboCorpoHTML;
+    if (cubo.dataInstalacao === null) {
+      cuboCorpoHTML = '<div style="font-family:DM Sans,sans-serif;font-size:11px;color:var(--muted);margin-bottom:12px">Instalação não configurada — <span onclick="bikeRodaCuboInstalacaoPrompt(\'' + pos + '\')" style="color:var(--accent);text-decoration:underline;cursor:pointer">configurar</span> pra calcular idade e próxima manutenção.</div>';
+    } else {
+      var kmCubo = _bikeRodaCuboKm(pos);
+      var proximaCubo = _bikeRodaCuboProximaManutencao(pos);
+      var temEstimativa = _bikeUsoAnteriorEstimado() !== null;
+      var kmDisplay = (temEstimativa ? '≈' : '') + kmCubo;
+      var instaladoTxt = cubo.kmInstalacaoTotal === 0 ?
+        'Original da bicicleta — acompanha a km total dela' :
+        'Trocado em ' + new Date(cubo.dataInstalacao).toLocaleDateString('pt-BR') + ' (bike com ' + (Math.round(cubo.kmInstalacaoTotal * 10) / 10) + 'km combinado)';
+      cuboCorpoHTML =
+        '<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:10px">' +
+        '<div style="flex:1;min-width:110px">' +
+        '<div style="font-family:DM Mono,monospace;font-size:9px;letter-spacing:1px;color:var(--muted)">IDADE</div>' +
+        '<div style="font-family:Bebas Neue,sans-serif;font-size:28px;color:var(--text);line-height:1.2">' + kmDisplay + '<span style="font-size:13px"> km</span></div>' +
+        '</div>' +
+        '</div>' +
+        _bikeVidaUtilLinhaHTML('PRÓXIMA MANUTENÇÃO — a cada <span onclick="bikeCuboIntervaloPrompt(\'' + pos + '\')" style="color:var(--accent);text-decoration:underline;cursor:pointer">' + (cubo.intervaloManutencaoKm || 5000) + 'km</span>', proximaCubo) +
+        '<div onclick="bikeRodaCuboInstalacaoPrompt(\'' + pos + '\')" style="font-family:DM Mono,monospace;font-size:10px;color:var(--muted);margin:10px 0 12px;cursor:pointer;border-bottom:1px dotted var(--border);display:inline-block">' + instaladoTxt + '</div>';
+    }
+    var cuboBlocoHTML =
+      '<div style="font-family:DM Mono,monospace;font-size:9px;letter-spacing:1px;color:var(--muted);margin-bottom:4px">ROLAMENTO DO CUBO</div>' +
+      '<input value="' + escHtml(cubo.nome) + '" placeholder="Cubo" onchange="bikeRodaCuboRenomear(\'' + pos + '\',this.value)" style="display:block;width:100%;box-sizing:border-box;margin:0 0 10px;padding:4px 2px;border:none;border-bottom:1px solid var(--border);background:transparent;color:var(--text);font-family:DM Sans,sans-serif;font-size:15px;font-weight:600">' +
+      cuboCorpoHTML +
+      '<button onclick="bikeRodaCuboManutencaoPrompt(\'' + pos + '\')" style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;padding:8px 14px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text);cursor:pointer;margin-bottom:' + (manutencoesHTML ? '12px' : '0') + '">REGISTRAR MANUTENÇÃO</button>' +
+      (manutencoesHTML ? '<div style="font-family:DM Mono,monospace;font-size:9px;letter-spacing:1px;color:var(--muted);margin-bottom:2px">HISTÓRICO</div>' + manutencoesHTML : '');
+
+    // ── ROLAMENTO DO FREEHUB — parte do cubo traseiro, não é peça à parte. Intervalo
+    // próprio (independente do intervalo do cubo), só usa o km do cubo como referência. ──
+    var freehubBlocoHTML = '';
+    if (pos === 'traseira') {
+      var freehub = roda.freehub;
+      var manutFreehubHTML = (freehub.manutencoes || []).slice(0, 10).map(function(m) {
+        var d = new Date(m.data).toLocaleDateString('pt-BR');
+        var obsHTML = m.obs ? ' <span style="color:var(--muted)">— ' + escHtml(m.obs) + '</span>' : '';
+        return '<div style="padding:6px 0;border-bottom:1px solid var(--border);font-family:DM Mono,monospace;font-size:11px;color:var(--text)"><span style="color:var(--muted)">' + d + '</span> · ' + m.kmTotal + 'km' + obsHTML + '</div>';
+      }).join('');
+      var freehubCorpoHTML;
+      if (cubo.dataInstalacao === null) {
+        freehubCorpoHTML = '<p style="font-family:DM Sans,sans-serif;font-size:12px;color:var(--muted);margin:0 0 10px">Configure a instalação do cubo acima primeiro, pra calcular a próxima manutenção do freehub.</p>';
+      } else {
+        var proximaFreehub = _bikeFreehubProximaManutencao();
+        freehubCorpoHTML = _bikeVidaUtilLinhaHTML('PRÓXIMA MANUTENÇÃO — a cada <span onclick="bikeFreehubIntervaloPrompt()" style="color:var(--accent);text-decoration:underline;cursor:pointer">' + (freehub.intervaloManutencaoKm || 5000) + 'km</span> (km do cubo, intervalo próprio)', proximaFreehub);
+      }
+      freehubBlocoHTML =
+        '<div style="border-top:1px solid var(--border);margin-top:12px;padding-top:12px">' +
+        '<div style="font-family:DM Mono,monospace;font-size:9px;letter-spacing:1px;color:var(--muted);margin-bottom:10px">ROLAMENTO DO FREEHUB (parte do cubo)</div>' +
+        freehubCorpoHTML +
+        '<button onclick="bikeFreehubManutencaoPrompt()" style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;padding:8px 14px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text);cursor:pointer;margin:10px 0 ' + (manutFreehubHTML ? '12px' : '0') + '">REGISTRAR MANUTENÇÃO</button>' +
+        (manutFreehubHTML ? '<div style="font-family:DM Mono,monospace;font-size:9px;letter-spacing:1px;color:var(--muted);margin-bottom:2px">HISTÓRICO</div>' + manutFreehubHTML : '') +
+        '</div>';
+    }
+
+    // ── TENSÃO DOS RAIOS ──
+    var raios = roda.raios;
+    var verifRaiosHTML = (raios.verificacoes || []).slice(0, 10).map(function(v) {
+      var d = new Date(v.data).toLocaleDateString('pt-BR');
+      var obsHTML = v.obs ? ' <span style="color:var(--muted)">— ' + escHtml(v.obs) + '</span>' : '';
+      return '<div style="padding:6px 0;border-bottom:1px solid var(--border);font-family:DM Mono,monospace;font-size:11px;color:var(--text)"><span style="color:var(--muted)">' + d + '</span> · ' + v.kmTotal + 'km' + obsHTML + '</div>';
+    }).join('');
+    var proximaRaios = _bikeRodaRaiosProximaVerificacao(pos);
+    var raiosBlocoHTML =
+      '<div style="border-top:1px solid var(--border);margin-top:12px;padding-top:12px">' +
+      '<div style="font-family:DM Mono,monospace;font-size:9px;letter-spacing:1px;color:var(--muted);margin-bottom:10px">TENSÃO DOS RAIOS</div>' +
+      _bikeVidaUtilLinhaHTML('PRÓXIMA VERIFICAÇÃO — a cada <span onclick="bikeRaiosIntervaloPrompt()" style="color:var(--accent);text-decoration:underline;cursor:pointer">' + (o.raiosIntervaloVerificacaoKm || 2000) + 'km</span>', proximaRaios) +
+      '<button onclick="bikeRaiosVerificacaoPrompt(\'' + pos + '\')" style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;padding:8px 14px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text);cursor:pointer;margin:10px 0 ' + (verifRaiosHTML ? '12px' : '0') + '">REGISTRAR VERIFICAÇÃO</button>' +
+      (verifRaiosHTML ? '<div style="font-family:DM Mono,monospace;font-size:9px;letter-spacing:1px;color:var(--muted);margin-bottom:2px">HISTÓRICO</div>' + verifRaiosHTML : '') +
+      '</div>';
+
+    return '<div style="background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:10px">' +
+      '<div style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;color:var(--muted);margin-bottom:12px">' + labelPos.toUpperCase() + '</div>' +
+      cuboBlocoHTML + freehubBlocoHTML + raiosBlocoHTML +
+      '</div>';
+  }).join('');
+
+  return '<div style="margin:12px 0 20px">' +
+    '<div style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:2px;color:var(--muted);margin-bottom:8px">CUBOS E RAIOS</div>' +
     cardsHTML +
     '</div>';
 }
@@ -10195,20 +10561,32 @@ function bikeRodaPneuNovoPrompt(pos) {
   var title = document.getElementById('modal-title');
   var body = document.getElementById('modal-body');
   var confirmBtn = document.getElementById('modal-confirm');
-  var totalAtual = Math.round(state.bikeOdo.total * 10) / 10;
+  var combinadoAtual = _bikeCombinadoAtual();
   if (title) title.textContent = 'CADASTRAR PNEU ' + _bikeRodaLabel(pos);
+
+  function radio(valor, texto) {
+    return '<label style="display:flex;align-items:flex-start;gap:8px;font-family:DM Sans,sans-serif;font-size:12px;color:var(--text);cursor:pointer;margin-bottom:10px">' +
+      '<input type="radio" name="roda-pneu-novo-quando" value="' + valor + '" ' + (valor === 'original' ? 'checked' : '') + ' onchange="document.getElementById(\'roda-pneu-novo-trocado-wrap\').style.display=(this.value===\'trocado\'?\'block\':\'none\')" style="margin-top:3px">' +
+      '<span>' + texto + '</span>' +
+      '</label>';
+  }
+
   if (body) body.innerHTML =
     '<label style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;color:var(--muted)">NOME</label>' +
-    '<input id="roda-pneu-nome" type="text" value="Pneu ' + _bikeRodaLabel(pos) + '" style="display:block;width:100%;box-sizing:border-box;margin:4px 0 12px;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:DM Sans,sans-serif">' +
-    '<label style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;color:var(--muted)">DATA DE INSTALAÇÃO (dd/mm/aaaa)</label>' +
+    '<input id="roda-pneu-nome" type="text" value="Pneu ' + _bikeRodaLabel(pos) + '" style="display:block;width:100%;box-sizing:border-box;margin:4px 0 16px;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:DM Sans,sans-serif">' +
+    '<label style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;color:var(--muted);display:block;margin-bottom:8px">ESSE PNEU É:</label>' +
+    radio('original', 'Original da bicicleta — a km dele sempre acompanha a km total da bike') +
+    radio('trocado', 'Trocado — a km dele começa a contar a partir da km da bike na data da troca') +
+    '<div id="roda-pneu-novo-trocado-wrap" style="display:none;margin:8px 0 0 26px">' +
+    '<label style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;color:var(--muted)">DATA DA TROCA (dd/mm/aaaa)</label>' +
     '<div style="display:flex;gap:6px;margin:4px 0 8px">' +
     '<input id="roda-pneu-data" type="text" inputmode="numeric" value="' + new Date().toLocaleDateString('pt-BR') + '" style="flex:1;box-sizing:border-box;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:DM Mono,monospace">' +
     '<button type="button" onclick="toggleDatepickerInline(\'rodapneuinst\',\'roda-pneu-dp-wrap\')" title="Abrir calendário" style="padding:0 14px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);cursor:pointer;font-size:16px">&#128197;</button>' +
     '</div>' +
     '<div id="roda-pneu-dp-wrap" style="display:none;margin:0 0 12px">' + datepickerInlineHTML('rodapneuinst', 'roda-pneu-data') + '</div>' +
-    '<label style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;color:var(--muted)">KM DA BIKE (TOTAL) NA INSTALAÇÃO</label>' +
-    '<input id="roda-pneu-km-inst" type="number" step="0.1" min="0" value="0" style="display:block;width:100%;box-sizing:border-box;margin:4px 0 4px;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:DM Mono,monospace">' +
-    '<p style="font-family:DM Sans,sans-serif;font-size:11px;color:var(--muted);margin:0 0 12px">Padrão 0 = pneu original da bike, nunca removido (rodou o mesmo tanto que a bike). Se está instalando um pneu novo agora, troque pro valor atual (' + totalAtual + ').</p>' +
+    '<label style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;color:var(--muted)">KM DA BIKE NESSA DATA (COMBINADO — o mesmo que aparece em ODÔMETRO TOTAL)</label>' +
+    '<input id="roda-pneu-km-inst" type="number" step="0.1" min="0" value="' + combinadoAtual + '" style="display:block;width:100%;box-sizing:border-box;margin:4px 0 12px;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:DM Mono,monospace">' +
+    '</div>' +
     '<label style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;color:var(--muted)">EXPECTATIVA DE VIDA (KM)</label>' +
     '<input id="roda-pneu-expectativa" type="number" step="100" min="0" value="3000" style="display:block;width:100%;box-sizing:border-box;margin:4px 0 12px;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:DM Mono,monospace">' +
     '<button onclick="bikeRodaPneuNovoAplicar(\'' + pos + '\')" style="display:block;width:100%;font-family:DM Mono,monospace;font-size:11px;padding:10px;border-radius:8px;border:none;background:var(--accent);color:#000;cursor:pointer">CADASTRAR</button>';
@@ -10218,21 +10596,32 @@ function bikeRodaPneuNovoPrompt(pos) {
 
 function bikeRodaPneuNovoAplicar(pos) {
   var nome = (document.getElementById('roda-pneu-nome').value || '').trim();
-  var dataStr = (document.getElementById('roda-pneu-data').value || '').trim();
-  var km = parseFloat(document.getElementById('roda-pneu-km-inst').value);
+  var opcaoEl = document.querySelector('input[name="roda-pneu-novo-quando"]:checked');
+  var opcao = opcaoEl ? opcaoEl.value : 'original';
   var expectativa = parseFloat(document.getElementById('roda-pneu-expectativa').value);
-  var m = dataStr.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
-  if (!m) { toast('Data inválida — use dd/mm/aaaa'); return; }
-  if (isNaN(km) || km < 0) { toast('Km inválido'); return; }
   if (isNaN(expectativa) || expectativa <= 0) { toast('Expectativa inválida'); return; }
-  var dataInstalacao = new Date(parseInt(m[3]), parseInt(m[2]) - 1, parseInt(m[1]));
+
+  var dataISO, km;
+  if (opcao === 'original') {
+    dataISO = state.bikeOdo.dataCompra || new Date().toISOString();
+    km = 0;
+  } else {
+    var dataStr = (document.getElementById('roda-pneu-data').value || '').trim();
+    var m = dataStr.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+    if (!m) { toast('Data inválida — use dd/mm/aaaa'); return; }
+    var kmVal = parseFloat(document.getElementById('roda-pneu-km-inst').value);
+    if (isNaN(kmVal) || kmVal < 0) { toast('Km inválido'); return; }
+    dataISO = new Date(parseInt(m[3]), parseInt(m[2]) - 1, parseInt(m[1])).toISOString();
+    km = kmVal;
+  }
+
   pushUndo('Cadastrar pneu ' + _bikeRodaLabel(pos));
   _bikeRodasInit();
   var jogo = _bikeJogoSelecionado();
   var ativo = jogo && jogo.status === 'ativo';
   _bikeRodaAtual(pos).pneu = {
     nome: nome || ('Pneu ' + _bikeRodaLabel(pos)),
-    dataInstalacao: dataInstalacao.toISOString(),
+    dataInstalacao: dataISO,
     kmInstalacaoTotal: km,
     kmAcumulado: 0,
     kmInicioSessaoAtual: ativo ? km : null,
@@ -10248,22 +10637,38 @@ function bikeRodaPneuNovoAplicar(pos) {
 function bikeRodaPneuEditarInstalacaoPrompt(pos) {
   var roda = _bikeRodaAtual(pos);
   if (!roda || !roda.pneu) return;
-  var dataAtual = roda.pneu.dataInstalacao ? new Date(roda.pneu.dataInstalacao).toLocaleDateString('pt-BR') : new Date().toLocaleDateString('pt-BR');
+  var combinadoAtual = _bikeCombinadoAtual();
+  var opcaoAtual = (roda.pneu.kmInstalacaoTotal === 0) ? 'original' : 'trocado';
+  var dataAtual = (opcaoAtual === 'trocado' && roda.pneu.dataInstalacao) ? new Date(roda.pneu.dataInstalacao).toLocaleDateString('pt-BR') : new Date().toLocaleDateString('pt-BR');
+  var kmAtualCampo = (opcaoAtual === 'trocado') ? Math.round(roda.pneu.kmInstalacaoTotal * 10) / 10 : combinadoAtual;
   var title = document.getElementById('modal-title');
   var body = document.getElementById('modal-body');
   var confirmBtn = document.getElementById('modal-confirm');
-  if (title) title.textContent = 'EDITAR INSTALAÇÃO';
+  if (title) title.textContent = 'EDITAR INSTALAÇÃO — PNEU ' + _bikeRodaLabel(pos);
+
+  function radio(valor, texto) {
+    return '<label style="display:flex;align-items:flex-start;gap:8px;font-family:DM Sans,sans-serif;font-size:12px;color:var(--text);cursor:pointer;margin-bottom:10px">' +
+      '<input type="radio" name="roda-pneu-edit-quando" value="' + valor + '" ' + (opcaoAtual === valor ? 'checked' : '') + ' onchange="document.getElementById(\'roda-pneu-edit-trocado-wrap\').style.display=(this.value===\'trocado\'?\'block\':\'none\')" style="margin-top:3px">' +
+      '<span>' + texto + '</span>' +
+      '</label>';
+  }
+
   if (body) body.innerHTML =
     '<p style="font-family:DM Sans,sans-serif;font-size:11px;color:var(--muted);margin:0 0 10px">Isso é a âncora do km individual — editar aqui corrige o cálculo diretamente.</p>' +
-    '<label style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;color:var(--muted)">DATA DE INSTALAÇÃO (dd/mm/aaaa)</label>' +
+    '<label style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;color:var(--muted);display:block;margin-bottom:8px">ESSE PNEU É:</label>' +
+    radio('original', 'Original da bicicleta — a km dele sempre acompanha a km total da bike') +
+    radio('trocado', 'Trocado — a km dele começa a contar a partir da km da bike na data da troca') +
+    '<div id="roda-pneu-edit-trocado-wrap" style="display:' + (opcaoAtual === 'trocado' ? 'block' : 'none') + ';margin:8px 0 0 26px">' +
+    '<label style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;color:var(--muted)">DATA DA TROCA (dd/mm/aaaa)</label>' +
     '<div style="display:flex;gap:6px;margin:4px 0 8px">' +
     '<input id="roda-pneu-edit-data" type="text" inputmode="numeric" value="' + dataAtual + '" style="flex:1;box-sizing:border-box;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:DM Mono,monospace">' +
     '<button type="button" onclick="toggleDatepickerInline(\'rodapneueditinst\',\'roda-pneu-edit-dp-wrap\')" title="Abrir calendário" style="padding:0 14px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);cursor:pointer;font-size:16px">&#128197;</button>' +
     '</div>' +
     '<div id="roda-pneu-edit-dp-wrap" style="display:none;margin:0 0 12px">' + datepickerInlineHTML('rodapneueditinst', 'roda-pneu-edit-data') + '</div>' +
-    '<label style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;color:var(--muted)">KM DA BIKE (TOTAL) NA INSTALAÇÃO</label>' +
-    '<input id="roda-pneu-edit-km" type="number" step="0.1" min="0" value="' + (Math.round(roda.pneu.kmInstalacaoTotal * 10) / 10) + '" style="display:block;width:100%;box-sizing:border-box;margin:4px 0 12px;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:DM Mono,monospace">' +
-    '<button onclick="bikeRodaPneuEditarInstalacaoAplicar(\'' + pos + '\')" style="display:block;width:100%;font-family:DM Mono,monospace;font-size:11px;padding:10px;border-radius:8px;border:none;background:var(--accent);color:#000;cursor:pointer">SALVAR</button>';
+    '<label style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;color:var(--muted)">KM DA BIKE NESSA DATA (COMBINADO)</label>' +
+    '<input id="roda-pneu-edit-km" type="number" step="0.1" min="0" value="' + kmAtualCampo + '" style="display:block;width:100%;box-sizing:border-box;margin:4px 0 12px;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:DM Mono,monospace">' +
+    '</div>' +
+    '<button onclick="bikeRodaPneuEditarInstalacaoAplicar(\'' + pos + '\')" style="display:block;width:100%;font-family:DM Mono,monospace;font-size:11px;padding:10px;border-radius:8px;border:none;background:var(--accent);color:#000;cursor:pointer;margin-top:8px">SALVAR</button>';
   if (confirmBtn) confirmBtn.style.display = 'none';
   document.getElementById('modal').classList.add('open');
 }
@@ -10271,15 +10676,27 @@ function bikeRodaPneuEditarInstalacaoPrompt(pos) {
 function bikeRodaPneuEditarInstalacaoAplicar(pos) {
   var roda = _bikeRodaAtual(pos);
   if (!roda || !roda.pneu) return;
-  var dataStr = (document.getElementById('roda-pneu-edit-data').value || '').trim();
-  var km = parseFloat(document.getElementById('roda-pneu-edit-km').value);
-  var m = dataStr.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
-  if (!m) { toast('Data inválida — use dd/mm/aaaa'); return; }
-  if (isNaN(km) || km < 0) { toast('Km inválido'); return; }
+  var opcaoEl = document.querySelector('input[name="roda-pneu-edit-quando"]:checked');
+  var opcao = opcaoEl ? opcaoEl.value : 'trocado';
   var jogo = _bikeJogoSelecionado();
   var ativo = jogo && jogo.status === 'ativo';
+
+  var dataISO, km;
+  if (opcao === 'original') {
+    dataISO = state.bikeOdo.dataCompra || new Date().toISOString();
+    km = 0;
+  } else {
+    var dataStr = (document.getElementById('roda-pneu-edit-data').value || '').trim();
+    var m = dataStr.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+    if (!m) { toast('Data inválida — use dd/mm/aaaa'); return; }
+    var kmVal = parseFloat(document.getElementById('roda-pneu-edit-km').value);
+    if (isNaN(kmVal) || kmVal < 0) { toast('Km inválido'); return; }
+    dataISO = new Date(parseInt(m[3]), parseInt(m[2]) - 1, parseInt(m[1])).toISOString();
+    km = kmVal;
+  }
+
   pushUndo('Editar instalação pneu ' + _bikeRodaLabel(pos));
-  roda.pneu.dataInstalacao = new Date(parseInt(m[3]), parseInt(m[2]) - 1, parseInt(m[1])).toISOString();
+  roda.pneu.dataInstalacao = dataISO;
   roda.pneu.kmInstalacaoTotal = km;
   roda.pneu.kmAcumulado = 0;
   roda.pneu.kmInicioSessaoAtual = ativo ? km : null;
@@ -10292,19 +10709,22 @@ function bikeRodaPneuEditarInstalacaoAplicar(pos) {
 function bikeRodaPneuTrocarPrompt(pos) {
   var roda = _bikeRodaAtual(pos);
   if (!roda || !roda.pneu) return;
-  var totalAtual = Math.round(state.bikeOdo.total * 10) / 10;
+  var combinadoAtual = _bikeCombinadoAtual();
+  var temEstimativa = _bikeUsoAnteriorEstimado() !== null;
   var title = document.getElementById('modal-title');
   var body = document.getElementById('modal-body');
   var confirmBtn = document.getElementById('modal-confirm');
   if (title) title.textContent = 'TROCAR PNEU ' + _bikeRodaLabel(pos);
   if (body) body.innerHTML =
-    '<p style="font-family:DM Sans,sans-serif;font-size:12px;color:var(--muted);margin:0 0 10px">Arquiva o pneu atual (' + _bikeKmDisplay(_bikeRodaPneuKm(pos), roda.pneu.dataInstalacao, roda.pneu.kmInstalacaoTotal) + 'km rodados) no histórico e começa a rastrear o novo do zero — inclusive o controle de selante dele.</p>' +
+    '<p style="font-family:DM Sans,sans-serif;font-size:12px;color:var(--muted);margin:0 0 10px">Arquiva o pneu atual (' + (temEstimativa ? '≈' : '') + _bikeRodaPneuKm(pos) + 'km rodados) no histórico e começa a rastrear o novo do zero — inclusive o controle de selante dele.</p>' +
     '<label style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;color:var(--muted)">DATA DA TROCA (dd/mm/aaaa)</label>' +
     '<div style="display:flex;gap:6px;margin:4px 0 8px">' +
     '<input id="roda-pneu-trocar-data" type="text" inputmode="numeric" value="' + new Date().toLocaleDateString('pt-BR') + '" style="flex:1;box-sizing:border-box;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:DM Mono,monospace">' +
     '<button type="button" onclick="toggleDatepickerInline(\'rodapneutrocar\',\'roda-pneu-trocar-dp-wrap\')" title="Abrir calendário" style="padding:0 14px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);cursor:pointer;font-size:16px">&#128197;</button>' +
     '</div>' +
     '<div id="roda-pneu-trocar-dp-wrap" style="display:none;margin:0 0 12px">' + datepickerInlineHTML('rodapneutrocar', 'roda-pneu-trocar-data') + '</div>' +
+    '<label style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;color:var(--muted)">KM DA BIKE NESSA DATA (COMBINADO)</label>' +
+    '<input id="roda-pneu-trocar-km" type="number" step="0.1" min="0" value="' + combinadoAtual + '" style="display:block;width:100%;box-sizing:border-box;margin:4px 0 12px;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:DM Mono,monospace">' +
     '<label style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;color:var(--muted)">NOME DO NOVO PNEU</label>' +
     '<input id="roda-pneu-trocar-nome" type="text" value="Pneu ' + _bikeRodaLabel(pos) + '" style="display:block;width:100%;box-sizing:border-box;margin:4px 0 12px;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:DM Sans,sans-serif">' +
     '<label style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;color:var(--muted)">EXPECTATIVA DE VIDA DO PNEU NOVO (KM)</label>' +
@@ -10322,13 +10742,13 @@ function bikeRodaPneuTrocarAplicar(pos) {
   var dm = dataStr.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
   if (!dm) { toast('Data inválida — use dd/mm/aaaa'); return; }
   var dataISO = new Date(parseInt(dm[3]), parseInt(dm[2]) - 1, parseInt(dm[1])).toISOString();
-  var estimativa = bikeEstimarKmNaData(dataISO);
-  var kmNaData = estimativa ? Math.round(estimativa.km * 10) / 10 : state.bikeOdo.total;
+  var kmNaData = parseFloat(document.getElementById('roda-pneu-trocar-km').value);
+  if (isNaN(kmNaData) || kmNaData < 0) { toast('Km inválido'); return; }
   var expectativa = parseFloat(document.getElementById('roda-pneu-trocar-expectativa').value);
   if (isNaN(expectativa) || expectativa <= 0) { toast('Expectativa inválida'); return; }
   var nomeNovo = (document.getElementById('roda-pneu-trocar-nome').value || '').trim() || ('Pneu ' + _bikeRodaLabel(pos));
   var obsEl = document.getElementById('roda-pneu-trocar-obs');
-  var kmRodados = _bikeKmMelhorEstimativa(_bikeRodaPneuKm(pos), roda.pneu.kmInstalacaoTotal);
+  var kmRodados = _bikeRodaPneuKm(pos);
   var jogo = _bikeJogoSelecionado();
   var ativo = jogo && jogo.status === 'ativo';
   pushUndo('Trocar pneu ' + _bikeRodaLabel(pos));
@@ -10391,6 +10811,14 @@ function bikeRodaPneuRenomear(pos, valor) {
   if (!roda || !roda.pneu) return;
   pushUndo('Renomear pneu ' + _bikeRodaLabel(pos));
   roda.pneu.nome = valor.trim() || roda.pneu.nome;
+  saveState();
+}
+
+function bikeRodaCuboRenomear(pos, valor) {
+  var roda = _bikeRodaAtual(pos);
+  if (!roda || !roda.cubo) return;
+  pushUndo('Renomear cubo ' + _bikeRodaLabel(pos));
+  roda.cubo.nome = valor.trim() || roda.cubo.nome;
   saveState();
 }
 
@@ -10572,48 +11000,107 @@ function bikeRodaCuboManutencaoAplicar(pos) {
   if (!dm) { toast('Data inválida — use dd/mm/aaaa'); return; }
   var obsEl = document.getElementById('roda-cubo-obs');
   pushUndo('Manutenção do cubo ' + _bikeRodaLabel(pos));
-  roda.cubo.manutencoes.unshift({ id: uid(), data: new Date(parseInt(dm[3]), parseInt(dm[2]) - 1, parseInt(dm[1])).toISOString(), kmTotal: _bikeKmMelhorEstimativa(_bikeRodaCuboKm(pos), roda.cubo.kmInstalacaoTotal), obs: (obsEl && obsEl.value.trim()) || '' });
+  roda.cubo.manutencoes.unshift({ id: uid(), data: new Date(parseInt(dm[3]), parseInt(dm[2]) - 1, parseInt(dm[1])).toISOString(), kmTotal: _bikeRodaCuboKm(pos), obs: (obsEl && obsEl.value.trim()) || '' });
   saveState();
   closeModal();
   renderBikeTab();
   toast('Manutenção do cubo registrada ✓');
 }
 
+function bikeFreehubManutencaoPrompt() {
+  var title = document.getElementById('modal-title');
+  var body = document.getElementById('modal-body');
+  var confirmBtn = document.getElementById('modal-confirm');
+  if (title) title.textContent = 'MANUTENÇÃO DO FREEHUB';
+  if (body) body.innerHTML =
+    '<p style="font-family:DM Sans,sans-serif;font-size:12px;color:var(--muted);margin:0 0 10px">Registra a manutenção do freehub no km atual da bike.</p>' +
+    '<label style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;color:var(--muted)">DATA (dd/mm/aaaa)</label>' +
+    '<div style="display:flex;gap:6px;margin:4px 0 8px">' +
+    '<input id="freehub-data" type="text" inputmode="numeric" value="' + new Date().toLocaleDateString('pt-BR') + '" style="flex:1;box-sizing:border-box;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:DM Mono,monospace">' +
+    '<button type="button" onclick="toggleDatepickerInline(\'freehub\',\'freehub-dp-wrap\')" title="Abrir calendário" style="padding:0 14px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);cursor:pointer;font-size:16px">&#128197;</button>' +
+    '</div>' +
+    '<div id="freehub-dp-wrap" style="display:none;margin:0 0 12px">' + datepickerInlineHTML('freehub', 'freehub-data') + '</div>' +
+    '<input id="freehub-obs" type="text" placeholder="Observação (opcional)" style="display:block;width:100%;box-sizing:border-box;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:DM Sans,sans-serif;font-size:12px;margin-bottom:10px">' +
+    '<button onclick="bikeFreehubManutencaoAplicar()" style="display:block;width:100%;font-family:DM Mono,monospace;font-size:11px;padding:10px;border-radius:8px;border:none;background:var(--accent);color:#000;cursor:pointer">REGISTRAR</button>';
+  if (confirmBtn) confirmBtn.style.display = 'none';
+  document.getElementById('modal').classList.add('open');
+}
+
+function bikeFreehubManutencaoAplicar() {
+  var roda = _bikeRodaAtual('traseira');
+  if (!roda || !roda.freehub) return;
+  var dataStr = (document.getElementById('freehub-data').value || '').trim();
+  var dm = dataStr.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (!dm) { toast('Data inválida — use dd/mm/aaaa'); return; }
+  var obsEl = document.getElementById('freehub-obs');
+  pushUndo('Manutenção do freehub');
+  roda.freehub.manutencoes.unshift({ id: uid(), data: new Date(parseInt(dm[3]), parseInt(dm[2]) - 1, parseInt(dm[1])).toISOString(), kmTotal: _bikeRodaCuboKm('traseira'), obs: (obsEl && obsEl.value.trim()) || '' });
+  saveState();
+  closeModal();
+  renderBikeTab();
+  toast('Manutenção do freehub registrada ✓');
+}
+
 function bikeRodaDiscoInstalacaoPrompt(pos) {
   var disco = _bikeRodaAtual(pos).disco;
-  var totalAtual = Math.round(state.bikeOdo.total * 10) / 10;
-  var dataDefault = disco.dataInstalacao ? new Date(disco.dataInstalacao).toLocaleDateString('pt-BR') : new Date().toLocaleDateString('pt-BR');
-  var kmDefault = disco.kmInstalacaoTotal !== null ? Math.round(disco.kmInstalacaoTotal * 10) / 10 : 0;
+  var combinadoAtual = _bikeCombinadoAtual();
+  var opcaoAtual = (disco.kmInstalacaoTotal === 0) ? 'original' : 'trocado';
+  var dataDefault = (opcaoAtual === 'trocado' && disco.dataInstalacao) ? new Date(disco.dataInstalacao).toLocaleDateString('pt-BR') : new Date().toLocaleDateString('pt-BR');
+  var kmDefault = (opcaoAtual === 'trocado' && disco.kmInstalacaoTotal !== null) ? Math.round(disco.kmInstalacaoTotal * 10) / 10 : combinadoAtual;
   var title = document.getElementById('modal-title');
   var body = document.getElementById('modal-body');
   var confirmBtn = document.getElementById('modal-confirm');
   if (title) title.textContent = 'INSTALAÇÃO DO DISCO ' + _bikeRodaLabel(pos);
+
+  function radio(valor, texto) {
+    return '<label style="display:flex;align-items:flex-start;gap:8px;font-family:DM Sans,sans-serif;font-size:12px;color:var(--text);cursor:pointer;margin-bottom:10px">' +
+      '<input type="radio" name="roda-disco-inst-quando" value="' + valor + '" ' + (opcaoAtual === valor ? 'checked' : '') + ' onchange="document.getElementById(\'roda-disco-inst-trocado-wrap\').style.display=(this.value===\'trocado\'?\'block\':\'none\')" style="margin-top:3px">' +
+      '<span>' + texto + '</span>' +
+      '</label>';
+  }
+
   if (body) body.innerHTML =
-    '<label style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;color:var(--muted)">DATA DE INSTALAÇÃO (dd/mm/aaaa)</label>' +
+    '<label style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;color:var(--muted);display:block;margin-bottom:8px">ESSE DISCO É:</label>' +
+    radio('original', 'Original da bicicleta — a km dele sempre acompanha a km total da bike') +
+    radio('trocado', 'Trocado — a km dele começa a contar a partir da km da bike na data da troca') +
+    '<div id="roda-disco-inst-trocado-wrap" style="display:' + (opcaoAtual === 'trocado' ? 'block' : 'none') + ';margin:8px 0 0 26px">' +
+    '<label style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;color:var(--muted)">DATA DA TROCA (dd/mm/aaaa)</label>' +
     '<div style="display:flex;gap:6px;margin:4px 0 8px">' +
     '<input id="roda-disco-inst-data" type="text" inputmode="numeric" value="' + dataDefault + '" style="flex:1;box-sizing:border-box;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:DM Mono,monospace">' +
     '<button type="button" onclick="toggleDatepickerInline(\'rodadiscoinst\',\'roda-disco-inst-dp-wrap\')" title="Abrir calendário" style="padding:0 14px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);cursor:pointer;font-size:16px">&#128197;</button>' +
     '</div>' +
     '<div id="roda-disco-inst-dp-wrap" style="display:none;margin:0 0 12px">' + datepickerInlineHTML('rodadiscoinst', 'roda-disco-inst-data') + '</div>' +
-    '<label style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;color:var(--muted)">KM DA BIKE (TOTAL) NA INSTALAÇÃO</label>' +
+    '<label style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;color:var(--muted)">KM DA BIKE NESSA DATA (COMBINADO)</label>' +
     '<input id="roda-disco-inst-km" type="number" step="0.1" min="0" value="' + kmDefault + '" style="display:block;width:100%;box-sizing:border-box;margin:4px 0 4px;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:DM Mono,monospace">' +
-    '<p style="font-family:DM Sans,sans-serif;font-size:11px;color:var(--muted);margin:0 0 12px">Padrão 0 = disco original, nunca trocado. Se está instalando agora, troque pro valor atual (' + totalAtual + ').</p>' +
-    '<button onclick="bikeRodaDiscoInstalacaoAplicar(\'' + pos + '\')" style="display:block;width:100%;font-family:DM Mono,monospace;font-size:11px;padding:10px;border-radius:8px;border:none;background:var(--accent);color:#000;cursor:pointer">SALVAR</button>';
+    '</div>' +
+    '<button onclick="bikeRodaDiscoInstalacaoAplicar(\'' + pos + '\')" style="display:block;width:100%;font-family:DM Mono,monospace;font-size:11px;padding:10px;border-radius:8px;border:none;background:var(--accent);color:#000;cursor:pointer;margin-top:8px">SALVAR</button>';
   if (confirmBtn) confirmBtn.style.display = 'none';
   document.getElementById('modal').classList.add('open');
 }
 
 function bikeRodaDiscoInstalacaoAplicar(pos) {
   var disco = _bikeRodaAtual(pos).disco;
-  var dataStr = (document.getElementById('roda-disco-inst-data').value || '').trim();
-  var km = parseFloat(document.getElementById('roda-disco-inst-km').value);
-  var m = dataStr.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
-  if (!m) { toast('Data inválida — use dd/mm/aaaa'); return; }
-  if (isNaN(km) || km < 0) { toast('Km inválido'); return; }
+  var opcaoEl = document.querySelector('input[name="roda-disco-inst-quando"]:checked');
+  var opcao = opcaoEl ? opcaoEl.value : 'trocado';
   var jogo = _bikeJogoSelecionado();
   var ativo = jogo && jogo.status === 'ativo';
+
+  var dataISO, km;
+  if (opcao === 'original') {
+    dataISO = state.bikeOdo.dataCompra || new Date().toISOString();
+    km = 0;
+  } else {
+    var dataStr = (document.getElementById('roda-disco-inst-data').value || '').trim();
+    var m = dataStr.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+    if (!m) { toast('Data inválida — use dd/mm/aaaa'); return; }
+    var kmVal = parseFloat(document.getElementById('roda-disco-inst-km').value);
+    if (isNaN(kmVal) || kmVal < 0) { toast('Km inválido'); return; }
+    dataISO = new Date(parseInt(m[3]), parseInt(m[2]) - 1, parseInt(m[1])).toISOString();
+    km = kmVal;
+  }
+
   pushUndo('Instalação do disco ' + _bikeRodaLabel(pos));
-  disco.dataInstalacao = new Date(parseInt(m[3]), parseInt(m[2]) - 1, parseInt(m[1])).toISOString();
+  disco.dataInstalacao = dataISO;
   disco.kmInstalacaoTotal = km;
   disco.kmAcumulado = 0;
   disco.kmInicioSessaoAtual = ativo ? km : null;
@@ -10647,6 +11134,42 @@ function bikeRodaDiscoMinimaAplicar(pos) {
   closeModal();
   renderBikeTab();
   toast('Espessura mínima atualizada: ' + v + 'mm ✓');
+}
+
+function bikeRodaDiscoNovaPrompt(pos) {
+  var disco = _bikeRodaAtual(pos).disco;
+  var title = document.getElementById('modal-title');
+  var body = document.getElementById('modal-body');
+  var confirmBtn = document.getElementById('modal-confirm');
+  if (title) title.textContent = 'ESPESSURA NOVA DO DISCO';
+  if (body) body.innerHTML =
+    '<p style="font-family:DM Sans,sans-serif;font-size:12px;color:var(--muted);margin:0 0 10px">Espessura de fábrica, em mm, com o disco novo (folha de especificação do fabricante). Deixe em branco se não souber — o cálculo DINÂMICO passa a usar isso só como ponto de partida com a 1ª medição, antes de haver 2 medições reais.</p>' +
+    '<input id="roda-disco-nova" type="number" step="0.1" min="0" value="' + (disco.espessuraNova !== null && disco.espessuraNova !== undefined ? disco.espessuraNova : '') + '" placeholder="Ex: 1.8" style="display:block;width:100%;box-sizing:border-box;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:DM Mono,monospace;margin-bottom:10px">' +
+    '<button onclick="bikeRodaDiscoNovaAplicar(\'' + pos + '\')" style="display:block;width:100%;font-family:DM Mono,monospace;font-size:11px;padding:10px;border-radius:8px;border:none;background:var(--accent);color:#000;cursor:pointer">SALVAR</button>';
+  if (confirmBtn) confirmBtn.style.display = 'none';
+  document.getElementById('modal').classList.add('open');
+}
+
+function bikeRodaDiscoNovaAplicar(pos) {
+  var disco = _bikeRodaAtual(pos).disco;
+  var raw = (document.getElementById('roda-disco-nova').value || '').trim();
+  if (raw === '') {
+    pushUndo('Espessura nova do disco ' + _bikeRodaLabel(pos));
+    disco.espessuraNova = null;
+    saveState();
+    closeModal();
+    renderBikeTab();
+    toast('Espessura nova removida ✓');
+    return;
+  }
+  var v = parseFloat(raw);
+  if (isNaN(v) || v < 0) { toast('Valor inválido'); return; }
+  pushUndo('Espessura nova do disco ' + _bikeRodaLabel(pos));
+  disco.espessuraNova = v;
+  saveState();
+  closeModal();
+  renderBikeTab();
+  toast('Espessura nova atualizada: ' + v + 'mm ✓');
 }
 
 function bikeRodaDiscoMedicaoPrompt(pos) {
@@ -10687,18 +11210,22 @@ function bikeRodaDiscoMedicaoAplicar(pos) {
 
 function bikeRodaDiscoTrocarPrompt(pos) {
   var disco = _bikeRodaAtual(pos).disco;
+  var combinadoAtual = _bikeCombinadoAtual();
+  var temEstimativa = _bikeUsoAnteriorEstimado() !== null;
   var title = document.getElementById('modal-title');
   var body = document.getElementById('modal-body');
   var confirmBtn = document.getElementById('modal-confirm');
   if (title) title.textContent = 'TROCAR DISCO ' + _bikeRodaLabel(pos);
   if (body) body.innerHTML =
-    '<p style="font-family:DM Sans,sans-serif;font-size:12px;color:var(--muted);margin:0 0 10px">Arquiva o disco atual (' + _bikeKmDisplay(_bikeRodaDiscoKm(pos), disco.dataInstalacao, disco.kmInstalacaoTotal) + 'km rodados) no histórico e começa a rastrear o novo do zero.</p>' +
+    '<p style="font-family:DM Sans,sans-serif;font-size:12px;color:var(--muted);margin:0 0 10px">Arquiva o disco atual (' + (temEstimativa ? '≈' : '') + _bikeRodaDiscoKm(pos) + 'km rodados) no histórico e começa a rastrear o novo do zero.</p>' +
     '<label style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;color:var(--muted)">DATA DA TROCA (dd/mm/aaaa)</label>' +
     '<div style="display:flex;gap:6px;margin:4px 0 8px">' +
     '<input id="roda-disco-trocar-data" type="text" inputmode="numeric" value="' + new Date().toLocaleDateString('pt-BR') + '" style="flex:1;box-sizing:border-box;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:DM Mono,monospace">' +
     '<button type="button" onclick="toggleDatepickerInline(\'rodadiscotrocar\',\'roda-disco-trocar-dp-wrap\')" title="Abrir calendário" style="padding:0 14px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);cursor:pointer;font-size:16px">&#128197;</button>' +
     '</div>' +
     '<div id="roda-disco-trocar-dp-wrap" style="display:none;margin:0 0 12px">' + datepickerInlineHTML('rodadiscotrocar', 'roda-disco-trocar-data') + '</div>' +
+    '<label style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;color:var(--muted)">KM DA BIKE NESSA DATA (COMBINADO)</label>' +
+    '<input id="roda-disco-trocar-km" type="number" step="0.1" min="0" value="' + combinadoAtual + '" style="display:block;width:100%;box-sizing:border-box;margin:4px 0 12px;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:DM Mono,monospace">' +
     '<input id="roda-disco-trocar-obs" type="text" placeholder="Observação (opcional — ex: marca/modelo)" style="display:block;width:100%;box-sizing:border-box;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:DM Sans,sans-serif;font-size:12px;margin-bottom:10px">' +
     '<button onclick="bikeRodaDiscoTrocarAplicar(\'' + pos + '\')" style="display:block;width:100%;font-family:DM Mono,monospace;font-size:11px;padding:10px;border-radius:8px;border:none;background:var(--accent);color:#000;cursor:pointer">CONFIRMAR TROCA</button>';
   if (confirmBtn) confirmBtn.style.display = 'none';
@@ -10712,10 +11239,10 @@ function bikeRodaDiscoTrocarAplicar(pos) {
   var dm = dataStr.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
   if (!dm) { toast('Data inválida — use dd/mm/aaaa'); return; }
   var dataISO = new Date(parseInt(dm[3]), parseInt(dm[2]) - 1, parseInt(dm[1])).toISOString();
-  var estimativa = bikeEstimarKmNaData(dataISO);
-  var kmNaData = estimativa ? Math.round(estimativa.km * 10) / 10 : state.bikeOdo.total;
+  var kmNaData = parseFloat(document.getElementById('roda-disco-trocar-km').value);
+  if (isNaN(kmNaData) || kmNaData < 0) { toast('Km inválido'); return; }
   var obsEl = document.getElementById('roda-disco-trocar-obs');
-  var kmRodados = _bikeKmMelhorEstimativa(_bikeRodaDiscoKm(pos), disco.kmInstalacaoTotal);
+  var kmRodados = _bikeRodaDiscoKm(pos);
   var jogo = _bikeJogoSelecionado();
   var ativo = jogo && jogo.status === 'ativo';
   pushUndo('Trocar disco ' + _bikeRodaLabel(pos));
@@ -10726,6 +11253,7 @@ function bikeRodaDiscoTrocarAplicar(pos) {
     dataRemocao: dataISO,
     kmInstalacaoTotal: disco.kmInstalacaoTotal,
     kmRodados: kmRodados,
+    espessuraNova: disco.espessuraNova !== undefined ? disco.espessuraNova : null,
     espessuraMinima: disco.espessuraMinima,
     medicoes: disco.medicoes || [],
     obs: (obsEl && obsEl.value.trim()) || ''
@@ -10735,6 +11263,7 @@ function bikeRodaDiscoTrocarAplicar(pos) {
     kmInstalacaoTotal: kmNaData,
     kmAcumulado: 0,
     kmInicioSessaoAtual: ativo ? kmNaData : null,
+    espessuraNova: disco.espessuraNova !== undefined ? disco.espessuraNova : null,
     espessuraMinima: disco.espessuraMinima,
     medicoes: [],
     anteriores: disco.anteriores
@@ -11036,42 +11565,310 @@ function bikeCasseteAnteriorDetalhePrompt(id) {
   document.getElementById('modal').classList.add('open');
 }
 
+function renderBikeCoroaHTML() {
+  var o = state.bikeOdo;
+  if (!o) return '';
+  var comp = _bikeCoroaComp();
+
+  var anterioresHTML = (comp.anteriores || []).slice().reverse().slice(0, 5).map(function(a) {
+    var d = new Date(a.dataRemocao).toLocaleDateString('pt-BR');
+    var obsHTML = a.obs ? ' <span style="color:var(--muted)">· Motivo: ' + escHtml(a.obs) + '</span>' : '';
+    var nomeHTML = a.nome ? '<b>' + escHtml(a.nome) + '</b>' : 'peça anterior';
+    return '<div onclick="bikeCoroaAnteriorDetalhePrompt(\'' + a.id + '\')" style="padding:6px 0;border-bottom:1px solid var(--border);font-family:DM Mono,monospace;font-size:11px;color:var(--text);cursor:pointer"><span style="color:var(--muted)">REMOVIDO em ' + d + '</span> — ' + nomeHTML + ', rodou ' + a.kmRodados + 'km' + obsHTML + ' <span style="color:var(--accent);text-decoration:underline">ver</span></div>';
+  }).join('');
+
+  var corpoHTML;
+  if (comp.dataInstalacao === null) {
+    corpoHTML =
+      '<p style="font-family:DM Sans,sans-serif;font-size:12px;color:var(--muted);margin:0 0 10px">Nenhuma coroa cadastrada ainda.</p>' +
+      '<button onclick="bikeCoroaInstalacaoPrompt()" style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;padding:8px 14px;border-radius:8px;border:none;background:var(--accent);color:#000;cursor:pointer">CADASTRAR COROA</button>';
+  } else {
+    var kmAtual = _bikeCoroaKm();
+    var fixo = _bikeCoroaFixo();
+    var temEstimativa = _bikeUsoAnteriorEstimado() !== null;
+    var kmDisplay = (temEstimativa ? '≈' : '') + kmAtual;
+    var instaladoTxt = comp.kmInstalacaoTotal === 0 ?
+      'Original da bicicleta — acompanha a km total dela' :
+      'Trocada em ' + new Date(comp.dataInstalacao).toLocaleDateString('pt-BR') + ' (bike com ' + (Math.round(comp.kmInstalacaoTotal * 10) / 10) + 'km combinado)';
+    corpoHTML =
+      '<input value="' + escHtml(comp.nome) + '" placeholder="Coroa" onchange="bikeCoroaRenomear(this.value)" style="display:block;width:100%;box-sizing:border-box;margin:0 0 10px;padding:4px 2px;border:none;border-bottom:1px solid var(--border);background:transparent;color:var(--text);font-family:DM Sans,sans-serif;font-size:15px;font-weight:600">' +
+      '<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:10px">' +
+      '<div style="flex:1;min-width:110px">' +
+      '<div style="font-family:DM Mono,monospace;font-size:9px;letter-spacing:1px;color:var(--muted)">KM INDIVIDUAL</div>' +
+      '<div style="font-family:Bebas Neue,sans-serif;font-size:28px;color:var(--text);line-height:1.2">' + kmDisplay + '<span style="font-size:13px"> km</span></div>' +
+      '</div>' +
+      '</div>' +
+      _bikeVidaUtilLinhaHTML('FIXO — expectativa <span onclick="bikeCoroaExpectativaPrompt()" style="color:var(--accent);text-decoration:underline;cursor:pointer">' + comp.kmEsperadoTroca + 'km</span>', fixo) +
+      '<div onclick="bikeCoroaInstalacaoPrompt()" style="font-family:DM Mono,monospace;font-size:10px;color:var(--muted);margin:10px 0;cursor:pointer;border-bottom:1px dotted var(--border);display:inline-block">' + instaladoTxt + '</div>' +
+      '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:' + (anterioresHTML ? '12px' : '0') + '"><button onclick="bikeCoroaTrocarPrompt()" style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;padding:8px 14px;border-radius:8px;border:1px solid var(--perdido,#a33);background:transparent;color:var(--muted);cursor:pointer">TROCAR COROA</button></div>' +
+      (anterioresHTML ? '<div style="font-family:DM Mono,monospace;font-size:9px;letter-spacing:1px;color:var(--muted);margin-bottom:2px">TROCAS ANTERIORES</div>' + anterioresHTML : '');
+  }
+
+  return '<div style="margin:12px 0 20px">' +
+    '<div style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:2px;color:var(--muted);margin-bottom:8px">PEDIVELA / COROA</div>' +
+    '<div style="font-family:DM Mono,monospace;font-size:10px;color:var(--muted);margin-bottom:8px">A pedivela em si tem vida útil ilimitada — só a coroa desgasta e precisa ser trocada.</div>' +
+    '<div style="background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:16px">' +
+    corpoHTML +
+    '</div>' +
+    '</div>';
+}
+
+function bikeCoroaRenomear(valor) {
+  var comp = _bikeCoroaComp();
+  if (!comp) return;
+  pushUndo('Renomear coroa');
+  comp.nome = valor.trim() || 'Coroa';
+  saveState();
+}
+
+function bikeCoroaInstalacaoPrompt() {
+  var comp = _bikeCoroaComp();
+  if (!comp) return;
+  var combinadoAtual = _bikeCombinadoAtual();
+  var opcaoAtual = (comp.kmInstalacaoTotal === 0) ? 'original' : 'trocado';
+  var dataDefault = (opcaoAtual === 'trocado' && comp.dataInstalacao) ? new Date(comp.dataInstalacao).toLocaleDateString('pt-BR') : new Date().toLocaleDateString('pt-BR');
+  var kmDefault = (opcaoAtual === 'trocado' && comp.kmInstalacaoTotal !== null) ? Math.round(comp.kmInstalacaoTotal * 10) / 10 : combinadoAtual;
+  var title = document.getElementById('modal-title');
+  var body = document.getElementById('modal-body');
+  var confirmBtn = document.getElementById('modal-confirm');
+  if (title) title.textContent = (comp.dataInstalacao === null ? 'CADASTRAR COROA' : 'EDITAR INSTALAÇÃO — COROA');
+
+  function radio(valor, texto) {
+    return '<label style="display:flex;align-items:flex-start;gap:8px;font-family:DM Sans,sans-serif;font-size:12px;color:var(--text);cursor:pointer;margin-bottom:10px">' +
+      '<input type="radio" name="coroa-inst-quando" value="' + valor + '" ' + (opcaoAtual === valor ? 'checked' : '') + ' onchange="document.getElementById(\'coroa-inst-trocado-wrap\').style.display=(this.value===\'trocado\'?\'block\':\'none\')" style="margin-top:3px">' +
+      '<span>' + texto + '</span>' +
+      '</label>';
+  }
+
+  if (body) body.innerHTML =
+    '<label style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;color:var(--muted)">NOME</label>' +
+    '<input id="coroa-inst-nome" type="text" value="' + escHtml(comp.nome) + '" style="display:block;width:100%;box-sizing:border-box;margin:4px 0 16px;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:DM Sans,sans-serif">' +
+    '<label style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;color:var(--muted);display:block;margin-bottom:8px">ESSE COMPONENTE É:</label>' +
+    radio('original', 'Original da bicicleta — a km dela sempre acompanha a km total da bike') +
+    radio('trocado', 'Trocada — a km dela começa a contar a partir da km da bike na data da troca') +
+    '<div id="coroa-inst-trocado-wrap" style="display:' + (opcaoAtual === 'trocado' ? 'block' : 'none') + ';margin:8px 0 0 26px">' +
+    '<label style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;color:var(--muted)">DATA DA TROCA (dd/mm/aaaa)</label>' +
+    '<div style="display:flex;gap:6px;margin:4px 0 8px">' +
+    '<input id="coroa-inst-data" type="text" inputmode="numeric" value="' + dataDefault + '" style="flex:1;box-sizing:border-box;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:DM Mono,monospace">' +
+    '<button type="button" onclick="toggleDatepickerInline(\'coroainst\',\'coroa-inst-dp-wrap\')" title="Abrir calendário" style="padding:0 14px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);cursor:pointer;font-size:16px">&#128197;</button>' +
+    '</div>' +
+    '<div id="coroa-inst-dp-wrap" style="display:none;margin:0 0 12px">' + datepickerInlineHTML('coroainst', 'coroa-inst-data') + '</div>' +
+    '<label style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;color:var(--muted)">KM DA BIKE NESSA DATA (COMBINADO)</label>' +
+    '<input id="coroa-inst-km" type="number" step="0.1" min="0" value="' + kmDefault + '" style="display:block;width:100%;box-sizing:border-box;margin:4px 0 4px;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:DM Mono,monospace">' +
+    '<p style="font-family:DM Sans,sans-serif;font-size:11px;color:var(--muted);margin:0 0 12px">Padrão = km combinado de hoje (' + combinadoAtual + '), pra quando a troca é agora. Se foi no passado, ajuste pro valor combinado daquele momento.</p>' +
+    '</div>' +
+    '<button onclick="bikeCoroaInstalacaoAplicar()" style="display:block;width:100%;font-family:DM Mono,monospace;font-size:11px;padding:10px;border-radius:8px;border:none;background:var(--accent);color:#000;cursor:pointer;margin-top:8px">SALVAR</button>';
+  if (confirmBtn) confirmBtn.style.display = 'none';
+  document.getElementById('modal').classList.add('open');
+}
+
+function bikeCoroaInstalacaoAplicar() {
+  var comp = _bikeCoroaComp();
+  if (!comp) return;
+  var nome = (document.getElementById('coroa-inst-nome').value || '').trim();
+  var opcaoEl = document.querySelector('input[name="coroa-inst-quando"]:checked');
+  var opcao = opcaoEl ? opcaoEl.value : 'trocado';
+
+  var dataISO, km;
+  if (opcao === 'original') {
+    dataISO = state.bikeOdo.dataCompra || new Date().toISOString();
+    km = 0;
+  } else {
+    var dataStr = (document.getElementById('coroa-inst-data').value || '').trim();
+    var m = dataStr.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+    if (!m) { toast('Data inválida — use dd/mm/aaaa'); return; }
+    var kmVal = parseFloat(document.getElementById('coroa-inst-km').value);
+    if (isNaN(kmVal) || kmVal < 0) { toast('Km inválido'); return; }
+    dataISO = new Date(parseInt(m[3]), parseInt(m[2]) - 1, parseInt(m[1])).toISOString();
+    km = kmVal;
+  }
+
+  pushUndo('Instalação da coroa');
+  comp.nome = nome || 'Coroa';
+  comp.dataInstalacao = dataISO;
+  comp.kmInstalacaoTotal = km;
+  saveState();
+  closeModal();
+  renderBikeTab();
+  toast('Coroa atualizada ✓');
+}
+
+function bikeCoroaExpectativaPrompt() {
+  var comp = _bikeCoroaComp();
+  if (!comp) return;
+  var title = document.getElementById('modal-title');
+  var body = document.getElementById('modal-body');
+  var confirmBtn = document.getElementById('modal-confirm');
+  if (title) title.textContent = 'EXPECTATIVA DE TROCA — COROA';
+  if (body) body.innerHTML =
+    '<input id="coroa-expectativa" type="number" step="500" min="0" value="' + comp.kmEsperadoTroca + '" style="display:block;width:100%;box-sizing:border-box;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:DM Mono,monospace;margin-bottom:10px">' +
+    '<button onclick="bikeCoroaExpectativaAplicar()" style="display:block;width:100%;font-family:DM Mono,monospace;font-size:11px;padding:10px;border-radius:8px;border:none;background:var(--accent);color:#000;cursor:pointer">SALVAR</button>';
+  if (confirmBtn) confirmBtn.style.display = 'none';
+  document.getElementById('modal').classList.add('open');
+}
+
+function bikeCoroaExpectativaAplicar() {
+  var comp = _bikeCoroaComp();
+  if (!comp) return;
+  var v = parseFloat(document.getElementById('coroa-expectativa').value);
+  if (isNaN(v) || v <= 0) { toast('Valor inválido'); return; }
+  pushUndo('Expectativa de troca da coroa');
+  comp.kmEsperadoTroca = v;
+  saveState();
+  closeModal();
+  renderBikeTab();
+  toast('Expectativa atualizada: ' + v + 'km ✓');
+}
+
+function bikeCoroaTrocarPrompt() {
+  var comp = _bikeCoroaComp();
+  if (!comp) return;
+  var combinadoAtual = _bikeCombinadoAtual();
+  var temEstimativa = _bikeUsoAnteriorEstimado() !== null;
+  var title = document.getElementById('modal-title');
+  var body = document.getElementById('modal-body');
+  var confirmBtn = document.getElementById('modal-confirm');
+  if (title) title.textContent = 'TROCAR COROA';
+  if (body) body.innerHTML =
+    '<p style="font-family:DM Sans,sans-serif;font-size:12px;color:var(--muted);margin:0 0 10px">Arquiva a coroa atual (' + escHtml(comp.nome) + ', ' + (temEstimativa ? '≈' : '') + _bikeCoroaKm() + 'km rodados) no histórico e começa a nova do zero. Se trocar a pedivela junto, não muda nada aqui — só a coroa é rastreada.</p>' +
+    '<label style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;color:var(--muted)">DATA DA TROCA (dd/mm/aaaa)</label>' +
+    '<div style="display:flex;gap:6px;margin:4px 0 8px">' +
+    '<input id="coroa-trocar-data" type="text" inputmode="numeric" value="' + new Date().toLocaleDateString('pt-BR') + '" style="flex:1;box-sizing:border-box;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:DM Mono,monospace">' +
+    '<button type="button" onclick="toggleDatepickerInline(\'coroatrocar\',\'coroa-trocar-dp-wrap\')" title="Abrir calendário" style="padding:0 14px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);cursor:pointer;font-size:16px">&#128197;</button>' +
+    '</div>' +
+    '<div id="coroa-trocar-dp-wrap" style="display:none;margin:0 0 12px">' + datepickerInlineHTML('coroatrocar', 'coroa-trocar-data') + '</div>' +
+    '<label style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;color:var(--muted)">KM DA BIKE NESSA DATA (COMBINADO)</label>' +
+    '<input id="coroa-trocar-km" type="number" step="0.1" min="0" value="' + combinadoAtual + '" style="display:block;width:100%;box-sizing:border-box;margin:4px 0 12px;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:DM Mono,monospace">' +
+    '<label style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;color:var(--muted)">NOME DA NOVA COROA</label>' +
+    '<input id="coroa-trocar-nome" type="text" value="' + escHtml(comp.nome) + '" style="display:block;width:100%;box-sizing:border-box;margin:4px 0 12px;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:DM Sans,sans-serif">' +
+    '<input id="coroa-trocar-obs" type="text" placeholder="Observação (opcional — ex: nº de dentes)" style="display:block;width:100%;box-sizing:border-box;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:DM Sans,sans-serif;font-size:12px;margin-bottom:10px">' +
+    '<button onclick="bikeCoroaTrocarAplicar()" style="display:block;width:100%;font-family:DM Mono,monospace;font-size:11px;padding:10px;border-radius:8px;border:none;background:var(--accent);color:#000;cursor:pointer">CONFIRMAR TROCA</button>';
+  if (confirmBtn) confirmBtn.style.display = 'none';
+  document.getElementById('modal').classList.add('open');
+}
+
+function bikeCoroaTrocarAplicar() {
+  var comp = _bikeCoroaComp();
+  if (!comp) return;
+  var dataStr = (document.getElementById('coroa-trocar-data').value || '').trim();
+  var dm = dataStr.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (!dm) { toast('Data inválida — use dd/mm/aaaa'); return; }
+  var dataISO = new Date(parseInt(dm[3]), parseInt(dm[2]) - 1, parseInt(dm[1])).toISOString();
+  var kmCombinadoNaTroca = parseFloat(document.getElementById('coroa-trocar-km').value);
+  if (isNaN(kmCombinadoNaTroca) || kmCombinadoNaTroca < 0) { toast('Km inválido'); return; }
+  var nomeNovo = (document.getElementById('coroa-trocar-nome').value || '').trim() || 'Coroa';
+  var obsEl = document.getElementById('coroa-trocar-obs');
+  var kmRodados = _bikeCoroaKm();
+  pushUndo('Trocar coroa');
+  if (!comp.anteriores) comp.anteriores = [];
+  comp.anteriores.push({
+    id: uid(),
+    nome: comp.nome,
+    dataInstalacao: comp.dataInstalacao,
+    dataRemocao: dataISO,
+    kmInstalacaoTotal: comp.kmInstalacaoTotal,
+    kmRodados: kmRodados,
+    obs: (obsEl && obsEl.value.trim()) || ''
+  });
+  state.bikeOdo.coroa = {
+    nome: nomeNovo,
+    dataInstalacao: dataISO,
+    kmInstalacaoTotal: kmCombinadoNaTroca,
+    kmEsperadoTroca: comp.kmEsperadoTroca,
+    anteriores: comp.anteriores
+  };
+  saveState();
+  closeModal();
+  renderBikeTab();
+  toast('Coroa trocada ✓');
+}
+
+function bikeCoroaAnteriorDetalhePrompt(id) {
+  var comp = _bikeCoroaComp();
+  if (!comp) return;
+  var a = (comp.anteriores || []).find(function(x) { return x.id === id; });
+  if (!a) return;
+  var title = document.getElementById('modal-title');
+  var body = document.getElementById('modal-body');
+  var confirmBtn = document.getElementById('modal-confirm');
+  if (title) title.textContent = escHtml(a.nome || 'Coroa');
+  if (body) body.innerHTML =
+    '<div style="font-family:DM Sans,sans-serif;font-size:12px;color:var(--text);line-height:1.6">' +
+    'Instalada em ' + new Date(a.dataInstalacao).toLocaleDateString('pt-BR') + ' (bike com ' + (Math.round(a.kmInstalacaoTotal * 10) / 10) + 'km)<br>' +
+    'Removida em ' + new Date(a.dataRemocao).toLocaleDateString('pt-BR') + '<br>' +
+    'Total rodado: ' + a.kmRodados + 'km' +
+    (a.obs ? '<br>Obs: ' + escHtml(a.obs) : '') +
+    '</div>';
+  if (confirmBtn) confirmBtn.style.display = 'none';
+  document.getElementById('modal').classList.add('open');
+}
+
 function bikeRodaCuboInstalacaoPrompt(pos) {
   _bikeRodasInit();
   var cubo = _bikeRodaAtual(pos).cubo;
-  var totalAtual = Math.round(state.bikeOdo.total * 10) / 10;
-  var dataDefault = cubo.dataInstalacao ? new Date(cubo.dataInstalacao).toLocaleDateString('pt-BR') : new Date().toLocaleDateString('pt-BR');
-  var kmDefault = cubo.kmInstalacaoTotal !== null ? Math.round(cubo.kmInstalacaoTotal * 10) / 10 : 0;
+  var combinadoAtual = _bikeCombinadoAtual();
+  var opcaoAtual = (cubo.kmInstalacaoTotal === 0) ? 'original' : 'trocado';
+  var dataDefault = (opcaoAtual === 'trocado' && cubo.dataInstalacao) ? new Date(cubo.dataInstalacao).toLocaleDateString('pt-BR') : new Date().toLocaleDateString('pt-BR');
+  var kmDefault = (opcaoAtual === 'trocado' && cubo.kmInstalacaoTotal !== null) ? Math.round(cubo.kmInstalacaoTotal * 10) / 10 : combinadoAtual;
   var title = document.getElementById('modal-title');
   var body = document.getElementById('modal-body');
   var confirmBtn = document.getElementById('modal-confirm');
   if (title) title.textContent = 'INSTALAÇÃO DO CUBO ' + _bikeRodaLabel(pos);
+
+  function radio(valor, texto) {
+    return '<label style="display:flex;align-items:flex-start;gap:8px;font-family:DM Sans,sans-serif;font-size:12px;color:var(--text);cursor:pointer;margin-bottom:10px">' +
+      '<input type="radio" name="roda-cubo-inst-quando" value="' + valor + '" ' + (opcaoAtual === valor ? 'checked' : '') + ' onchange="document.getElementById(\'roda-cubo-inst-trocado-wrap\').style.display=(this.value===\'trocado\'?\'block\':\'none\')" style="margin-top:3px">' +
+      '<span>' + texto + '</span>' +
+      '</label>';
+  }
+
   if (body) body.innerHTML =
-    '<label style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;color:var(--muted)">DATA DE INSTALAÇÃO (dd/mm/aaaa)</label>' +
+    '<label style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;color:var(--muted)">NOME</label>' +
+    '<input id="roda-cubo-inst-nome" type="text" value="' + escHtml(cubo.nome || 'Cubo') + '" style="display:block;width:100%;box-sizing:border-box;margin:4px 0 16px;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:DM Sans,sans-serif">' +
+    '<label style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;color:var(--muted);display:block;margin-bottom:8px">ESSE COMPONENTE É:</label>' +
+    radio('original', 'Original da bicicleta — a km dele sempre acompanha a km total da bike') +
+    radio('trocado', 'Trocado — a km dele começa a contar a partir da km da bike na data da troca') +
+    '<div id="roda-cubo-inst-trocado-wrap" style="display:' + (opcaoAtual === 'trocado' ? 'block' : 'none') + ';margin:8px 0 0 26px">' +
+    '<label style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;color:var(--muted)">DATA DA TROCA (dd/mm/aaaa)</label>' +
     '<div style="display:flex;gap:6px;margin:4px 0 8px">' +
     '<input id="roda-cubo-inst-data" type="text" inputmode="numeric" value="' + dataDefault + '" style="flex:1;box-sizing:border-box;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:DM Mono,monospace">' +
     '<button type="button" onclick="toggleDatepickerInline(\'rodacuboinst\',\'roda-cubo-inst-dp-wrap\')" title="Abrir calendário" style="padding:0 14px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);cursor:pointer;font-size:16px">&#128197;</button>' +
     '</div>' +
     '<div id="roda-cubo-inst-dp-wrap" style="display:none;margin:0 0 12px">' + datepickerInlineHTML('rodacuboinst', 'roda-cubo-inst-data') + '</div>' +
-    '<label style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;color:var(--muted)">KM DA BIKE (TOTAL) NA INSTALAÇÃO</label>' +
+    '<label style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;color:var(--muted)">KM DA BIKE NESSA DATA (COMBINADO — o mesmo que aparece em ODÔMETRO TOTAL)</label>' +
     '<input id="roda-cubo-inst-km" type="number" step="0.1" min="0" value="' + kmDefault + '" style="display:block;width:100%;box-sizing:border-box;margin:4px 0 4px;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:DM Mono,monospace">' +
-    '<p style="font-family:DM Sans,sans-serif;font-size:11px;color:var(--muted);margin:0 0 12px">Padrão 0 = cubo original da bike, nunca trocado. Se está instalando um cubo novo agora, troque pro valor atual (' + totalAtual + ').</p>' +
-    '<button onclick="bikeRodaCuboInstalacaoAplicar(\'' + pos + '\')" style="display:block;width:100%;font-family:DM Mono,monospace;font-size:11px;padding:10px;border-radius:8px;border:none;background:var(--accent);color:#000;cursor:pointer">SALVAR</button>';
+    '<p style="font-family:DM Sans,sans-serif;font-size:11px;color:var(--muted);margin:0 0 12px">Padrão = km combinado de hoje (' + combinadoAtual + '), pra quando a troca é agora. Se foi no passado, ajuste pro valor combinado daquele momento.</p>' +
+    '</div>' +
+    '<button onclick="bikeRodaCuboInstalacaoAplicar(\'' + pos + '\')" style="display:block;width:100%;font-family:DM Mono,monospace;font-size:11px;padding:10px;border-radius:8px;border:none;background:var(--accent);color:#000;cursor:pointer;margin-top:8px">SALVAR</button>';
   if (confirmBtn) confirmBtn.style.display = 'none';
   document.getElementById('modal').classList.add('open');
 }
 
 function bikeRodaCuboInstalacaoAplicar(pos) {
   var cubo = _bikeRodaAtual(pos).cubo;
-  var dataStr = (document.getElementById('roda-cubo-inst-data').value || '').trim();
-  var km = parseFloat(document.getElementById('roda-cubo-inst-km').value);
-  var m = dataStr.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
-  if (!m) { toast('Data inválida — use dd/mm/aaaa'); return; }
-  if (isNaN(km) || km < 0) { toast('Km inválido'); return; }
+  var nome = (document.getElementById('roda-cubo-inst-nome').value || '').trim();
+  var opcaoEl = document.querySelector('input[name="roda-cubo-inst-quando"]:checked');
+  var opcao = opcaoEl ? opcaoEl.value : 'trocado';
   var jogo = _bikeJogoSelecionado();
   var ativo = jogo && jogo.status === 'ativo';
+
+  var dataISO, km;
+  if (opcao === 'original') {
+    dataISO = state.bikeOdo.dataCompra || new Date().toISOString();
+    km = 0;
+  } else {
+    var dataStr = (document.getElementById('roda-cubo-inst-data').value || '').trim();
+    var m = dataStr.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+    if (!m) { toast('Data inválida — use dd/mm/aaaa'); return; }
+    var kmVal = parseFloat(document.getElementById('roda-cubo-inst-km').value);
+    if (isNaN(kmVal) || kmVal < 0) { toast('Km inválido'); return; }
+    dataISO = new Date(parseInt(m[3]), parseInt(m[2]) - 1, parseInt(m[1])).toISOString();
+    km = kmVal;
+  }
+
   pushUndo('Configurar instalação do cubo ' + _bikeRodaLabel(pos));
-  cubo.dataInstalacao = new Date(parseInt(m[3]), parseInt(m[2]) - 1, parseInt(m[1])).toISOString();
+  cubo.nome = nome || 'Cubo';
+  cubo.dataInstalacao = dataISO;
   cubo.kmInstalacaoTotal = km;
   cubo.kmAcumulado = 0;
   cubo.kmInicioSessaoAtual = ativo ? km : null;
@@ -11081,24 +11878,135 @@ function bikeRodaCuboInstalacaoAplicar(pos) {
   toast('Instalação do cubo atualizada ✓');
 }
 
-function bikeCuboIntervaloPrompt() {
+function bikeCuboIntervaloPrompt(pos) {
+  var comp = _bikeRodaAtual(pos).cubo;
   var title = document.getElementById('modal-title');
   var body = document.getElementById('modal-body');
   var confirmBtn = document.getElementById('modal-confirm');
-  if (title) title.textContent = 'INTERVALO DE MANUTENÇÃO DO CUBO';
+  if (title) title.textContent = 'INTERVALO DE MANUTENÇÃO — CUBO ' + _bikeRodaLabel(pos).toUpperCase();
   if (body) body.innerHTML =
-    '<p style="font-family:DM Sans,sans-serif;font-size:12px;color:var(--muted);margin:0 0 10px">Km fixo entre manutenções — vale para os dois cubos.</p>' +
-    '<input id="cubo-intervalo" type="number" step="500" min="0" value="' + (state.bikeOdo.cuboIntervaloManutencaoKm || 5000) + '" style="display:block;width:100%;box-sizing:border-box;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:DM Mono,monospace;margin-bottom:10px">' +
-    '<button onclick="bikeCuboIntervaloAplicar()" style="display:block;width:100%;font-family:DM Mono,monospace;font-size:11px;padding:10px;border-radius:8px;border:none;background:var(--accent);color:#000;cursor:pointer">SALVAR</button>';
+    '<p style="font-family:DM Sans,sans-serif;font-size:12px;color:var(--muted);margin:0 0 10px">Km fixo entre manutenções do cubo ' + _bikeRodaLabel(pos).toLowerCase() + ' — independente do outro cubo.</p>' +
+    '<input id="cubo-intervalo" type="number" step="500" min="0" value="' + (comp.intervaloManutencaoKm || 5000) + '" style="display:block;width:100%;box-sizing:border-box;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:DM Mono,monospace;margin-bottom:10px">' +
+    '<button onclick="bikeCuboIntervaloAplicar(\'' + pos + '\')" style="display:block;width:100%;font-family:DM Mono,monospace;font-size:11px;padding:10px;border-radius:8px;border:none;background:var(--accent);color:#000;cursor:pointer">SALVAR</button>';
   if (confirmBtn) confirmBtn.style.display = 'none';
   document.getElementById('modal').classList.add('open');
 }
 
-function bikeCuboIntervaloAplicar() {
+function bikeCuboIntervaloAplicar(pos) {
+  var comp = _bikeRodaAtual(pos).cubo;
   var v = parseFloat(document.getElementById('cubo-intervalo').value);
   if (isNaN(v) || v <= 0) { toast('Valor inválido'); return; }
-  pushUndo('Editar intervalo de manutenção do cubo');
-  state.bikeOdo.cuboIntervaloManutencaoKm = v;
+  pushUndo('Editar intervalo de manutenção do cubo ' + _bikeRodaLabel(pos));
+  comp.intervaloManutencaoKm = v;
+  saveState();
+  closeModal();
+  renderBikeTab();
+  toast('Intervalo atualizado: ' + v + 'km ✓');
+}
+
+function bikeFreehubIntervaloPrompt() {
+  var comp = _bikeRodaAtual('traseira').freehub;
+  var title = document.getElementById('modal-title');
+  var body = document.getElementById('modal-body');
+  var confirmBtn = document.getElementById('modal-confirm');
+  if (title) title.textContent = 'INTERVALO DE MANUTENÇÃO — FREEHUB';
+  if (body) body.innerHTML =
+    '<p style="font-family:DM Sans,sans-serif;font-size:12px;color:var(--muted);margin:0 0 10px">Km fixo entre manutenções do freehub — independente do intervalo do cubo (usa o km do cubo só como referência de escala).</p>' +
+    '<input id="freehub-intervalo" type="number" step="500" min="0" value="' + (comp.intervaloManutencaoKm || 5000) + '" style="display:block;width:100%;box-sizing:border-box;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:DM Mono,monospace;margin-bottom:10px">' +
+    '<button onclick="bikeFreehubIntervaloAplicar()" style="display:block;width:100%;font-family:DM Mono,monospace;font-size:11px;padding:10px;border-radius:8px;border:none;background:var(--accent);color:#000;cursor:pointer">SALVAR</button>';
+  if (confirmBtn) confirmBtn.style.display = 'none';
+  document.getElementById('modal').classList.add('open');
+}
+
+function bikeFreehubIntervaloAplicar() {
+  var comp = _bikeRodaAtual('traseira').freehub;
+  var v = parseFloat(document.getElementById('freehub-intervalo').value);
+  if (isNaN(v) || v <= 0) { toast('Valor inválido'); return; }
+  pushUndo('Editar intervalo de manutenção do freehub');
+  comp.intervaloManutencaoKm = v;
+  saveState();
+  closeModal();
+  renderBikeTab();
+  toast('Intervalo atualizado: ' + v + 'km ✓');
+}
+
+// ─── TENSÃO DOS RAIOS — verificação periódica por roda, sem componente/âncora própria
+// (não é peça que se troca; é uma checagem/ajuste no jogo de rodas em uso). ───
+function _bikeRodaRaiosKmDesdeVerificacao(pos) {
+  var roda = _bikeRodaAtual(pos);
+  if (!roda || !roda.raios || !roda.raios.verificacoes.length) return null;
+  var ultima = roda.raios.verificacoes[0]; // unshift — mais recente primeiro
+  return Math.round((_bikeCombinadoAtual() - ultima.kmTotal) * 10) / 10;
+}
+
+function _bikeRodaRaiosProximaVerificacao(pos) {
+  var kmDesde = _bikeRodaRaiosKmDesdeVerificacao(pos);
+  if (kmDesde === null) return { status: 'sem-dados' };
+  var intervalo = state.bikeOdo.raiosIntervaloVerificacaoKm || 2000;
+  var kmRestante = Math.round((intervalo - kmDesde) * 10) / 10;
+  var dataEstimada = null;
+  var media = _bikeOdoMediaKmDia();
+  if (kmRestante > 0 && media > 0) {
+    var dias = Math.ceil(kmRestante / media);
+    var d = new Date();
+    d.setDate(d.getDate() + dias);
+    dataEstimada = d;
+  }
+  return { status: 'ok', kmRestante: kmRestante, dataEstimada: dataEstimada };
+}
+
+function bikeRaiosVerificacaoPrompt(pos) {
+  var title = document.getElementById('modal-title');
+  var body = document.getElementById('modal-body');
+  var confirmBtn = document.getElementById('modal-confirm');
+  if (title) title.textContent = 'VERIFICAÇÃO DE TENSÃO — ' + _bikeRodaLabel(pos);
+  if (body) body.innerHTML =
+    '<p style="font-family:DM Sans,sans-serif;font-size:12px;color:var(--muted);margin:0 0 10px">Registra a verificação/ajuste de tensão dos raios no km atual.</p>' +
+    '<label style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;color:var(--muted)">DATA (dd/mm/aaaa)</label>' +
+    '<div style="display:flex;gap:6px;margin:4px 0 8px">' +
+    '<input id="raios-verif-data" type="text" inputmode="numeric" value="' + new Date().toLocaleDateString('pt-BR') + '" style="flex:1;box-sizing:border-box;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:DM Mono,monospace">' +
+    '<button type="button" onclick="toggleDatepickerInline(\'raiosverif\',\'raios-verif-dp-wrap\')" title="Abrir calendário" style="padding:0 14px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);cursor:pointer;font-size:16px">&#128197;</button>' +
+    '</div>' +
+    '<div id="raios-verif-dp-wrap" style="display:none;margin:0 0 12px">' + datepickerInlineHTML('raiosverif', 'raios-verif-data') + '</div>' +
+    '<input id="raios-verif-obs" type="text" placeholder="Observação (opcional — ex: raio X reapertado)" style="display:block;width:100%;box-sizing:border-box;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:DM Sans,sans-serif;font-size:12px;margin-bottom:10px">' +
+    '<button onclick="bikeRaiosVerificacaoAplicar(\'' + pos + '\')" style="display:block;width:100%;font-family:DM Mono,monospace;font-size:11px;padding:10px;border-radius:8px;border:none;background:var(--accent);color:#000;cursor:pointer">REGISTRAR</button>';
+  if (confirmBtn) confirmBtn.style.display = 'none';
+  document.getElementById('modal').classList.add('open');
+}
+
+function bikeRaiosVerificacaoAplicar(pos) {
+  _bikeRodasInit();
+  var roda = _bikeRodaAtual(pos);
+  var dataStr = (document.getElementById('raios-verif-data').value || '').trim();
+  var dm = dataStr.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (!dm) { toast('Data inválida — use dd/mm/aaaa'); return; }
+  var obsEl = document.getElementById('raios-verif-obs');
+  pushUndo('Verificação de tensão dos raios ' + _bikeRodaLabel(pos));
+  roda.raios.verificacoes.unshift({ id: uid(), data: new Date(parseInt(dm[3]), parseInt(dm[2]) - 1, parseInt(dm[1])).toISOString(), kmTotal: _bikeCombinadoAtual(), obs: (obsEl && obsEl.value.trim()) || '' });
+  saveState();
+  closeModal();
+  renderBikeTab();
+  toast('Verificação registrada ✓');
+}
+
+function bikeRaiosIntervaloPrompt() {
+  var title = document.getElementById('modal-title');
+  var body = document.getElementById('modal-body');
+  var confirmBtn = document.getElementById('modal-confirm');
+  if (title) title.textContent = 'INTERVALO DE VERIFICAÇÃO DOS RAIOS';
+  if (body) body.innerHTML =
+    '<p style="font-family:DM Sans,sans-serif;font-size:12px;color:var(--muted);margin:0 0 10px">Km fixo entre verificações de tensão — vale para as duas rodas.</p>' +
+    '<input id="raios-intervalo" type="number" step="500" min="0" value="' + (state.bikeOdo.raiosIntervaloVerificacaoKm || 2000) + '" style="display:block;width:100%;box-sizing:border-box;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:DM Mono,monospace;margin-bottom:10px">' +
+    '<button onclick="bikeRaiosIntervaloAplicar()" style="display:block;width:100%;font-family:DM Mono,monospace;font-size:11px;padding:10px;border-radius:8px;border:none;background:var(--accent);color:#000;cursor:pointer">SALVAR</button>';
+  if (confirmBtn) confirmBtn.style.display = 'none';
+  document.getElementById('modal').classList.add('open');
+}
+
+function bikeRaiosIntervaloAplicar() {
+  var v = parseFloat(document.getElementById('raios-intervalo').value);
+  if (isNaN(v) || v <= 0) { toast('Valor inválido'); return; }
+  pushUndo('Editar intervalo de verificação dos raios');
+  state.bikeOdo.raiosIntervaloVerificacaoKm = v;
   saveState();
   closeModal();
   renderBikeTab();
