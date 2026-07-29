@@ -5,7 +5,7 @@
       "id": "s1",
       "name": "OMBROS",
       "label": "A",
-      "lastDone": "2026-07-02T01:59:53.811Z",
+      "lastDone": "2026-07-28T22:47:17.762Z",
       "planMode": false,
       "variants": [
         "Principal",
@@ -100,7 +100,7 @@
           "notes": "",
           "isCore": false,
           "status": "undone",
-          "weight": "50kg"
+          "weight": "14kg cada lado"
         },
         {
           "id": "e10",
@@ -116,7 +116,7 @@
           "id": "x7zt1u6l",
           "name": "Rotação Externa com Cabo",
           "rest": "60s",
-          "sets": "3x15",
+          "sets": "4x10",
           "notes": "",
           "isCore": false,
           "status": "undone",
@@ -141,7 +141,7 @@
           "sets": "3x5",
           "isCore": false,
           "status": "undone",
-          "weight": "5kg",
+          "weight": "9kg",
           "skippedLast": false
         },
         {
@@ -766,6 +766,82 @@
     }
   ],
   "history": [
+    {
+      "id": "xkw1g361",
+      "date": "2026-07-28T03:00:00.000Z",
+      "done": 7,
+      "total": 7,
+      "serieId": "s1",
+      "variant": "Plano",
+      "exercises": [
+        {
+          "name": "Overhead Press Sentado com Halteres",
+          "rest": "120s",
+          "sets": "4x5",
+          "isCore": false,
+          "status": "done",
+          "weight": "22kg cada lado",
+          "musculo": "Ombros (deltoide anterior/médio)"
+        },
+        {
+          "name": "Elevação Lateral com Halteres",
+          "rest": "60s",
+          "sets": "4x7",
+          "isCore": false,
+          "status": "done",
+          "weight": "12kg cada lado",
+          "musculo": "Ombros (deltoide médio)"
+        },
+        {
+          "name": "Elevação Lateral na Polia",
+          "rest": "45s",
+          "sets": "4x5",
+          "isCore": false,
+          "status": "done",
+          "weight": "9kg",
+          "musculo": "Ombros (deltoide médio)"
+        },
+        {
+          "name": "Crucifixo Inverso Unilateral na Polia",
+          "rest": "60s",
+          "sets": "4x8",
+          "isCore": false,
+          "status": "done",
+          "weight": "14kg cada lado",
+          "musculo": "Ombros (deltoide posterior)"
+        },
+        {
+          "name": "Rotação Externa com Cabo",
+          "rest": "45s",
+          "sets": "4x10",
+          "isCore": false,
+          "status": "done",
+          "weight": "2 pesos",
+          "musculo": "Manguito rotador"
+        },
+        {
+          "name": "Crunch",
+          "rest": "45s",
+          "sets": "1x70",
+          "isCore": false,
+          "status": "done",
+          "weight": "Peso corporal",
+          "musculo": "Core (oblíquos)"
+        },
+        {
+          "name": "Prancha",
+          "rest": "60s",
+          "sets": "3x45s",
+          "isCore": false,
+          "status": "done",
+          "weight": "Peso corporal",
+          "musculo": "Core (oblíquos/estabilizadores)"
+        }
+      ],
+      "serieName": "OMBROS",
+      "serieLabel": "A",
+      "registeredAt": "2026-07-28T22:47:17.762Z"
+    },
     {
       "id": "xjq8fp58",
       "date": "2026-07-20T03:00:00.000Z",
@@ -2216,33 +2292,34 @@
         "dias": [
           {
             "dia": "Segunda",
-            "tipo": "treino",
-            "serie": "A",
-            "orientacao": "Acumulação ombros — encerramento do bloco. 4 séries. Overhead press sentado: 22kg cada lado. Elevação lateral halteres: 12kg. Reverse fly na máquina: 50kg. Elevação lateral na polia: 5kg. Rotação externa cabo: 2 pesos. Core: rotação de tronco com anilha 4x12 + prancha lateral 3x35s. Bike elegível após: Z2. (Treino A realocado de Terça) (Treino A realocado de Quarta) (Treino A realocado de Quinta) (Treino A realocado de Sexta)"
+            "bike": false,
+            "tipo": "recuperacao",
+            "serie": "descanso",
+            "orientacao": "Ausencia planejada"
           },
           {
             "dia": "Terça",
+            "tipo": "treino",
+            "serie": "A",
+            "orientacao": "Acumulação ombros — encerramento do bloco. 4 séries. Overhead press sentado: 22kg cada lado. Elevação lateral halteres: 12kg. Reverse fly na máquina: 50kg. Elevação lateral na polia: 5kg. Rotação externa cabo: 2 pesos. Core: rotação de tronco com anilha 4x12 + prancha lateral 3x35s. Bike elegível após: Z2. (Treino A realocado de Terça) (Treino A realocado de Quarta) (Treino A realocado de Quinta) (Treino A realocado de Sexta) (Treino A realocado de Segunda)"
+          },
+          {
+            "dia": "Quarta",
             "tipo": "treino",
             "serie": "B",
             "orientacao": "Intensificação — início do bloco de carga alta. 4 séries. Pull-up aberto: tentar 3x6. Chin-up: 3x6. Remada unilateral: 32kg. Puxada neutra pulley: 65kg. Hammer curl: 20kg — neutra obrigatória. Remo alternado máquina: 65kg. Core: L-sit na parede 3x10 + prancha lateral 4x35s. Bike antes: reduzir musculação. Bike após: Z2 apenas."
           },
           {
-            "dia": "Quarta",
+            "dia": "Quinta",
             "tipo": "treino",
             "serie": "D",
             "orientacao": "Intensificação pernas — carga elevada com cautela redobrada no tendão. 4 séries. Leg press inclinado: 100-110kg cada lado — monitorar tendão direito a cada série. Leg extension: 54kg. Leg curl: 50-55kg SOMENTE se tendão assintomático — substituir por hiperextensão no banco c/ anilha 10kg se houver qualquer desconforto. Abdutor: 102kg. Adutor: 68kg. Glúteo kickback: 41kg. Core: crunch na máquina 4x12 60kg + elevação de pernas 3x12. Sem bike."
           },
           {
-            "dia": "Quinta",
+            "dia": "Sexta",
             "tipo": "treino",
             "serie": "C",
             "orientacao": "Intensificação peito/tríceps — maior carga do ciclo. 4 séries. Supino reto c/ halteres: 28kg cada lado. Chest press na máquina: 54kg. Fly com halteres: 16kg 4 séries. Skull crusher: 10kg 4 séries. French press com haltere: 24kg. Tríceps na corda: 25kg. Core: crunch com anilha 4x12 10kg + prancha frontal 4x45s. Bike após: Z2."
-          },
-          {
-            "dia": "Sexta",
-            "tipo": "treino",
-            "serie": "A",
-            "orientacao": "Intensificação ombros — pico de carga. 4-5 séries overhead. Overhead press sentado: 22-24kg cada lado — testar 23kg se sensação estiver boa. Elevação lateral halteres: 12kg 4 séries. Levantamento frontal bilateral corda: 17kg. Crucifixo inverso unilateral polia: 5 pesos. Rotação externa cabo: 3 pesos. Core: rotação de tronco com anilha 4x12 + prancha 4x45s. Dia prioritário — evitar bike antes. Z2 após se necessário."
           },
           {
             "dia": "Sábado",
@@ -2267,26 +2344,26 @@
           {
             "dia": "Segunda",
             "tipo": "treino",
+            "serie": "A",
+            "orientacao": "Intensificação ombros — pico de carga. 4-5 séries overhead. Overhead press sentado: 22-24kg cada lado — testar 23kg se sensação estiver boa. Elevação lateral halteres: 12kg 4 séries. Levantamento frontal bilateral corda: 17kg. Crucifixo inverso unilateral polia: 5 pesos. Rotação externa cabo: 3 pesos. Core: rotação de tronco com anilha 4x12 + prancha 4x45s. Dia prioritário — evitar bike antes. Z2 após se necessário."
+          },
+          {
+            "dia": "Terça",
+            "tipo": "treino",
             "serie": "D",
             "orientacao": "Intensificação pernas — última sessão de alta carga. 4 séries. Leg press inclinado: 105-115kg cada lado respeitando tendão. Avanço com halteres: 12kg. Leg extension: 54-56kg. Leg curl: apenas se totalmente assintomático — 52-55kg; caso contrário hiperextensão com anilha 10kg. Abdutor: 102kg. Adutor: 68kg. Calf raise no banco: 40-45kg. Core: abdominal crunch na máquina 4x12 60kg + elevação de joelhos no roman chair 3x12. Sem bike."
           },
           {
-            "dia": "Terça",
+            "dia": "Quarta",
             "tipo": "treino",
             "serie": "B",
             "orientacao": "Deload parcial — redução de volume e carga. 2-3 séries por exercício. Pull-up: 2x5. Remada unilateral: 24kg. Puxada neutra pulley: 50kg. Hammer curl: 16kg — neutra obrigatória. Foco em qualidade de execução e amplitude. Sem falha muscular em nenhuma série. Core: prancha lateral 2x30s + L-sit 2x8. Bike elegível: Z2 moderado, ótima sessão de recuperação ativa."
           },
           {
-            "dia": "Quarta",
+            "dia": "Quinta",
             "tipo": "treino",
             "serie": "C",
             "orientacao": "Treino realocado do final do plano"
-          },
-          {
-            "dia": "Quinta",
-            "tipo": "recuperacao",
-            "serie": "descanso",
-            "orientacao": ""
           },
           {
             "dia": "Sexta",
@@ -2385,1714 +2462,43 @@
         "velocidade": "20.3"
       },
       "sem8_Sábado": {
+        "kcal": "718",
+        "_open": true,
+        "status": "feito",
+        "elevacao": "276",
+        "percurso": "Botânico - Igapó",
+        "tempoMov": "01:07:44",
+        "distancia": "23.89",
+        "registrado": true,
+        "tempoTotal": "01:26:43",
+        "velocidade": "21.2"
+      },
+      "sem9_Segunda": {
+        "kcal": "1072",
+        "_open": true,
+        "status": "feito",
+        "elevacao": "256",
+        "percurso": "Igapó - Extended",
+        "tempoMov": "01:34:56",
+        "distancia": "34.64",
+        "registrado": true,
+        "tempoTotal": "02:36:29",
+        "velocidade": "22.6"
+      },
+      "sem9_Terça": {
         "status": "feito",
         "_open": true,
-        "distancia": "23.89",
-        "tempoMov": "01:07:44",
-        "tempoTotal": "01:26:43",
-        "velocidade": "21.2",
-        "elevacao": "276",
-        "kcal": "718",
-        "percurso": "Botânico - Igapó",
+        "distancia": "24.61",
+        "tempoMov": "01:02:29",
+        "tempoTotal": "01:05:28",
+        "velocidade": "23.6",
+        "elevacao": "200",
+        "kcal": "790",
+        "percurso": "Igapó Extendido",
         "registrado": true
       }
     },
     "_historico": [
-      {
-        "semanas": [
-          {
-            "dias": [
-              {
-                "dia": "Quinta",
-                "tipo": "recuperacao",
-                "serie": "descanso",
-                "orientacao": ""
-              },
-              {
-                "dia": "Sexta",
-                "tipo": "treino",
-                "serie": "B",
-                "_diaNum": 1,
-                "orientacao": "Reativação — primeiro treino do ciclo. 3 séries por exercício, longe da falha (parar 2 reps antes). Pull-up e chin-up como base de puxada. Remada unilateral referência: 30kg. Hammer curl pegada neutra obrigatória: 18kg. Puxada neutra no pulley: 60kg. Core: prancha lateral 3x30s + L-sit na parede 3x8. Bike elegível após treino: Z2, 30-40min.",
-                "intensidade": "70%"
-              },
-              {
-                "dia": "Sábado",
-                "tipo": "recuperacao",
-                "serie": "descanso",
-                "orientacao": ""
-              },
-              {
-                "dia": "Domingo",
-                "tipo": "recuperacao",
-                "serie": "descanso",
-                "orientacao": ""
-              }
-            ],
-            "foco": "",
-            "semana": 1,
-            "progressao": "",
-            "intensidade": ""
-          },
-          {
-            "dias": [
-              {
-                "dia": "Segunda",
-                "tipo": "treino",
-                "serie": "C",
-                "_diaNum": 2,
-                "orientacao": "Reativação peito e tríceps. 3 séries. Chest press na máquina ou supino reto c/ halteres como principal — referência 26-28kg cada lado, iniciar em 24kg. Skull crusher 10kg cada lado. Crossover 20kg. Core: crunch 3x15 + prancha frontal 3x40s. Bike elegível após: Z2 apenas.",
-                "intensidade": "70%"
-              },
-              {
-                "dia": "Terça",
-                "bike": false,
-                "tipo": "recuperacao",
-                "serie": "descanso",
-                "_diaNum": 3,
-                "orientacao": "Dia perdido",
-                "intensidade": "70%"
-              },
-              {
-                "dia": "Quarta",
-                "bike": false,
-                "tipo": "recuperacao",
-                "serie": "descanso",
-                "_diaNum": 4,
-                "orientacao": "Dia perdido",
-                "intensidade": "71%"
-              },
-              {
-                "dia": "Quinta",
-                "tipo": "treino",
-                "serie": "D",
-                "_diaNum": 5,
-                "orientacao": "Reativação pernas. 3 séries. Leg press inclinado: iniciar em 80kg cada lado (conservador — tendão direito). Leg extension: 50kg. Leg curl: APENAS se tendão sem sintomas — 40kg, monitorar rigorosamente. Sem bike neste dia nem no dia seguinte. Adutor 65kg, abdutor 95kg. Core: elevação de pernas deitado 3x8 + abdominal crunch na máquina 3x12 com 50kg. (Treino D realocado de Terça) (Treino D realocado de Quarta)",
-                "intensidade": "72%"
-              },
-              {
-                "dia": "Sexta",
-                "bike": false,
-                "tipo": "recuperacao",
-                "serie": "descanso",
-                "_diaNum": 6,
-                "orientacao": "Ausencia planejada",
-                "intensidade": "73%"
-              },
-              {
-                "dia": "Sábado",
-                "tipo": "recuperacao",
-                "serie": "descanso",
-                "orientacao": ""
-              },
-              {
-                "dia": "Domingo",
-                "tipo": "recuperacao",
-                "serie": "descanso",
-                "orientacao": ""
-              }
-            ],
-            "foco": "",
-            "semana": 2,
-            "progressao": "",
-            "intensidade": ""
-          },
-          {
-            "dias": [
-              {
-                "dia": "Segunda",
-                "tipo": "treino",
-                "serie": "A",
-                "_diaNum": 7,
-                "orientacao": "Reativação ombros. 3 séries. Overhead press sentado: 20kg cada lado (abaixo do pico — reativação segura). Elevação lateral halteres: 10kg. Crucifixo inverso unilateral na polia: 4 pesos. Rotação externa com cabo: 2 pesos. Core: rotação de tronco com anilha 3x10 + prancha 3x40s. Dia elegível para Z4 bike — se bike, reduzir musculação para 70% e fazer bike antes OU musculação primeiro + Z2 após. (Treino A realocado de Sexta)",
-                "intensidade": "74%"
-              },
-              {
-                "dia": "Terça",
-                "bike": false,
-                "tipo": "recuperacao",
-                "serie": "descanso",
-                "_diaNum": 8,
-                "orientacao": "Dia perdido",
-                "intensidade": "75%"
-              },
-              {
-                "dia": "Quarta",
-                "bike": false,
-                "tipo": "recuperacao",
-                "serie": "descanso",
-                "_diaNum": 9,
-                "orientacao": "Dia perdido",
-                "intensidade": "76%"
-              },
-              {
-                "dia": "Quinta",
-                "tipo": "treino",
-                "serie": "B",
-                "_diaNum": 10,
-                "orientacao": "Segunda sessão B — ligeiro aumento de volume. 3-4 séries. Pull-up + chin-up. Remada unilateral: 30kg. Puxada neutra pulley: 60kg. Hammer curl 18kg — pegada neutra. Core: crunch bicicleta 3x15 cada lado + prancha lateral 3x30s. Bike elegível no mesmo dia ou dia seguinte: Z2. (Treino B realocado de Terça) (Treino B realocado de Quarta)",
-                "intensidade": "76%"
-              },
-              {
-                "dia": "Sexta",
-                "bike": false,
-                "tipo": "recuperacao",
-                "serie": "descanso",
-                "_diaNum": 11,
-                "orientacao": "Dia perdido",
-                "intensidade": "77%"
-              },
-              {
-                "dia": "Sábado",
-                "tipo": "recuperacao",
-                "serie": "descanso",
-                "orientacao": ""
-              },
-              {
-                "dia": "Domingo",
-                "tipo": "recuperacao",
-                "serie": "descanso",
-                "orientacao": ""
-              }
-            ],
-            "foco": "",
-            "semana": 3,
-            "progressao": "",
-            "intensidade": ""
-          },
-          {
-            "dias": [
-              {
-                "dia": "Segunda",
-                "bike": false,
-                "tipo": "recuperacao",
-                "serie": "descanso",
-                "_diaNum": 12,
-                "orientacao": "Dia perdido",
-                "intensidade": "78%"
-              },
-              {
-                "dia": "Terça",
-                "bike": false,
-                "tipo": "recuperacao",
-                "serie": "descanso",
-                "_diaNum": 13,
-                "orientacao": "Dia perdido",
-                "intensidade": "78%"
-              },
-              {
-                "dia": "Quarta",
-                "bike": false,
-                "tipo": "recuperacao",
-                "serie": "descanso",
-                "_diaNum": 14,
-                "orientacao": "Dia perdido",
-                "intensidade": "80%"
-              },
-              {
-                "dia": "Quinta",
-                "bike": false,
-                "tipo": "recuperacao",
-                "serie": "descanso",
-                "_diaNum": 15,
-                "orientacao": "Dia perdido",
-                "intensidade": "81%"
-              },
-              {
-                "dia": "Sexta",
-                "bike": false,
-                "tipo": "recuperacao",
-                "serie": "descanso",
-                "_diaNum": 16,
-                "orientacao": "Dia perdido",
-                "intensidade": "82%"
-              },
-              {
-                "dia": "Sábado",
-                "tipo": "recuperacao",
-                "serie": "descanso",
-                "orientacao": ""
-              },
-              {
-                "dia": "Domingo",
-                "tipo": "recuperacao",
-                "serie": "descanso",
-                "orientacao": ""
-              }
-            ],
-            "foco": "",
-            "semana": 4,
-            "progressao": "",
-            "intensidade": ""
-          },
-          {
-            "dias": [
-              {
-                "dia": "Segunda",
-                "tipo": "treino",
-                "serie": "D",
-                "_diaNum": 17,
-                "orientacao": "Segunda sessão D. 3 séries sólidas. Leg press: 85-90kg cada lado — progredir apenas se confortável. Avanço com halteres: 10kg. Glúteo kickback: 38kg. Leg curl: 40-45kg APENAS sem sintomas no tendão. Abdutor: 100kg. Adutor: 65kg. Core: elevação de pernas deitado 3x10 + abdominal crunch na máquina 3x12 55kg. Sem bike no dia D. (Treino D realocado de Sexta) (Treino D realocado de Segunda) (Treino D realocado de Terça) (Treino D realocado de Quarta) (Treino D realocado de Quinta) (Treino D realocado de Sexta)",
-                "intensidade": "83%"
-              },
-              {
-                "dia": "Terça",
-                "tipo": "treino",
-                "serie": "C",
-                "_diaNum": 18,
-                "orientacao": "Acumulação — início do bloco de volume. 4 séries nos compostos. Supino reto c/ halteres: 26kg cada lado. Fly com halteres: 14kg. French press com haltere: 22kg. Tríceps alternado na polia: 23kg. Crossover: 22kg. Core: crunch com anilha 3x12 10kg + prancha frontal 3x45s. Bike após: Z2 apenas.",
-                "intensidade": "84%"
-              },
-              {
-                "dia": "Quarta",
-                "tipo": "treino",
-                "serie": "A",
-                "_diaNum": 19,
-                "orientacao": "Acumulação ombros. 4 séries nos principais. Overhead press sentado: 21-22kg cada lado. Elevação lateral halteres: 10-12kg. Levantamento frontal bilateral corda na polia: 15kg. Crucifixo inverso unilateral: 4-5 pesos. Core: rotação de tronco com anilha 3x12 + prancha lateral 3x35s. Dia elegível Z4 se não houver bike nos últimos 2 dias.",
-                "intensidade": "65%"
-              },
-              {
-                "dia": "Quinta",
-                "tipo": "treino",
-                "serie": "D",
-                "_diaNum": 20,
-                "orientacao": "Acumulação pernas. 3-4 séries. Leg press inclinado: 90-95kg cada lado. Leg extension: 52kg. Leg curl: 45-50kg se tendão OK — parar imediatamente se houver desconforto. Adutor: 68kg. Abdutor: 100-102kg. Glúteo kickback: 40kg. Core: crunch na máquina 3x12 57kg + elevação de pernas deitado 3x10. Sem bike no dia D.",
-                "intensidade": "65%"
-              },
-              {
-                "dia": "Sexta",
-                "tipo": "treino",
-                "serie": "B",
-                "orientacao": "Acumulação costas. 4 séries nos compostos. Pull-up aberto: 3x5. Remada unilateral: 30kg, considerar 32kg se força estiver lá. Puxada neutra pulley: 62-65kg. Remo alternado máquina: 63kg. Hammer curl 18-20kg — neutra obrigatória. Core: L-sit na parede 3x8 + crunch bicicleta 4x15. Bike após: Z2."
-              },
-              {
-                "dia": "Sábado",
-                "tipo": "recuperacao",
-                "serie": "descanso",
-                "orientacao": ""
-              },
-              {
-                "dia": "Domingo",
-                "tipo": "recuperacao",
-                "serie": "descanso",
-                "orientacao": ""
-              }
-            ],
-            "foco": "",
-            "semana": 5,
-            "progressao": "",
-            "intensidade": ""
-          },
-          {
-            "dias": [
-              {
-                "dia": "Segunda",
-                "bike": false,
-                "tipo": "recuperacao",
-                "serie": "descanso",
-                "orientacao": "Dia perdido"
-              },
-              {
-                "dia": "Terça",
-                "bike": false,
-                "tipo": "recuperacao",
-                "serie": "descanso",
-                "orientacao": "Dia perdido"
-              },
-              {
-                "dia": "Quarta",
-                "bike": false,
-                "tipo": "recuperacao",
-                "serie": "descanso",
-                "orientacao": "Dia perdido"
-              },
-              {
-                "dia": "Quinta",
-                "bike": false,
-                "tipo": "recuperacao",
-                "serie": "descanso",
-                "orientacao": "Dia perdido"
-              },
-              {
-                "dia": "Sexta",
-                "bike": false,
-                "tipo": "recuperacao",
-                "serie": "descanso",
-                "orientacao": "Ausencia planejada"
-              },
-              {
-                "dia": "Sábado",
-                "tipo": "recuperacao",
-                "serie": "descanso",
-                "orientacao": ""
-              },
-              {
-                "dia": "Domingo",
-                "tipo": "recuperacao",
-                "serie": "descanso",
-                "orientacao": ""
-              }
-            ],
-            "foco": "",
-            "semana": 6,
-            "progressao": "",
-            "intensidade": ""
-          },
-          {
-            "dias": [
-              {
-                "dia": "Segunda",
-                "bike": false,
-                "tipo": "recuperacao",
-                "serie": "descanso",
-                "orientacao": "Ausencia planejada"
-              },
-              {
-                "dia": "Terça",
-                "bike": false,
-                "tipo": "recuperacao",
-                "serie": "descanso",
-                "orientacao": "Dia perdido"
-              },
-              {
-                "dia": "Quarta",
-                "bike": false,
-                "tipo": "recuperacao",
-                "serie": "descanso",
-                "orientacao": "Dia perdido"
-              },
-              {
-                "dia": "Quinta",
-                "tipo": "treino",
-                "serie": "C",
-                "orientacao": "Acumulação peito/tríceps — carga crescente. 4 séries. Supino reto c/ halteres: 26-28kg. Skull crusher: 10kg cada lado, 4 séries. Fly com halteres: 16kg. Tríceps na barra calistenia: 3x8. Crossover: 23kg. Core: prancha 3x45s + crunch 3x20. Bike elegível no dia ou no dia seguinte (Z2). (Treino C realocado de Segunda) (Treino C realocado de Terça) (Treino C realocado de Quarta) (Treino C realocado de Quinta) (Treino C realocado de Sexta) (Treino C realocado de Segunda) (Treino C realocado de Terça) (Treino C realocado de Quarta)"
-              },
-              {
-                "dia": "Sexta",
-                "tipo": "treino",
-                "serie": "D",
-                "orientacao": "Acumulação pernas — pico de volume do bloco. 4 séries nos compostos. Leg press inclinado: 95-100kg cada lado — só avançar se tendão sem sintomas. Avanço com halteres: 10-12kg. Leg extension: 52kg. Leg curl: 50kg se tendão estiver bem — avaliar sessão a sessão. Abdutor: 102kg. Adutor: 68kg. Calf raise no banco: 40kg 3x15. Core: abdominal crunch na máquina 3x12 57-60kg + elevação de pernas deitado 3x12."
-              },
-              {
-                "dia": "Sábado",
-                "tipo": "recuperacao",
-                "serie": "descanso",
-                "orientacao": ""
-              },
-              {
-                "dia": "Domingo",
-                "tipo": "recuperacao",
-                "serie": "descanso",
-                "orientacao": ""
-              }
-            ],
-            "foco": "",
-            "semana": 7,
-            "progressao": "",
-            "intensidade": ""
-          },
-          {
-            "dias": [
-              {
-                "dia": "Segunda",
-                "tipo": "treino",
-                "serie": "A",
-                "orientacao": "Acumulação ombros — encerramento do bloco. 4 séries. Overhead press sentado: 22kg cada lado. Elevação lateral halteres: 12kg. Reverse fly na máquina: 50kg. Elevação lateral na polia: 5kg. Rotação externa cabo: 2 pesos. Core: rotação de tronco com anilha 4x12 + prancha lateral 3x35s. Bike elegível após: Z2."
-              },
-              {
-                "dia": "Terça",
-                "tipo": "treino",
-                "serie": "B",
-                "orientacao": "Intensificação — início do bloco de carga alta. 4 séries. Pull-up aberto: tentar 3x6. Chin-up: 3x6. Remada unilateral: 32kg. Puxada neutra pulley: 65kg. Hammer curl: 20kg — neutra obrigatória. Remo alternado máquina: 65kg. Core: L-sit na parede 3x10 + prancha lateral 4x35s. Bike antes: reduzir musculação. Bike após: Z2 apenas."
-              },
-              {
-                "dia": "Quarta",
-                "tipo": "treino",
-                "serie": "D",
-                "orientacao": "Intensificação pernas — carga elevada com cautela redobrada no tendão. 4 séries. Leg press inclinado: 100-110kg cada lado — monitorar tendão direito a cada série. Leg extension: 54kg. Leg curl: 50-55kg SOMENTE se tendão assintomático — substituir por hiperextensão no banco c/ anilha 10kg se houver qualquer desconforto. Abdutor: 102kg. Adutor: 68kg. Glúteo kickback: 41kg. Core: crunch na máquina 4x12 60kg + elevação de pernas 3x12. Sem bike."
-              },
-              {
-                "dia": "Quinta",
-                "tipo": "treino",
-                "serie": "C",
-                "orientacao": "Intensificação peito/tríceps — maior carga do ciclo. 4 séries. Supino reto c/ halteres: 28kg cada lado. Chest press na máquina: 54kg. Fly com halteres: 16kg 4 séries. Skull crusher: 10kg 4 séries. French press com haltere: 24kg. Tríceps na corda: 25kg. Core: crunch com anilha 4x12 10kg + prancha frontal 4x45s. Bike após: Z2."
-              },
-              {
-                "dia": "Sexta",
-                "tipo": "treino",
-                "serie": "A",
-                "orientacao": "Intensificação ombros — pico de carga. 4-5 séries overhead. Overhead press sentado: 22-24kg cada lado — testar 23kg se sensação estiver boa. Elevação lateral halteres: 12kg 4 séries. Levantamento frontal bilateral corda: 17kg. Crucifixo inverso unilateral polia: 5 pesos. Rotação externa cabo: 3 pesos. Core: rotação de tronco com anilha 4x12 + prancha 4x45s. Dia prioritário — evitar bike antes. Z2 após se necessário."
-              },
-              {
-                "dia": "Sábado",
-                "tipo": "recuperacao",
-                "serie": "descanso",
-                "orientacao": ""
-              },
-              {
-                "dia": "Domingo",
-                "tipo": "recuperacao",
-                "serie": "descanso",
-                "orientacao": ""
-              }
-            ],
-            "foco": "",
-            "semana": 8,
-            "progressao": "",
-            "intensidade": ""
-          },
-          {
-            "dias": [
-              {
-                "dia": "Segunda",
-                "tipo": "treino",
-                "serie": "D",
-                "orientacao": "Intensificação pernas — última sessão de alta carga. 4 séries. Leg press inclinado: 105-115kg cada lado respeitando tendão. Avanço com halteres: 12kg. Leg extension: 54-56kg. Leg curl: apenas se totalmente assintomático — 52-55kg; caso contrário hiperextensão com anilha 10kg. Abdutor: 102kg. Adutor: 68kg. Calf raise no banco: 40-45kg. Core: abdominal crunch na máquina 4x12 60kg + elevação de joelhos no roman chair 3x12. Sem bike."
-              },
-              {
-                "dia": "Terça",
-                "tipo": "treino",
-                "serie": "B",
-                "orientacao": "Deload parcial — redução de volume e carga. 2-3 séries por exercício. Pull-up: 2x5. Remada unilateral: 24kg. Puxada neutra pulley: 50kg. Hammer curl: 16kg — neutra obrigatória. Foco em qualidade de execução e amplitude. Sem falha muscular em nenhuma série. Core: prancha lateral 2x30s + L-sit 2x8. Bike elegível: Z2 moderado, ótima sessão de recuperação ativa."
-              },
-              {
-                "dia": "Quarta",
-                "tipo": "treino",
-                "serie": "C",
-                "orientacao": "Treino realocado do final do plano"
-              },
-              {
-                "dia": "Quinta",
-                "tipo": "recuperacao",
-                "serie": "descanso",
-                "orientacao": ""
-              },
-              {
-                "dia": "Sexta",
-                "tipo": "recuperacao",
-                "serie": "descanso",
-                "orientacao": ""
-              },
-              {
-                "dia": "Sábado",
-                "tipo": "recuperacao",
-                "serie": "descanso",
-                "orientacao": ""
-              },
-              {
-                "dia": "Domingo",
-                "tipo": "recuperacao",
-                "serie": "descanso",
-                "orientacao": ""
-              }
-            ],
-            "foco": "",
-            "semana": 9,
-            "progressao": "",
-            "intensidade": ""
-          }
-        ],
-        "diasStatus": {
-          "sem1_Sexta": "concluido",
-          "sem2_Sexta": "ausente",
-          "sem3_Sexta": "perdido",
-          "sem4_Sexta": "perdido",
-          "sem5_Sexta": "concluido",
-          "sem6_Sexta": "ausente",
-          "sem2_Quarta": "perdido",
-          "sem2_Quinta": "concluido",
-          "sem2_Terça": "perdido",
-          "sem3_Quarta": "perdido",
-          "sem3_Quinta": "concluido",
-          "sem3_Terça": "perdido",
-          "sem4_Quarta": "perdido",
-          "sem4_Quinta": "perdido",
-          "sem4_Terça": "perdido",
-          "sem5_Quarta": "concluido",
-          "sem5_Quinta": "concluido",
-          "sem5_Terça": "concluido",
-          "sem6_Quarta": "perdido",
-          "sem6_Quinta": "perdido",
-          "sem6_Terça": "perdido",
-          "sem7_Quarta": "perdido",
-          "sem7_Quinta": "concluido",
-          "sem7_Terça": "perdido",
-          "sem2_Segunda": "concluido",
-          "sem3_Segunda": "concluido",
-          "sem4_Segunda": "perdido",
-          "sem5_Segunda": "concluido",
-          "sem6_Segunda": "perdido",
-          "sem7_Segunda": "ausente"
-        },
-        "diasExpandidos": {
-          "sem1_Sexta": {
-            "dia": "Sexta",
-            "foco": "",
-            "serie": "B",
-            "semana": 1,
-            "_dayKey": "sem1_Sexta",
-            "exercicios": [
-              {
-                "id": "xmm2kfot",
-                "nome": "Pull-up Aberto",
-                "rest": "90-120s",
-                "sets": "3x5",
-                "notes": "",
-                "status": "done",
-                "weight": "Peso corporal"
-              },
-              {
-                "id": "xsbjsrz6",
-                "nome": "Chin-up",
-                "rest": "90-120s",
-                "sets": "3x6",
-                "notes": "",
-                "status": "done",
-                "weight": "Peso corporal"
-              },
-              {
-                "id": "x9vvnu55",
-                "nome": "Remada Unilateral com Haltere",
-                "rest": "60-90s",
-                "sets": "3x6",
-                "notes": "",
-                "status": "done",
-                "weight": "30kg cada lado"
-              },
-              {
-                "id": "x64x9b4o",
-                "nome": "Puxada no Pulley com Pegada Neutra",
-                "rest": "60-90s",
-                "sets": "3x7",
-                "notes": "",
-                "status": "done",
-                "weight": "60kg"
-              },
-              {
-                "id": "xppqb8d9",
-                "nome": "Remada cavalinho na máquina",
-                "rest": "60-90s",
-                "sets": "3x7",
-                "notes": "",
-                "status": "done",
-                "weight": "63kg"
-              },
-              {
-                "id": "x03mc79s",
-                "nome": "Hammer Curl",
-                "rest": "45-60s",
-                "sets": "3x6",
-                "notes": "",
-                "status": "done",
-                "weight": "18kg cada lado"
-              },
-              {
-                "id": "xs4z4zux",
-                "nome": "Prancha Lateral",
-                "rest": "45-60s",
-                "sets": "3x30",
-                "notes": "",
-                "status": "skipped",
-                "weight": "Peso corporal"
-              },
-              {
-                "id": "x5xe0tsl",
-                "nome": "L-Sit na Parede",
-                "rest": "45-60s",
-                "sets": "3x8",
-                "notes": "",
-                "status": "skipped",
-                "weight": "Peso corporal"
-              }
-            ]
-          },
-          "sem5_Sexta": {
-            "dia": "Sexta",
-            "foco": "",
-            "serie": "B",
-            "semana": 5,
-            "_dayKey": "sem5_Sexta",
-            "exercicios": [
-              {
-                "id": "xmri1aze",
-                "nome": "Pull-up Aberto",
-                "rest": "90-120s",
-                "sets": "3x4",
-                "notes": "",
-                "status": "done",
-                "weight": "Peso corporal",
-                "musculo": "Costas (dorsais)"
-              },
-              {
-                "id": "xmo4zxcw",
-                "nome": "Chin-up",
-                "rest": "75-90s",
-                "sets": "3x4",
-                "notes": "",
-                "status": "done",
-                "weight": "Peso corporal",
-                "musculo": "Costas/Bíceps"
-              },
-              {
-                "id": "xcuei4yi",
-                "nome": "Hammer Curl",
-                "rest": "60s",
-                "sets": "3x6",
-                "notes": "",
-                "status": "done",
-                "weight": "18kg cada lado",
-                "musculo": "Bíceps"
-              },
-              {
-                "id": "xdw1fkjl",
-                "nome": "Remada cavalinho na máquina",
-                "rest": "60-75s",
-                "sets": "4x7",
-                "notes": "",
-                "status": "done",
-                "weight": "63kg",
-                "musculo": "Costas (romboides/trapézio médio)"
-              },
-              {
-                "id": "xnsxfim0",
-                "nome": "Remada Unilateral com Haltere",
-                "rest": "75-90s",
-                "sets": "4x6",
-                "notes": "",
-                "status": "skipped",
-                "weight": "30kg cada lado",
-                "musculo": "Costas (dorsais/romboides)"
-              },
-              {
-                "id": "xszqdpi7",
-                "nome": "Puxada no Pulley com Pegada Neutra",
-                "rest": "60-75s",
-                "sets": "4x7",
-                "notes": "",
-                "status": "skipped",
-                "weight": "62kg",
-                "musculo": "Costas (dorsais)"
-              },
-              {
-                "id": "x9ns8atf",
-                "nome": "L-Sit na Parede",
-                "rest": "45-60s",
-                "sets": "3x8",
-                "notes": "",
-                "status": "skipped",
-                "weight": "Peso corporal",
-                "musculo": "Core (abdominal)"
-              },
-              {
-                "id": "xoos8pse",
-                "nome": "Crunch Bicicleta",
-                "rest": "45s",
-                "sets": "4x15",
-                "notes": "",
-                "status": "skipped",
-                "weight": "Peso corporal",
-                "musculo": "Core (oblíquos/abdominal)"
-              }
-            ]
-          },
-          "sem7_Sexta": {
-            "dia": "Terça",
-            "foco": "",
-            "serie": "D",
-            "semana": 6,
-            "_dayKey": "sem7_Sexta",
-            "exercicios": [
-              {
-                "id": "xzja0w75",
-                "nome": "Leg Press Inclinado",
-                "rest": "90-120s",
-                "sets": "4x8",
-                "notes": "",
-                "status": "undone",
-                "weight": "95kg cada lado",
-                "musculo": "Quadríceps/Glúteos"
-              },
-              {
-                "id": "xmtvrw29",
-                "nome": "Avanço com Halteres",
-                "rest": "75-90s",
-                "sets": "4x10",
-                "notes": "",
-                "status": "undone",
-                "weight": "10kg cada lado",
-                "musculo": "Quadríceps/Glúteos"
-              },
-              {
-                "id": "xrdhgjhd",
-                "nome": "Leg Extension",
-                "rest": "60s",
-                "sets": "4x12",
-                "notes": "",
-                "status": "undone",
-                "weight": "52kg",
-                "musculo": "Quadríceps"
-              },
-              {
-                "id": "xj3sjeyx",
-                "nome": "Glúteo na Máquina (Kickback)",
-                "rest": "60s",
-                "sets": "3x12",
-                "notes": "",
-                "status": "undone",
-                "weight": "40kg",
-                "musculo": "Glúteos"
-              },
-              {
-                "id": "xxonyb7t",
-                "nome": "Abdutor na Máquina",
-                "rest": "60s",
-                "sets": "3x12",
-                "notes": "",
-                "status": "undone",
-                "weight": "102kg",
-                "musculo": "Glúteo Médio"
-              },
-              {
-                "id": "x5hv36uj",
-                "nome": "Adutor na Máquina",
-                "rest": "60s",
-                "sets": "3x12",
-                "notes": "",
-                "status": "undone",
-                "weight": "68kg",
-                "musculo": "Adutores"
-              },
-              {
-                "id": "xc6anzvc",
-                "nome": "Calf Raise na Máquina",
-                "rest": "45-60s",
-                "sets": "3x15",
-                "notes": "",
-                "status": "undone",
-                "weight": "40kg",
-                "musculo": "Panturrilhas"
-              },
-              {
-                "id": "x9w0y1as",
-                "nome": "Abdominal Crunch na Máquina",
-                "rest": "45-60s",
-                "sets": "3x12",
-                "notes": "",
-                "status": "undone",
-                "weight": "57kg",
-                "musculo": "Reto Abdominal"
-              },
-              {
-                "id": "xscpxyf4",
-                "nome": "Elevação de Pernas Deitado",
-                "rest": "45-60s",
-                "sets": "3x12",
-                "notes": "",
-                "status": "undone",
-                "weight": "Peso corporal",
-                "musculo": "Abdômen Inferior",
-                "skippedLast": true
-              },
-              {
-                "id": "xou5hale",
-                "nome": "Hiperextensão no Banco",
-                "rest": "60s",
-                "sets": "4x10",
-                "notes": "",
-                "status": "undone",
-                "weight": "Anilha 20kg",
-                "musculo": "Lombar/Posteriores"
-              }
-            ]
-          },
-          "sem2_Quinta": {
-            "dia": "Terça",
-            "foco": "",
-            "serie": "D",
-            "semana": 2,
-            "_dayKey": "sem2_Quinta",
-            "exercicios": [
-              {
-                "id": "x16ts9iv",
-                "nome": "Leg Press Inclinado",
-                "rest": "90-120s",
-                "sets": "3x8",
-                "notes": "",
-                "status": "done",
-                "weight": "80kg cada lado"
-              },
-              {
-                "id": "xj8xenjz",
-                "nome": "Leg Extension",
-                "rest": "60-90s",
-                "sets": "3x7",
-                "notes": "",
-                "status": "done",
-                "weight": "50kg"
-              },
-              {
-                "id": "xstpbu0b",
-                "nome": "Adutor na Máquina",
-                "rest": "45-60s",
-                "sets": "3x10",
-                "notes": "",
-                "status": "done",
-                "weight": "63kg"
-              },
-              {
-                "id": "xufpy2pn",
-                "nome": "Abdutor na Máquina",
-                "rest": "45-60s",
-                "sets": "3x10",
-                "notes": "",
-                "status": "done",
-                "weight": "63kg"
-              },
-              {
-                "id": "xu8usk22",
-                "nome": "Hiperextensão no Banco",
-                "rest": "60s",
-                "sets": "4x10",
-                "notes": "",
-                "status": "done",
-                "weight": "Anilha 10kg"
-              },
-              {
-                "id": "xja7r9mz",
-                "nome": "Calf Raise na Máquina",
-                "rest": "60s",
-                "sets": "3x12",
-                "status": "done",
-                "weight": "40kg"
-              },
-              {
-                "id": "x2dyhf1v",
-                "nome": "Abdominal Crunch na Máquina",
-                "rest": "45-60s",
-                "sets": "3x12",
-                "notes": "",
-                "status": "done",
-                "weight": "54kg"
-              },
-              {
-                "id": "x287dyzv",
-                "nome": "Prancha",
-                "rest": "45s",
-                "sets": "3x45s",
-                "status": "done",
-                "weight": "Peso corporal"
-              }
-            ]
-          },
-          "sem3_Quinta": {
-            "dia": "Terça",
-            "foco": "",
-            "serie": "B",
-            "semana": 3,
-            "_dayKey": "sem3_Quinta",
-            "exercicios": [
-              {
-                "id": "xi7hexll",
-                "nome": "Pull-up Aberto",
-                "rest": "90-120s",
-                "sets": "4x4",
-                "notes": "",
-                "status": "done",
-                "weight": "Peso corporal",
-                "musculo": "Costas (Dorsal)"
-              },
-              {
-                "id": "xv4isd32",
-                "nome": "Chin-up",
-                "rest": "90-120s",
-                "sets": "4x5",
-                "notes": "",
-                "status": "done",
-                "weight": "Peso corporal",
-                "musculo": "Costas / Bíceps"
-              },
-              {
-                "id": "xoq69h66",
-                "nome": "Remada Unilateral com Haltere",
-                "rest": "75-90s",
-                "sets": "4x6",
-                "notes": "",
-                "status": "done",
-                "weight": "30kg cada lado",
-                "musculo": "Costas (Dorsal / Romboides)"
-              },
-              {
-                "id": "x40ux1qj",
-                "nome": "Hammer Curl",
-                "rest": "60s",
-                "sets": "3x8",
-                "notes": "",
-                "status": "done",
-                "weight": "18kg cada lado",
-                "musculo": "Bíceps / Braquial"
-              },
-              {
-                "id": "x2pg5oxt",
-                "nome": "Puxada no Pulley com Pegada Neutra",
-                "rest": "75-90s",
-                "sets": "4x7",
-                "notes": "",
-                "status": "done",
-                "weight": "60kg",
-                "musculo": "Costas (Dorsal)"
-              },
-              {
-                "id": "xnhimky9",
-                "nome": "Remada cavalinho na máquina",
-                "rest": "75-90s",
-                "sets": "4x7",
-                "notes": "",
-                "status": "done",
-                "weight": "63kg",
-                "musculo": "Costas (Trapézio Médio / Romboides)"
-              },
-              {
-                "id": "xzzigqet",
-                "nome": "Sit-up",
-                "rest": "45s",
-                "sets": "3x30",
-                "notes": "",
-                "status": "done",
-                "weight": "Peso corporal",
-                "musculo": "Core (Oblíquos / Reto Abdominal)"
-              },
-              {
-                "id": "xzh1noax",
-                "nome": "Prancha Lateral",
-                "rest": "45s",
-                "sets": "3x30",
-                "notes": "",
-                "status": "skipped",
-                "weight": "Peso corporal",
-                "musculo": "Core (Oblíquos)",
-                "skippedLast": true
-              }
-            ]
-          },
-          "sem5_Quarta": {
-            "dia": "Quarta",
-            "foco": "",
-            "serie": "A",
-            "semana": 5,
-            "_dayKey": "sem5_Quarta",
-            "exercicios": [
-              {
-                "id": "xgmpvt2m",
-                "nome": "Overhead Press Sentado com Halteres",
-                "rest": "60-75s",
-                "sets": "4x5",
-                "notes": "",
-                "status": "done",
-                "weight": "20kg cada lado",
-                "musculo": "Ombros (deltoide anterior/medial)"
-              },
-              {
-                "id": "xh7vfdww",
-                "nome": "Elevação Lateral com Halteres",
-                "rest": "45-60s",
-                "sets": "4x7",
-                "notes": "",
-                "status": "done",
-                "weight": "10-12kg cada lado",
-                "musculo": "Ombros (deltoide medial)"
-              },
-              {
-                "id": "xohevuvd",
-                "nome": "Levantamento Frontal Bilateral (Corda) na Polia",
-                "rest": "45-60s",
-                "sets": "4x10",
-                "notes": "",
-                "status": "done",
-                "weight": "5 pesos",
-                "musculo": "Ombros (deltoide anterior)"
-              },
-              {
-                "id": "xlqi3we3",
-                "nome": "Crucifixo Inverso Unilateral na Polia",
-                "rest": "45-60s",
-                "sets": "4x7",
-                "notes": "",
-                "status": "done",
-                "weight": "4-5 pesos",
-                "musculo": "Ombros (deltoide posterior)"
-              },
-              {
-                "id": "x0w4tiet",
-                "nome": "Elevação Lateral na Polia",
-                "rest": "60s",
-                "sets": "3x6",
-                "isCore": false,
-                "status": "done",
-                "weight": "2 pesos"
-              },
-              {
-                "id": "x9ast0d5",
-                "nome": "Rotação Externa com Cabo",
-                "rest": "45s",
-                "sets": "3x15",
-                "isCore": false,
-                "status": "done",
-                "weight": "1 peso"
-              },
-              {
-                "id": "xbwjmmzj",
-                "nome": "Prancha Lateral",
-                "rest": "45s",
-                "sets": "3x35",
-                "notes": "",
-                "status": "done",
-                "weight": "Peso corporal",
-                "musculo": "Core (oblíquos/estabilizadores)"
-              }
-            ]
-          },
-          "sem5_Quinta": {
-            "dia": "Quinta",
-            "foco": "",
-            "serie": "D",
-            "semana": 5,
-            "_dayKey": "sem5_Quinta",
-            "exercicios": [
-              {
-                "id": "xlslwk25",
-                "nome": "Leg Press Inclinado",
-                "rest": "90s",
-                "sets": "4x8",
-                "notes": "",
-                "status": "done",
-                "weight": "90kg cada lado",
-                "musculo": "Quadríceps/Glúteos"
-              },
-              {
-                "id": "x713alah",
-                "nome": "Leg Extension",
-                "rest": "60s",
-                "sets": "4x10",
-                "notes": "",
-                "status": "done",
-                "weight": "54kg",
-                "musculo": "Quadríceps"
-              },
-              {
-                "id": "x9acvj4u",
-                "nome": "Adutor na Máquina",
-                "rest": "60s",
-                "sets": "3x12",
-                "notes": "",
-                "status": "done",
-                "weight": "68kg",
-                "musculo": "Adutores"
-              },
-              {
-                "id": "xizazwws",
-                "nome": "Abdutor na Máquina",
-                "rest": "60s",
-                "sets": "3x12",
-                "notes": "",
-                "status": "done",
-                "weight": "68kg",
-                "musculo": "Abdutores/Glúteo médio"
-              },
-              {
-                "id": "xhvqjb7b",
-                "nome": "Glúteo na Máquina (Kickback)",
-                "rest": "60s",
-                "sets": "3x8",
-                "notes": "",
-                "status": "done",
-                "weight": "40kg",
-                "musculo": "Glúteos"
-              },
-              {
-                "id": "x7570t7h",
-                "nome": "Calf Raise na Máquina",
-                "rest": "45s",
-                "sets": "3x15",
-                "notes": "",
-                "status": "done",
-                "weight": "40kg",
-                "musculo": "Panturrilhas"
-              },
-              {
-                "id": "xdfcuiuu",
-                "nome": "Abdominal Crunch na Máquina",
-                "rest": "45s",
-                "sets": "3x12",
-                "notes": "",
-                "status": "done",
-                "weight": "57kg",
-                "musculo": "Core/Reto abdominal"
-              },
-              {
-                "id": "xvxijw73",
-                "nome": "Hiperextensão no Banco",
-                "rest": "60-90s",
-                "sets": "4x10",
-                "notes": "",
-                "status": "skipped",
-                "weight": "20kg",
-                "musculo": "Posteriores/Glúteos"
-              },
-              {
-                "id": "x5f5po88",
-                "nome": "Elevação de Pernas Deitado",
-                "rest": "45s",
-                "sets": "3x10",
-                "notes": "",
-                "status": "skipped",
-                "weight": "Peso corporal",
-                "musculo": "Core/Abdômen inferior"
-              }
-            ]
-          },
-          "sem5_Terça": {
-            "dia": "Terça",
-            "foco": "",
-            "serie": "C",
-            "semana": 5,
-            "_dayKey": "sem5_Terça",
-            "exercicios": [
-              {
-                "id": "xk2n7ln1",
-                "nome": "Supino Reto c/ Halteres",
-                "rest": "60-75s",
-                "sets": "4x8",
-                "notes": "",
-                "status": "done",
-                "weight": "24kg cada lado",
-                "musculo": "Peitoral"
-              },
-              {
-                "id": "x0jw34j0",
-                "nome": "Fly com Halteres",
-                "rest": "45-60s",
-                "sets": "4x10",
-                "notes": "",
-                "status": "done",
-                "weight": "14kg",
-                "musculo": "Peitoral"
-              },
-              {
-                "id": "x75safom",
-                "nome": "Tríceps na Barra (Calistenia)",
-                "rest": "60s",
-                "sets": "3x7",
-                "isCore": false,
-                "status": "done",
-                "weight": "Peso corporal"
-              },
-              {
-                "id": "xfdlgsu0",
-                "nome": "Crossover",
-                "rest": "45-60s",
-                "sets": "4x8",
-                "notes": "",
-                "status": "done",
-                "weight": "18kg cada lado",
-                "musculo": "Peitoral"
-              },
-              {
-                "id": "xowk0p68",
-                "nome": "Tríceps Alternado na Polia",
-                "rest": "45-60s",
-                "sets": "4x12",
-                "notes": "",
-                "status": "done",
-                "weight": "27kg",
-                "musculo": "Tríceps"
-              },
-              {
-                "id": "x5wj1at7",
-                "nome": "French Press com Haltere",
-                "rest": "60-75s",
-                "sets": "2x9",
-                "notes": "",
-                "status": "done",
-                "weight": "18kg",
-                "musculo": "Tríceps"
-              },
-              {
-                "id": "xesa98d4",
-                "nome": "Crunch com Anilha",
-                "rest": "45-60s",
-                "sets": "3x12",
-                "notes": "",
-                "status": "done",
-                "weight": "10kg",
-                "musculo": "Core — Reto Abdominal"
-              }
-            ]
-          },
-          "sem7_Quinta": {
-            "dia": "Segunda",
-            "foco": "",
-            "serie": "C",
-            "semana": 6,
-            "_dayKey": "sem7_Quinta",
-            "exercicios": [
-              {
-                "id": "xj38tzoh",
-                "nome": "Supino Reto c/ Halteres",
-                "rest": "75-90s",
-                "sets": "4x6",
-                "notes": "",
-                "status": "done",
-                "weight": "22kg cada lado",
-                "musculo": "Peito"
-              },
-              {
-                "id": "xj7ave3r",
-                "nome": "Fly com Halteres",
-                "rest": "60s",
-                "sets": "4x6",
-                "notes": "",
-                "status": "done",
-                "weight": "12kg",
-                "musculo": "Peito"
-              },
-              {
-                "id": "x4me0wo1",
-                "nome": "Skull Crusher",
-                "rest": "60s",
-                "sets": "4x5",
-                "notes": "",
-                "status": "done",
-                "weight": "10kg cada lado",
-                "musculo": "Tríceps"
-              },
-              {
-                "id": "xvy0w592",
-                "nome": "Tríceps na Barra (Calistenia)",
-                "rest": "60s",
-                "sets": "3x6",
-                "notes": "",
-                "status": "done",
-                "weight": "peso corporal",
-                "musculo": "Tríceps"
-              },
-              {
-                "id": "x2n9jkjl",
-                "nome": "Fly na Máquina",
-                "rest": "60-90s",
-                "sets": "4x8",
-                "notes": "",
-                "status": "done",
-                "weight": "59kg",
-                "musculo": "Peito"
-              },
-              {
-                "id": "xuvcr0hl",
-                "nome": "Tríceps Alternado na Polia",
-                "rest": "45s",
-                "sets": "4x10",
-                "notes": "",
-                "status": "done",
-                "weight": "27kg",
-                "musculo": "Tríceps"
-              },
-              {
-                "id": "xvjuyl7p",
-                "nome": "Prancha",
-                "rest": "45s",
-                "sets": "3x45",
-                "notes": "",
-                "status": "skipped",
-                "weight": "peso corporal",
-                "musculo": "Core"
-              },
-              {
-                "id": "x6vceitm",
-                "nome": "Crunch com Anilha",
-                "rest": "45s",
-                "sets": "3x20",
-                "notes": "",
-                "status": "skipped",
-                "weight": "5kg",
-                "musculo": "Core"
-              }
-            ]
-          },
-          "sem8_Quarta": {
-            "dia": "Terça",
-            "foco": "",
-            "serie": "D",
-            "semana": 6,
-            "_dayKey": "sem8_Quarta",
-            "exercicios": [
-              {
-                "id": "xzja0w75",
-                "nome": "Leg Press Inclinado",
-                "rest": "90-120s",
-                "sets": "4x8",
-                "notes": "",
-                "status": "undone",
-                "weight": "95kg cada lado",
-                "musculo": "Quadríceps/Glúteos"
-              },
-              {
-                "id": "xmtvrw29",
-                "nome": "Avanço com Halteres",
-                "rest": "75-90s",
-                "sets": "4x10",
-                "notes": "",
-                "status": "undone",
-                "weight": "10kg cada lado",
-                "musculo": "Quadríceps/Glúteos"
-              },
-              {
-                "id": "xrdhgjhd",
-                "nome": "Leg Extension",
-                "rest": "60s",
-                "sets": "4x12",
-                "notes": "",
-                "status": "undone",
-                "weight": "52kg",
-                "musculo": "Quadríceps"
-              },
-              {
-                "id": "xj3sjeyx",
-                "nome": "Glúteo na Máquina (Kickback)",
-                "rest": "60s",
-                "sets": "3x12",
-                "notes": "",
-                "status": "undone",
-                "weight": "40kg",
-                "musculo": "Glúteos"
-              },
-              {
-                "id": "xxonyb7t",
-                "nome": "Abdutor na Máquina",
-                "rest": "60s",
-                "sets": "3x12",
-                "notes": "",
-                "status": "undone",
-                "weight": "102kg",
-                "musculo": "Glúteo Médio"
-              },
-              {
-                "id": "x5hv36uj",
-                "nome": "Adutor na Máquina",
-                "rest": "60s",
-                "sets": "3x12",
-                "notes": "",
-                "status": "undone",
-                "weight": "68kg",
-                "musculo": "Adutores"
-              },
-              {
-                "id": "xc6anzvc",
-                "nome": "Calf Raise na Máquina",
-                "rest": "45-60s",
-                "sets": "3x15",
-                "notes": "",
-                "status": "undone",
-                "weight": "40kg",
-                "musculo": "Panturrilhas"
-              },
-              {
-                "id": "x9w0y1as",
-                "nome": "Abdominal Crunch na Máquina",
-                "rest": "45-60s",
-                "sets": "3x12",
-                "notes": "",
-                "status": "undone",
-                "weight": "57kg",
-                "musculo": "Reto Abdominal"
-              },
-              {
-                "id": "xscpxyf4",
-                "nome": "Elevação de Pernas Deitado",
-                "rest": "45-60s",
-                "sets": "3x12",
-                "notes": "",
-                "status": "undone",
-                "weight": "Peso corporal",
-                "musculo": "Abdômen Inferior",
-                "skippedLast": true
-              },
-              {
-                "id": "xou5hale",
-                "nome": "Hiperextensão no Banco",
-                "rest": "60s",
-                "sets": "4x10",
-                "notes": "",
-                "status": "undone",
-                "weight": "Anilha 20kg",
-                "musculo": "Lombar/Posteriores"
-              }
-            ]
-          },
-          "sem2_Segunda": {
-            "dia": "Segunda",
-            "foco": "",
-            "serie": "C",
-            "semana": 2,
-            "_dayKey": "sem2_Segunda",
-            "exercicios": [
-              {
-                "id": "xicc1fbr",
-                "nome": "Chest Press na Máquina",
-                "rest": "60-90s",
-                "sets": "3x7",
-                "notes": "",
-                "status": "done",
-                "weight": "50kg"
-              },
-              {
-                "id": "xvydo7kd",
-                "nome": "Fly na Máquina",
-                "rest": "60s",
-                "sets": "3x10",
-                "status": "done",
-                "weight": "59kg"
-              },
-              {
-                "id": "xd06gzb2",
-                "nome": "Skull Crusher",
-                "rest": "60-90s",
-                "sets": "3x5",
-                "notes": "",
-                "status": "done",
-                "weight": "10kg cada lado"
-              },
-              {
-                "id": "x21hhmc3",
-                "nome": "Tríceps na Barra (Calistenia)",
-                "rest": "90s",
-                "sets": "3x8",
-                "status": "done",
-                "weight": "peso corporal"
-              },
-              {
-                "id": "x08dewtp",
-                "nome": "Crossover",
-                "rest": "45-60s",
-                "sets": "3x8",
-                "notes": "",
-                "status": "done",
-                "weight": "20kg cada lado"
-              },
-              {
-                "id": "xifvtabw",
-                "nome": "Tríceps na Corda",
-                "rest": "45-60s",
-                "sets": "3x10",
-                "notes": "",
-                "status": "done",
-                "weight": "27kg"
-              },
-              {
-                "id": "xahsvo7e",
-                "nome": "Crunch",
-                "rest": "45-60s",
-                "sets": "3x15",
-                "notes": "",
-                "status": "done",
-                "weight": "peso corporal"
-              },
-              {
-                "id": "xdp9bxis",
-                "nome": "Prancha",
-                "rest": "45-60s",
-                "sets": "3x40",
-                "notes": "",
-                "status": "skipped",
-                "weight": "peso corporal"
-              }
-            ]
-          },
-          "sem3_Segunda": {
-            "dia": "Segunda",
-            "foco": "",
-            "serie": "A",
-            "semana": 3,
-            "_dayKey": "sem3_Segunda",
-            "exercicios": [
-              {
-                "id": "x4luapq3",
-                "nome": "Overhead Press Sentado com Halteres",
-                "rest": "90s",
-                "sets": "3x5",
-                "notes": "",
-                "status": "done",
-                "weight": "20kg cada lado",
-                "musculo": "Ombros (deltoides anterior/medial)"
-              },
-              {
-                "id": "xafg6pp8",
-                "nome": "Elevação Lateral com Halteres",
-                "rest": "60s",
-                "sets": "3x7",
-                "notes": "",
-                "status": "done",
-                "weight": "12kg cada lado",
-                "musculo": "Ombros (deltoides medial)"
-              },
-              {
-                "id": "xck4wosa",
-                "nome": "Crucifixo Inverso Unilateral na Polia",
-                "rest": "60s",
-                "sets": "3x7",
-                "notes": "",
-                "status": "done",
-                "weight": "4 pesos",
-                "musculo": "Ombros (deltoides posterior)"
-              },
-              {
-                "id": "x8ypp9tt",
-                "nome": "Rotação Externa com Cabo",
-                "rest": "45s",
-                "sets": "3x15",
-                "notes": "",
-                "status": "done",
-                "weight": "2 pesos",
-                "musculo": "Ombros (manguito rotador)"
-              },
-              {
-                "id": "xpua41nk",
-                "nome": "Levantamento Frontal Bilateral (Corda) na Polia",
-                "rest": "75s",
-                "sets": "3x10",
-                "isCore": false,
-                "status": "done",
-                "weight": "17.5kg"
-              },
-              {
-                "id": "x07q3kvy",
-                "nome": "Sit-up",
-                "rest": "60s",
-                "sets": "3x40",
-                "isCore": true,
-                "status": "done",
-                "weight": "peso corporal"
-              },
-              {
-                "id": "xqw25l1a",
-                "nome": "Prancha",
-                "rest": "45s",
-                "sets": "3x40",
-                "notes": "",
-                "status": "done",
-                "weight": "peso corporal",
-                "musculo": "Core (reto abdominal/transverso)"
-              }
-            ]
-          },
-          "sem5_Segunda": {
-            "dia": "Segunda",
-            "foco": "",
-            "serie": "D",
-            "semana": 5,
-            "_dayKey": "sem5_Segunda",
-            "exercicios": [
-              {
-                "id": "x9p39e0v",
-                "nome": "Leg Press Inclinado",
-                "rest": "90-120s",
-                "sets": "3x8",
-                "notes": "",
-                "status": "done",
-                "weight": "100kg cada lado",
-                "musculo": "Quadríceps/Glúteos"
-              },
-              {
-                "id": "xljko2ja",
-                "nome": "Avanço com Halteres",
-                "rest": "75-90s",
-                "sets": "3x6",
-                "notes": "",
-                "status": "done",
-                "weight": "12kg cada lado",
-                "musculo": "Quadríceps/Glúteos"
-              },
-              {
-                "id": "xwx3aier",
-                "nome": "Glúteo na Máquina (Kickback)",
-                "rest": "60s",
-                "sets": "3x7",
-                "notes": "",
-                "status": "done",
-                "weight": "38kg",
-                "musculo": "Glúteos"
-              },
-              {
-                "id": "xb1lelx8",
-                "nome": "Adutor na Máquina",
-                "rest": "60s",
-                "sets": "3x10",
-                "notes": "",
-                "status": "done",
-                "weight": "65kg",
-                "musculo": "Adutores"
-              },
-              {
-                "id": "xoq9xs9r",
-                "nome": "Leg Extension",
-                "rest": "60-75s",
-                "sets": "3x10",
-                "isCore": false,
-                "status": "done",
-                "weight": "60kg"
-              },
-              {
-                "id": "x1wonufk",
-                "nome": "Abdutor na Máquina",
-                "rest": "60s",
-                "sets": "3x10",
-                "notes": "",
-                "status": "done",
-                "weight": "63kg",
-                "musculo": "Glúteo Médio"
-              },
-              {
-                "id": "x81hcxn7",
-                "nome": "Hiperextensão no Banco",
-                "rest": "60s",
-                "sets": "3x10",
-                "notes": "",
-                "status": "done",
-                "weight": "Anilha 20kg",
-                "musculo": "Core (lombar/eretores)"
-              },
-              {
-                "id": "xdtvxwf9",
-                "nome": "Calf Raise na Máquina",
-                "rest": "45-60s",
-                "sets": "3x12",
-                "notes": "",
-                "status": "done",
-                "weight": "40kg",
-                "musculo": "Panturrilhas"
-              },
-              {
-                "id": "xi7gzvsj",
-                "nome": "Abdominal Crunch na Máquina",
-                "rest": "45-60s",
-                "sets": "3x12",
-                "notes": "",
-                "status": "done",
-                "weight": "55kg",
-                "musculo": "Core (reto abdominal)"
-              },
-              {
-                "id": "xc23f2w5",
-                "nome": "Prancha",
-                "rest": "45-60s",
-                "sets": "3x45-60s",
-                "notes": "",
-                "status": "done",
-                "weight": "Peso corporal",
-                "musculo": "Core (reto abdominal inferior)"
-              }
-            ]
-          }
-        }
-      },
       {
         "semanas": [
           {
@@ -10952,6 +9358,1751 @@
             ]
           }
         }
+      },
+      {
+        "semanas": [
+          {
+            "dias": [
+              {
+                "dia": "Quinta",
+                "tipo": "recuperacao",
+                "serie": "descanso",
+                "orientacao": ""
+              },
+              {
+                "dia": "Sexta",
+                "tipo": "treino",
+                "serie": "B",
+                "_diaNum": 1,
+                "orientacao": "Reativação — primeiro treino do ciclo. 3 séries por exercício, longe da falha (parar 2 reps antes). Pull-up e chin-up como base de puxada. Remada unilateral referência: 30kg. Hammer curl pegada neutra obrigatória: 18kg. Puxada neutra no pulley: 60kg. Core: prancha lateral 3x30s + L-sit na parede 3x8. Bike elegível após treino: Z2, 30-40min.",
+                "intensidade": "70%"
+              },
+              {
+                "dia": "Sábado",
+                "tipo": "recuperacao",
+                "serie": "descanso",
+                "orientacao": ""
+              },
+              {
+                "dia": "Domingo",
+                "tipo": "recuperacao",
+                "serie": "descanso",
+                "orientacao": ""
+              }
+            ],
+            "foco": "",
+            "semana": 1,
+            "progressao": "",
+            "intensidade": ""
+          },
+          {
+            "dias": [
+              {
+                "dia": "Segunda",
+                "tipo": "treino",
+                "serie": "C",
+                "_diaNum": 2,
+                "orientacao": "Reativação peito e tríceps. 3 séries. Chest press na máquina ou supino reto c/ halteres como principal — referência 26-28kg cada lado, iniciar em 24kg. Skull crusher 10kg cada lado. Crossover 20kg. Core: crunch 3x15 + prancha frontal 3x40s. Bike elegível após: Z2 apenas.",
+                "intensidade": "70%"
+              },
+              {
+                "dia": "Terça",
+                "bike": false,
+                "tipo": "recuperacao",
+                "serie": "descanso",
+                "_diaNum": 3,
+                "orientacao": "Dia perdido",
+                "intensidade": "70%"
+              },
+              {
+                "dia": "Quarta",
+                "bike": false,
+                "tipo": "recuperacao",
+                "serie": "descanso",
+                "_diaNum": 4,
+                "orientacao": "Dia perdido",
+                "intensidade": "71%"
+              },
+              {
+                "dia": "Quinta",
+                "tipo": "treino",
+                "serie": "D",
+                "_diaNum": 5,
+                "orientacao": "Reativação pernas. 3 séries. Leg press inclinado: iniciar em 80kg cada lado (conservador — tendão direito). Leg extension: 50kg. Leg curl: APENAS se tendão sem sintomas — 40kg, monitorar rigorosamente. Sem bike neste dia nem no dia seguinte. Adutor 65kg, abdutor 95kg. Core: elevação de pernas deitado 3x8 + abdominal crunch na máquina 3x12 com 50kg. (Treino D realocado de Terça) (Treino D realocado de Quarta)",
+                "intensidade": "72%"
+              },
+              {
+                "dia": "Sexta",
+                "bike": false,
+                "tipo": "recuperacao",
+                "serie": "descanso",
+                "_diaNum": 6,
+                "orientacao": "Ausencia planejada",
+                "intensidade": "73%"
+              },
+              {
+                "dia": "Sábado",
+                "tipo": "recuperacao",
+                "serie": "descanso",
+                "orientacao": ""
+              },
+              {
+                "dia": "Domingo",
+                "tipo": "recuperacao",
+                "serie": "descanso",
+                "orientacao": ""
+              }
+            ],
+            "foco": "",
+            "semana": 2,
+            "progressao": "",
+            "intensidade": ""
+          },
+          {
+            "dias": [
+              {
+                "dia": "Segunda",
+                "tipo": "treino",
+                "serie": "A",
+                "_diaNum": 7,
+                "orientacao": "Reativação ombros. 3 séries. Overhead press sentado: 20kg cada lado (abaixo do pico — reativação segura). Elevação lateral halteres: 10kg. Crucifixo inverso unilateral na polia: 4 pesos. Rotação externa com cabo: 2 pesos. Core: rotação de tronco com anilha 3x10 + prancha 3x40s. Dia elegível para Z4 bike — se bike, reduzir musculação para 70% e fazer bike antes OU musculação primeiro + Z2 após. (Treino A realocado de Sexta)",
+                "intensidade": "74%"
+              },
+              {
+                "dia": "Terça",
+                "bike": false,
+                "tipo": "recuperacao",
+                "serie": "descanso",
+                "_diaNum": 8,
+                "orientacao": "Dia perdido",
+                "intensidade": "75%"
+              },
+              {
+                "dia": "Quarta",
+                "bike": false,
+                "tipo": "recuperacao",
+                "serie": "descanso",
+                "_diaNum": 9,
+                "orientacao": "Dia perdido",
+                "intensidade": "76%"
+              },
+              {
+                "dia": "Quinta",
+                "tipo": "treino",
+                "serie": "B",
+                "_diaNum": 10,
+                "orientacao": "Segunda sessão B — ligeiro aumento de volume. 3-4 séries. Pull-up + chin-up. Remada unilateral: 30kg. Puxada neutra pulley: 60kg. Hammer curl 18kg — pegada neutra. Core: crunch bicicleta 3x15 cada lado + prancha lateral 3x30s. Bike elegível no mesmo dia ou dia seguinte: Z2. (Treino B realocado de Terça) (Treino B realocado de Quarta)",
+                "intensidade": "76%"
+              },
+              {
+                "dia": "Sexta",
+                "bike": false,
+                "tipo": "recuperacao",
+                "serie": "descanso",
+                "_diaNum": 11,
+                "orientacao": "Dia perdido",
+                "intensidade": "77%"
+              },
+              {
+                "dia": "Sábado",
+                "tipo": "recuperacao",
+                "serie": "descanso",
+                "orientacao": ""
+              },
+              {
+                "dia": "Domingo",
+                "tipo": "recuperacao",
+                "serie": "descanso",
+                "orientacao": ""
+              }
+            ],
+            "foco": "",
+            "semana": 3,
+            "progressao": "",
+            "intensidade": ""
+          },
+          {
+            "dias": [
+              {
+                "dia": "Segunda",
+                "bike": false,
+                "tipo": "recuperacao",
+                "serie": "descanso",
+                "_diaNum": 12,
+                "orientacao": "Dia perdido",
+                "intensidade": "78%"
+              },
+              {
+                "dia": "Terça",
+                "bike": false,
+                "tipo": "recuperacao",
+                "serie": "descanso",
+                "_diaNum": 13,
+                "orientacao": "Dia perdido",
+                "intensidade": "78%"
+              },
+              {
+                "dia": "Quarta",
+                "bike": false,
+                "tipo": "recuperacao",
+                "serie": "descanso",
+                "_diaNum": 14,
+                "orientacao": "Dia perdido",
+                "intensidade": "80%"
+              },
+              {
+                "dia": "Quinta",
+                "bike": false,
+                "tipo": "recuperacao",
+                "serie": "descanso",
+                "_diaNum": 15,
+                "orientacao": "Dia perdido",
+                "intensidade": "81%"
+              },
+              {
+                "dia": "Sexta",
+                "bike": false,
+                "tipo": "recuperacao",
+                "serie": "descanso",
+                "_diaNum": 16,
+                "orientacao": "Dia perdido",
+                "intensidade": "82%"
+              },
+              {
+                "dia": "Sábado",
+                "tipo": "recuperacao",
+                "serie": "descanso",
+                "orientacao": ""
+              },
+              {
+                "dia": "Domingo",
+                "tipo": "recuperacao",
+                "serie": "descanso",
+                "orientacao": ""
+              }
+            ],
+            "foco": "",
+            "semana": 4,
+            "progressao": "",
+            "intensidade": ""
+          },
+          {
+            "dias": [
+              {
+                "dia": "Segunda",
+                "tipo": "treino",
+                "serie": "D",
+                "_diaNum": 17,
+                "orientacao": "Segunda sessão D. 3 séries sólidas. Leg press: 85-90kg cada lado — progredir apenas se confortável. Avanço com halteres: 10kg. Glúteo kickback: 38kg. Leg curl: 40-45kg APENAS sem sintomas no tendão. Abdutor: 100kg. Adutor: 65kg. Core: elevação de pernas deitado 3x10 + abdominal crunch na máquina 3x12 55kg. Sem bike no dia D. (Treino D realocado de Sexta) (Treino D realocado de Segunda) (Treino D realocado de Terça) (Treino D realocado de Quarta) (Treino D realocado de Quinta) (Treino D realocado de Sexta)",
+                "intensidade": "83%"
+              },
+              {
+                "dia": "Terça",
+                "tipo": "treino",
+                "serie": "C",
+                "_diaNum": 18,
+                "orientacao": "Acumulação — início do bloco de volume. 4 séries nos compostos. Supino reto c/ halteres: 26kg cada lado. Fly com halteres: 14kg. French press com haltere: 22kg. Tríceps alternado na polia: 23kg. Crossover: 22kg. Core: crunch com anilha 3x12 10kg + prancha frontal 3x45s. Bike após: Z2 apenas.",
+                "intensidade": "84%"
+              },
+              {
+                "dia": "Quarta",
+                "tipo": "treino",
+                "serie": "A",
+                "_diaNum": 19,
+                "orientacao": "Acumulação ombros. 4 séries nos principais. Overhead press sentado: 21-22kg cada lado. Elevação lateral halteres: 10-12kg. Levantamento frontal bilateral corda na polia: 15kg. Crucifixo inverso unilateral: 4-5 pesos. Core: rotação de tronco com anilha 3x12 + prancha lateral 3x35s. Dia elegível Z4 se não houver bike nos últimos 2 dias.",
+                "intensidade": "65%"
+              },
+              {
+                "dia": "Quinta",
+                "tipo": "treino",
+                "serie": "D",
+                "_diaNum": 20,
+                "orientacao": "Acumulação pernas. 3-4 séries. Leg press inclinado: 90-95kg cada lado. Leg extension: 52kg. Leg curl: 45-50kg se tendão OK — parar imediatamente se houver desconforto. Adutor: 68kg. Abdutor: 100-102kg. Glúteo kickback: 40kg. Core: crunch na máquina 3x12 57kg + elevação de pernas deitado 3x10. Sem bike no dia D.",
+                "intensidade": "65%"
+              },
+              {
+                "dia": "Sexta",
+                "tipo": "treino",
+                "serie": "B",
+                "orientacao": "Acumulação costas. 4 séries nos compostos. Pull-up aberto: 3x5. Remada unilateral: 30kg, considerar 32kg se força estiver lá. Puxada neutra pulley: 62-65kg. Remo alternado máquina: 63kg. Hammer curl 18-20kg — neutra obrigatória. Core: L-sit na parede 3x8 + crunch bicicleta 4x15. Bike após: Z2."
+              },
+              {
+                "dia": "Sábado",
+                "tipo": "recuperacao",
+                "serie": "descanso",
+                "orientacao": ""
+              },
+              {
+                "dia": "Domingo",
+                "tipo": "recuperacao",
+                "serie": "descanso",
+                "orientacao": ""
+              }
+            ],
+            "foco": "",
+            "semana": 5,
+            "progressao": "",
+            "intensidade": ""
+          },
+          {
+            "dias": [
+              {
+                "dia": "Segunda",
+                "bike": false,
+                "tipo": "recuperacao",
+                "serie": "descanso",
+                "orientacao": "Dia perdido"
+              },
+              {
+                "dia": "Terça",
+                "bike": false,
+                "tipo": "recuperacao",
+                "serie": "descanso",
+                "orientacao": "Dia perdido"
+              },
+              {
+                "dia": "Quarta",
+                "bike": false,
+                "tipo": "recuperacao",
+                "serie": "descanso",
+                "orientacao": "Dia perdido"
+              },
+              {
+                "dia": "Quinta",
+                "bike": false,
+                "tipo": "recuperacao",
+                "serie": "descanso",
+                "orientacao": "Dia perdido"
+              },
+              {
+                "dia": "Sexta",
+                "bike": false,
+                "tipo": "recuperacao",
+                "serie": "descanso",
+                "orientacao": "Ausencia planejada"
+              },
+              {
+                "dia": "Sábado",
+                "tipo": "recuperacao",
+                "serie": "descanso",
+                "orientacao": ""
+              },
+              {
+                "dia": "Domingo",
+                "tipo": "recuperacao",
+                "serie": "descanso",
+                "orientacao": ""
+              }
+            ],
+            "foco": "",
+            "semana": 6,
+            "progressao": "",
+            "intensidade": ""
+          },
+          {
+            "dias": [
+              {
+                "dia": "Segunda",
+                "bike": false,
+                "tipo": "recuperacao",
+                "serie": "descanso",
+                "orientacao": "Ausencia planejada"
+              },
+              {
+                "dia": "Terça",
+                "bike": false,
+                "tipo": "recuperacao",
+                "serie": "descanso",
+                "orientacao": "Dia perdido"
+              },
+              {
+                "dia": "Quarta",
+                "bike": false,
+                "tipo": "recuperacao",
+                "serie": "descanso",
+                "orientacao": "Dia perdido"
+              },
+              {
+                "dia": "Quinta",
+                "tipo": "treino",
+                "serie": "C",
+                "orientacao": "Acumulação peito/tríceps — carga crescente. 4 séries. Supino reto c/ halteres: 26-28kg. Skull crusher: 10kg cada lado, 4 séries. Fly com halteres: 16kg. Tríceps na barra calistenia: 3x8. Crossover: 23kg. Core: prancha 3x45s + crunch 3x20. Bike elegível no dia ou no dia seguinte (Z2). (Treino C realocado de Segunda) (Treino C realocado de Terça) (Treino C realocado de Quarta) (Treino C realocado de Quinta) (Treino C realocado de Sexta) (Treino C realocado de Segunda) (Treino C realocado de Terça) (Treino C realocado de Quarta)"
+              },
+              {
+                "dia": "Sexta",
+                "bike": false,
+                "tipo": "bike",
+                "serie": "descanso",
+                "orientacao": "D trocado por Bike — treino D relocado."
+              },
+              {
+                "dia": "Sábado",
+                "tipo": "recuperacao",
+                "serie": "descanso",
+                "orientacao": ""
+              },
+              {
+                "dia": "Domingo",
+                "tipo": "recuperacao",
+                "serie": "descanso",
+                "orientacao": ""
+              }
+            ],
+            "foco": "",
+            "semana": 7,
+            "progressao": "",
+            "intensidade": ""
+          },
+          {
+            "dias": [
+              {
+                "dia": "Segunda",
+                "tipo": "treino",
+                "serie": "D",
+                "orientacao": "Acumulação pernas — pico de volume do bloco. 4 séries nos compostos. Leg press inclinado: 95-100kg cada lado — só avançar se tendão sem sintomas. Avanço com halteres: 10-12kg. Leg extension: 52kg. Leg curl: 50kg se tendão estiver bem — avaliar sessão a sessão. Abdutor: 102kg. Adutor: 68kg. Calf raise no banco: 40kg 3x15. Core: abdominal crunch na máquina 3x12 57-60kg + elevação de pernas deitado 3x12. (Treino D realocado de Sexta)"
+              },
+              {
+                "dia": "Terça",
+                "bike": false,
+                "tipo": "recuperacao",
+                "serie": "descanso",
+                "orientacao": "Ausencia planejada"
+              },
+              {
+                "dia": "Quarta",
+                "bike": false,
+                "tipo": "recuperacao",
+                "serie": "descanso",
+                "orientacao": "Dia perdido"
+              },
+              {
+                "dia": "Quinta",
+                "bike": false,
+                "tipo": "recuperacao",
+                "serie": "descanso",
+                "orientacao": "Dia perdido"
+              },
+              {
+                "dia": "Sexta",
+                "bike": false,
+                "tipo": "recuperacao",
+                "serie": "descanso",
+                "orientacao": "Dia perdido"
+              },
+              {
+                "dia": "Sábado",
+                "tipo": "recuperacao",
+                "serie": "descanso",
+                "orientacao": ""
+              },
+              {
+                "dia": "Domingo",
+                "tipo": "recuperacao",
+                "serie": "descanso",
+                "orientacao": ""
+              }
+            ],
+            "foco": "",
+            "semana": 8,
+            "progressao": "",
+            "intensidade": ""
+          },
+          {
+            "dias": [
+              {
+                "dia": "Segunda",
+                "tipo": "treino",
+                "serie": "A",
+                "orientacao": "Acumulação ombros — encerramento do bloco. 4 séries. Overhead press sentado: 22kg cada lado. Elevação lateral halteres: 12kg. Reverse fly na máquina: 50kg. Elevação lateral na polia: 5kg. Rotação externa cabo: 2 pesos. Core: rotação de tronco com anilha 4x12 + prancha lateral 3x35s. Bike elegível após: Z2. (Treino A realocado de Terça) (Treino A realocado de Quarta) (Treino A realocado de Quinta) (Treino A realocado de Sexta)"
+              },
+              {
+                "dia": "Terça",
+                "tipo": "treino",
+                "serie": "B",
+                "orientacao": "Intensificação — início do bloco de carga alta. 4 séries. Pull-up aberto: tentar 3x6. Chin-up: 3x6. Remada unilateral: 32kg. Puxada neutra pulley: 65kg. Hammer curl: 20kg — neutra obrigatória. Remo alternado máquina: 65kg. Core: L-sit na parede 3x10 + prancha lateral 4x35s. Bike antes: reduzir musculação. Bike após: Z2 apenas."
+              },
+              {
+                "dia": "Quarta",
+                "tipo": "treino",
+                "serie": "D",
+                "orientacao": "Intensificação pernas — carga elevada com cautela redobrada no tendão. 4 séries. Leg press inclinado: 100-110kg cada lado — monitorar tendão direito a cada série. Leg extension: 54kg. Leg curl: 50-55kg SOMENTE se tendão assintomático — substituir por hiperextensão no banco c/ anilha 10kg se houver qualquer desconforto. Abdutor: 102kg. Adutor: 68kg. Glúteo kickback: 41kg. Core: crunch na máquina 4x12 60kg + elevação de pernas 3x12. Sem bike."
+              },
+              {
+                "dia": "Quinta",
+                "tipo": "treino",
+                "serie": "C",
+                "orientacao": "Intensificação peito/tríceps — maior carga do ciclo. 4 séries. Supino reto c/ halteres: 28kg cada lado. Chest press na máquina: 54kg. Fly com halteres: 16kg 4 séries. Skull crusher: 10kg 4 séries. French press com haltere: 24kg. Tríceps na corda: 25kg. Core: crunch com anilha 4x12 10kg + prancha frontal 4x45s. Bike após: Z2."
+              },
+              {
+                "dia": "Sexta",
+                "tipo": "treino",
+                "serie": "A",
+                "orientacao": "Intensificação ombros — pico de carga. 4-5 séries overhead. Overhead press sentado: 22-24kg cada lado — testar 23kg se sensação estiver boa. Elevação lateral halteres: 12kg 4 séries. Levantamento frontal bilateral corda: 17kg. Crucifixo inverso unilateral polia: 5 pesos. Rotação externa cabo: 3 pesos. Core: rotação de tronco com anilha 4x12 + prancha 4x45s. Dia prioritário — evitar bike antes. Z2 após se necessário."
+              },
+              {
+                "dia": "Sábado",
+                "tipo": "recuperacao",
+                "serie": "descanso",
+                "orientacao": ""
+              },
+              {
+                "dia": "Domingo",
+                "tipo": "recuperacao",
+                "serie": "descanso",
+                "orientacao": ""
+              }
+            ],
+            "foco": "",
+            "semana": 9,
+            "progressao": "",
+            "intensidade": ""
+          },
+          {
+            "dias": [
+              {
+                "dia": "Segunda",
+                "tipo": "treino",
+                "serie": "D",
+                "orientacao": "Intensificação pernas — última sessão de alta carga. 4 séries. Leg press inclinado: 105-115kg cada lado respeitando tendão. Avanço com halteres: 12kg. Leg extension: 54-56kg. Leg curl: apenas se totalmente assintomático — 52-55kg; caso contrário hiperextensão com anilha 10kg. Abdutor: 102kg. Adutor: 68kg. Calf raise no banco: 40-45kg. Core: abdominal crunch na máquina 4x12 60kg + elevação de joelhos no roman chair 3x12. Sem bike."
+              },
+              {
+                "dia": "Terça",
+                "tipo": "treino",
+                "serie": "B",
+                "orientacao": "Deload parcial — redução de volume e carga. 2-3 séries por exercício. Pull-up: 2x5. Remada unilateral: 24kg. Puxada neutra pulley: 50kg. Hammer curl: 16kg — neutra obrigatória. Foco em qualidade de execução e amplitude. Sem falha muscular em nenhuma série. Core: prancha lateral 2x30s + L-sit 2x8. Bike elegível: Z2 moderado, ótima sessão de recuperação ativa."
+              },
+              {
+                "dia": "Quarta",
+                "tipo": "treino",
+                "serie": "C",
+                "orientacao": "Treino realocado do final do plano"
+              },
+              {
+                "dia": "Quinta",
+                "tipo": "recuperacao",
+                "serie": "descanso",
+                "orientacao": ""
+              },
+              {
+                "dia": "Sexta",
+                "tipo": "recuperacao",
+                "serie": "descanso",
+                "orientacao": ""
+              },
+              {
+                "dia": "Sábado",
+                "tipo": "recuperacao",
+                "serie": "descanso",
+                "orientacao": ""
+              },
+              {
+                "dia": "Domingo",
+                "tipo": "recuperacao",
+                "serie": "descanso",
+                "orientacao": ""
+              }
+            ],
+            "foco": "",
+            "semana": 10,
+            "progressao": "",
+            "intensidade": ""
+          }
+        ],
+        "diasStatus": {
+          "sem1_Sexta": "concluido",
+          "sem2_Sexta": "ausente",
+          "sem3_Sexta": "perdido",
+          "sem4_Sexta": "perdido",
+          "sem5_Sexta": "concluido",
+          "sem6_Sexta": "ausente",
+          "sem8_Sexta": "perdido",
+          "sem2_Quarta": "perdido",
+          "sem2_Quinta": "concluido",
+          "sem2_Terça": "perdido",
+          "sem3_Quarta": "perdido",
+          "sem3_Quinta": "concluido",
+          "sem3_Terça": "perdido",
+          "sem4_Quarta": "perdido",
+          "sem4_Quinta": "perdido",
+          "sem4_Terça": "perdido",
+          "sem5_Quarta": "concluido",
+          "sem5_Quinta": "concluido",
+          "sem5_Terça": "concluido",
+          "sem6_Quarta": "perdido",
+          "sem6_Quinta": "perdido",
+          "sem6_Terça": "perdido",
+          "sem7_Quarta": "perdido",
+          "sem7_Quinta": "concluido",
+          "sem7_Terça": "perdido",
+          "sem8_Quarta": "perdido",
+          "sem8_Quinta": "perdido",
+          "sem8_Terça": "ausente",
+          "sem2_Segunda": "concluido",
+          "sem3_Segunda": "concluido",
+          "sem4_Segunda": "perdido",
+          "sem5_Segunda": "concluido",
+          "sem6_Segunda": "perdido",
+          "sem7_Segunda": "ausente",
+          "sem8_Segunda": "concluido"
+        },
+        "diasExpandidos": {
+          "sem1_Sexta": {
+            "dia": "Sexta",
+            "foco": "",
+            "serie": "B",
+            "semana": 1,
+            "_dayKey": "sem1_Sexta",
+            "exercicios": [
+              {
+                "id": "xmm2kfot",
+                "nome": "Pull-up Aberto",
+                "rest": "90-120s",
+                "sets": "3x5",
+                "notes": "",
+                "status": "done",
+                "weight": "Peso corporal"
+              },
+              {
+                "id": "xsbjsrz6",
+                "nome": "Chin-up",
+                "rest": "90-120s",
+                "sets": "3x6",
+                "notes": "",
+                "status": "done",
+                "weight": "Peso corporal"
+              },
+              {
+                "id": "x9vvnu55",
+                "nome": "Remada Unilateral com Haltere",
+                "rest": "60-90s",
+                "sets": "3x6",
+                "notes": "",
+                "status": "done",
+                "weight": "30kg cada lado"
+              },
+              {
+                "id": "x64x9b4o",
+                "nome": "Puxada no Pulley com Pegada Neutra",
+                "rest": "60-90s",
+                "sets": "3x7",
+                "notes": "",
+                "status": "done",
+                "weight": "60kg"
+              },
+              {
+                "id": "xppqb8d9",
+                "nome": "Remada cavalinho na máquina",
+                "rest": "60-90s",
+                "sets": "3x7",
+                "notes": "",
+                "status": "done",
+                "weight": "63kg"
+              },
+              {
+                "id": "x03mc79s",
+                "nome": "Hammer Curl",
+                "rest": "45-60s",
+                "sets": "3x6",
+                "notes": "",
+                "status": "done",
+                "weight": "18kg cada lado"
+              },
+              {
+                "id": "xs4z4zux",
+                "nome": "Prancha Lateral",
+                "rest": "45-60s",
+                "sets": "3x30",
+                "notes": "",
+                "status": "skipped",
+                "weight": "Peso corporal"
+              },
+              {
+                "id": "x5xe0tsl",
+                "nome": "L-Sit na Parede",
+                "rest": "45-60s",
+                "sets": "3x8",
+                "notes": "",
+                "status": "skipped",
+                "weight": "Peso corporal"
+              }
+            ]
+          },
+          "sem5_Sexta": {
+            "dia": "Sexta",
+            "foco": "",
+            "serie": "B",
+            "semana": 5,
+            "_dayKey": "sem5_Sexta",
+            "exercicios": [
+              {
+                "id": "xmri1aze",
+                "nome": "Pull-up Aberto",
+                "rest": "90-120s",
+                "sets": "3x4",
+                "notes": "",
+                "status": "done",
+                "weight": "Peso corporal",
+                "musculo": "Costas (dorsais)"
+              },
+              {
+                "id": "xmo4zxcw",
+                "nome": "Chin-up",
+                "rest": "75-90s",
+                "sets": "3x4",
+                "notes": "",
+                "status": "done",
+                "weight": "Peso corporal",
+                "musculo": "Costas/Bíceps"
+              },
+              {
+                "id": "xcuei4yi",
+                "nome": "Hammer Curl",
+                "rest": "60s",
+                "sets": "3x6",
+                "notes": "",
+                "status": "done",
+                "weight": "18kg cada lado",
+                "musculo": "Bíceps"
+              },
+              {
+                "id": "xdw1fkjl",
+                "nome": "Remada cavalinho na máquina",
+                "rest": "60-75s",
+                "sets": "4x7",
+                "notes": "",
+                "status": "done",
+                "weight": "63kg",
+                "musculo": "Costas (romboides/trapézio médio)"
+              },
+              {
+                "id": "xnsxfim0",
+                "nome": "Remada Unilateral com Haltere",
+                "rest": "75-90s",
+                "sets": "4x6",
+                "notes": "",
+                "status": "skipped",
+                "weight": "30kg cada lado",
+                "musculo": "Costas (dorsais/romboides)"
+              },
+              {
+                "id": "xszqdpi7",
+                "nome": "Puxada no Pulley com Pegada Neutra",
+                "rest": "60-75s",
+                "sets": "4x7",
+                "notes": "",
+                "status": "skipped",
+                "weight": "62kg",
+                "musculo": "Costas (dorsais)"
+              },
+              {
+                "id": "x9ns8atf",
+                "nome": "L-Sit na Parede",
+                "rest": "45-60s",
+                "sets": "3x8",
+                "notes": "",
+                "status": "skipped",
+                "weight": "Peso corporal",
+                "musculo": "Core (abdominal)"
+              },
+              {
+                "id": "xoos8pse",
+                "nome": "Crunch Bicicleta",
+                "rest": "45s",
+                "sets": "4x15",
+                "notes": "",
+                "status": "skipped",
+                "weight": "Peso corporal",
+                "musculo": "Core (oblíquos/abdominal)"
+              }
+            ]
+          },
+          "sem2_Quinta": {
+            "dia": "Terça",
+            "foco": "",
+            "serie": "D",
+            "semana": 2,
+            "_dayKey": "sem2_Quinta",
+            "exercicios": [
+              {
+                "id": "x16ts9iv",
+                "nome": "Leg Press Inclinado",
+                "rest": "90-120s",
+                "sets": "3x8",
+                "notes": "",
+                "status": "done",
+                "weight": "80kg cada lado"
+              },
+              {
+                "id": "xj8xenjz",
+                "nome": "Leg Extension",
+                "rest": "60-90s",
+                "sets": "3x7",
+                "notes": "",
+                "status": "done",
+                "weight": "50kg"
+              },
+              {
+                "id": "xstpbu0b",
+                "nome": "Adutor na Máquina",
+                "rest": "45-60s",
+                "sets": "3x10",
+                "notes": "",
+                "status": "done",
+                "weight": "63kg"
+              },
+              {
+                "id": "xufpy2pn",
+                "nome": "Abdutor na Máquina",
+                "rest": "45-60s",
+                "sets": "3x10",
+                "notes": "",
+                "status": "done",
+                "weight": "63kg"
+              },
+              {
+                "id": "xu8usk22",
+                "nome": "Hiperextensão no Banco",
+                "rest": "60s",
+                "sets": "4x10",
+                "notes": "",
+                "status": "done",
+                "weight": "Anilha 10kg"
+              },
+              {
+                "id": "xja7r9mz",
+                "nome": "Calf Raise na Máquina",
+                "rest": "60s",
+                "sets": "3x12",
+                "status": "done",
+                "weight": "40kg"
+              },
+              {
+                "id": "x2dyhf1v",
+                "nome": "Abdominal Crunch na Máquina",
+                "rest": "45-60s",
+                "sets": "3x12",
+                "notes": "",
+                "status": "done",
+                "weight": "54kg"
+              },
+              {
+                "id": "x287dyzv",
+                "nome": "Prancha",
+                "rest": "45s",
+                "sets": "3x45s",
+                "status": "done",
+                "weight": "Peso corporal"
+              }
+            ]
+          },
+          "sem3_Quinta": {
+            "dia": "Terça",
+            "foco": "",
+            "serie": "B",
+            "semana": 3,
+            "_dayKey": "sem3_Quinta",
+            "exercicios": [
+              {
+                "id": "xi7hexll",
+                "nome": "Pull-up Aberto",
+                "rest": "90-120s",
+                "sets": "4x4",
+                "notes": "",
+                "status": "done",
+                "weight": "Peso corporal",
+                "musculo": "Costas (Dorsal)"
+              },
+              {
+                "id": "xv4isd32",
+                "nome": "Chin-up",
+                "rest": "90-120s",
+                "sets": "4x5",
+                "notes": "",
+                "status": "done",
+                "weight": "Peso corporal",
+                "musculo": "Costas / Bíceps"
+              },
+              {
+                "id": "xoq69h66",
+                "nome": "Remada Unilateral com Haltere",
+                "rest": "75-90s",
+                "sets": "4x6",
+                "notes": "",
+                "status": "done",
+                "weight": "30kg cada lado",
+                "musculo": "Costas (Dorsal / Romboides)"
+              },
+              {
+                "id": "x40ux1qj",
+                "nome": "Hammer Curl",
+                "rest": "60s",
+                "sets": "3x8",
+                "notes": "",
+                "status": "done",
+                "weight": "18kg cada lado",
+                "musculo": "Bíceps / Braquial"
+              },
+              {
+                "id": "x2pg5oxt",
+                "nome": "Puxada no Pulley com Pegada Neutra",
+                "rest": "75-90s",
+                "sets": "4x7",
+                "notes": "",
+                "status": "done",
+                "weight": "60kg",
+                "musculo": "Costas (Dorsal)"
+              },
+              {
+                "id": "xnhimky9",
+                "nome": "Remada cavalinho na máquina",
+                "rest": "75-90s",
+                "sets": "4x7",
+                "notes": "",
+                "status": "done",
+                "weight": "63kg",
+                "musculo": "Costas (Trapézio Médio / Romboides)"
+              },
+              {
+                "id": "xzzigqet",
+                "nome": "Sit-up",
+                "rest": "45s",
+                "sets": "3x30",
+                "notes": "",
+                "status": "done",
+                "weight": "Peso corporal",
+                "musculo": "Core (Oblíquos / Reto Abdominal)"
+              },
+              {
+                "id": "xzh1noax",
+                "nome": "Prancha Lateral",
+                "rest": "45s",
+                "sets": "3x30",
+                "notes": "",
+                "status": "skipped",
+                "weight": "Peso corporal",
+                "musculo": "Core (Oblíquos)",
+                "skippedLast": true
+              }
+            ]
+          },
+          "sem5_Quarta": {
+            "dia": "Quarta",
+            "foco": "",
+            "serie": "A",
+            "semana": 5,
+            "_dayKey": "sem5_Quarta",
+            "exercicios": [
+              {
+                "id": "xgmpvt2m",
+                "nome": "Overhead Press Sentado com Halteres",
+                "rest": "60-75s",
+                "sets": "4x5",
+                "notes": "",
+                "status": "done",
+                "weight": "20kg cada lado",
+                "musculo": "Ombros (deltoide anterior/medial)"
+              },
+              {
+                "id": "xh7vfdww",
+                "nome": "Elevação Lateral com Halteres",
+                "rest": "45-60s",
+                "sets": "4x7",
+                "notes": "",
+                "status": "done",
+                "weight": "10-12kg cada lado",
+                "musculo": "Ombros (deltoide medial)"
+              },
+              {
+                "id": "xohevuvd",
+                "nome": "Levantamento Frontal Bilateral (Corda) na Polia",
+                "rest": "45-60s",
+                "sets": "4x10",
+                "notes": "",
+                "status": "done",
+                "weight": "5 pesos",
+                "musculo": "Ombros (deltoide anterior)"
+              },
+              {
+                "id": "xlqi3we3",
+                "nome": "Crucifixo Inverso Unilateral na Polia",
+                "rest": "45-60s",
+                "sets": "4x7",
+                "notes": "",
+                "status": "done",
+                "weight": "4-5 pesos",
+                "musculo": "Ombros (deltoide posterior)"
+              },
+              {
+                "id": "x0w4tiet",
+                "nome": "Elevação Lateral na Polia",
+                "rest": "60s",
+                "sets": "3x6",
+                "isCore": false,
+                "status": "done",
+                "weight": "2 pesos"
+              },
+              {
+                "id": "x9ast0d5",
+                "nome": "Rotação Externa com Cabo",
+                "rest": "45s",
+                "sets": "3x15",
+                "isCore": false,
+                "status": "done",
+                "weight": "1 peso"
+              },
+              {
+                "id": "xbwjmmzj",
+                "nome": "Prancha Lateral",
+                "rest": "45s",
+                "sets": "3x35",
+                "notes": "",
+                "status": "done",
+                "weight": "Peso corporal",
+                "musculo": "Core (oblíquos/estabilizadores)"
+              }
+            ]
+          },
+          "sem5_Quinta": {
+            "dia": "Quinta",
+            "foco": "",
+            "serie": "D",
+            "semana": 5,
+            "_dayKey": "sem5_Quinta",
+            "exercicios": [
+              {
+                "id": "xlslwk25",
+                "nome": "Leg Press Inclinado",
+                "rest": "90s",
+                "sets": "4x8",
+                "notes": "",
+                "status": "done",
+                "weight": "90kg cada lado",
+                "musculo": "Quadríceps/Glúteos"
+              },
+              {
+                "id": "x713alah",
+                "nome": "Leg Extension",
+                "rest": "60s",
+                "sets": "4x10",
+                "notes": "",
+                "status": "done",
+                "weight": "54kg",
+                "musculo": "Quadríceps"
+              },
+              {
+                "id": "x9acvj4u",
+                "nome": "Adutor na Máquina",
+                "rest": "60s",
+                "sets": "3x12",
+                "notes": "",
+                "status": "done",
+                "weight": "68kg",
+                "musculo": "Adutores"
+              },
+              {
+                "id": "xizazwws",
+                "nome": "Abdutor na Máquina",
+                "rest": "60s",
+                "sets": "3x12",
+                "notes": "",
+                "status": "done",
+                "weight": "68kg",
+                "musculo": "Abdutores/Glúteo médio"
+              },
+              {
+                "id": "xhvqjb7b",
+                "nome": "Glúteo na Máquina (Kickback)",
+                "rest": "60s",
+                "sets": "3x8",
+                "notes": "",
+                "status": "done",
+                "weight": "40kg",
+                "musculo": "Glúteos"
+              },
+              {
+                "id": "x7570t7h",
+                "nome": "Calf Raise na Máquina",
+                "rest": "45s",
+                "sets": "3x15",
+                "notes": "",
+                "status": "done",
+                "weight": "40kg",
+                "musculo": "Panturrilhas"
+              },
+              {
+                "id": "xdfcuiuu",
+                "nome": "Abdominal Crunch na Máquina",
+                "rest": "45s",
+                "sets": "3x12",
+                "notes": "",
+                "status": "done",
+                "weight": "57kg",
+                "musculo": "Core/Reto abdominal"
+              },
+              {
+                "id": "xvxijw73",
+                "nome": "Hiperextensão no Banco",
+                "rest": "60-90s",
+                "sets": "4x10",
+                "notes": "",
+                "status": "skipped",
+                "weight": "20kg",
+                "musculo": "Posteriores/Glúteos"
+              },
+              {
+                "id": "x5f5po88",
+                "nome": "Elevação de Pernas Deitado",
+                "rest": "45s",
+                "sets": "3x10",
+                "notes": "",
+                "status": "skipped",
+                "weight": "Peso corporal",
+                "musculo": "Core/Abdômen inferior"
+              }
+            ]
+          },
+          "sem5_Terça": {
+            "dia": "Terça",
+            "foco": "",
+            "serie": "C",
+            "semana": 5,
+            "_dayKey": "sem5_Terça",
+            "exercicios": [
+              {
+                "id": "xk2n7ln1",
+                "nome": "Supino Reto c/ Halteres",
+                "rest": "60-75s",
+                "sets": "4x8",
+                "notes": "",
+                "status": "done",
+                "weight": "24kg cada lado",
+                "musculo": "Peitoral"
+              },
+              {
+                "id": "x0jw34j0",
+                "nome": "Fly com Halteres",
+                "rest": "45-60s",
+                "sets": "4x10",
+                "notes": "",
+                "status": "done",
+                "weight": "14kg",
+                "musculo": "Peitoral"
+              },
+              {
+                "id": "x75safom",
+                "nome": "Tríceps na Barra (Calistenia)",
+                "rest": "60s",
+                "sets": "3x7",
+                "isCore": false,
+                "status": "done",
+                "weight": "Peso corporal"
+              },
+              {
+                "id": "xfdlgsu0",
+                "nome": "Crossover",
+                "rest": "45-60s",
+                "sets": "4x8",
+                "notes": "",
+                "status": "done",
+                "weight": "18kg cada lado",
+                "musculo": "Peitoral"
+              },
+              {
+                "id": "xowk0p68",
+                "nome": "Tríceps Alternado na Polia",
+                "rest": "45-60s",
+                "sets": "4x12",
+                "notes": "",
+                "status": "done",
+                "weight": "27kg",
+                "musculo": "Tríceps"
+              },
+              {
+                "id": "x5wj1at7",
+                "nome": "French Press com Haltere",
+                "rest": "60-75s",
+                "sets": "2x9",
+                "notes": "",
+                "status": "done",
+                "weight": "18kg",
+                "musculo": "Tríceps"
+              },
+              {
+                "id": "xesa98d4",
+                "nome": "Crunch com Anilha",
+                "rest": "45-60s",
+                "sets": "3x12",
+                "notes": "",
+                "status": "done",
+                "weight": "10kg",
+                "musculo": "Core — Reto Abdominal"
+              }
+            ]
+          },
+          "sem7_Quinta": {
+            "dia": "Segunda",
+            "foco": "",
+            "serie": "C",
+            "semana": 6,
+            "_dayKey": "sem7_Quinta",
+            "exercicios": [
+              {
+                "id": "xj38tzoh",
+                "nome": "Supino Reto c/ Halteres",
+                "rest": "75-90s",
+                "sets": "4x6",
+                "notes": "",
+                "status": "done",
+                "weight": "22kg cada lado",
+                "musculo": "Peito"
+              },
+              {
+                "id": "xj7ave3r",
+                "nome": "Fly com Halteres",
+                "rest": "60s",
+                "sets": "4x6",
+                "notes": "",
+                "status": "done",
+                "weight": "12kg",
+                "musculo": "Peito"
+              },
+              {
+                "id": "x4me0wo1",
+                "nome": "Skull Crusher",
+                "rest": "60s",
+                "sets": "4x5",
+                "notes": "",
+                "status": "done",
+                "weight": "10kg cada lado",
+                "musculo": "Tríceps"
+              },
+              {
+                "id": "xvy0w592",
+                "nome": "Tríceps na Barra (Calistenia)",
+                "rest": "60s",
+                "sets": "3x6",
+                "notes": "",
+                "status": "done",
+                "weight": "peso corporal",
+                "musculo": "Tríceps"
+              },
+              {
+                "id": "x2n9jkjl",
+                "nome": "Fly na Máquina",
+                "rest": "60-90s",
+                "sets": "4x8",
+                "notes": "",
+                "status": "done",
+                "weight": "59kg",
+                "musculo": "Peito"
+              },
+              {
+                "id": "xuvcr0hl",
+                "nome": "Tríceps Alternado na Polia",
+                "rest": "45s",
+                "sets": "4x10",
+                "notes": "",
+                "status": "done",
+                "weight": "27kg",
+                "musculo": "Tríceps"
+              },
+              {
+                "id": "xvjuyl7p",
+                "nome": "Prancha",
+                "rest": "45s",
+                "sets": "3x45",
+                "notes": "",
+                "status": "skipped",
+                "weight": "peso corporal",
+                "musculo": "Core"
+              },
+              {
+                "id": "x6vceitm",
+                "nome": "Crunch com Anilha",
+                "rest": "45s",
+                "sets": "3x20",
+                "notes": "",
+                "status": "skipped",
+                "weight": "5kg",
+                "musculo": "Core"
+              }
+            ]
+          },
+          "sem9_Quarta": {
+            "dia": "Terça",
+            "foco": "",
+            "serie": "D",
+            "semana": 6,
+            "_dayKey": "sem9_Quarta",
+            "exercicios": [
+              {
+                "id": "xzja0w75",
+                "nome": "Leg Press Inclinado",
+                "rest": "90-120s",
+                "sets": "4x8",
+                "notes": "",
+                "status": "undone",
+                "weight": "95kg cada lado",
+                "musculo": "Quadríceps/Glúteos"
+              },
+              {
+                "id": "xmtvrw29",
+                "nome": "Avanço com Halteres",
+                "rest": "75-90s",
+                "sets": "4x10",
+                "notes": "",
+                "status": "undone",
+                "weight": "10kg cada lado",
+                "musculo": "Quadríceps/Glúteos"
+              },
+              {
+                "id": "xrdhgjhd",
+                "nome": "Leg Extension",
+                "rest": "60s",
+                "sets": "4x12",
+                "notes": "",
+                "status": "undone",
+                "weight": "52kg",
+                "musculo": "Quadríceps"
+              },
+              {
+                "id": "xj3sjeyx",
+                "nome": "Glúteo na Máquina (Kickback)",
+                "rest": "60s",
+                "sets": "3x12",
+                "notes": "",
+                "status": "undone",
+                "weight": "40kg",
+                "musculo": "Glúteos"
+              },
+              {
+                "id": "xxonyb7t",
+                "nome": "Abdutor na Máquina",
+                "rest": "60s",
+                "sets": "3x12",
+                "notes": "",
+                "status": "undone",
+                "weight": "102kg",
+                "musculo": "Glúteo Médio"
+              },
+              {
+                "id": "x5hv36uj",
+                "nome": "Adutor na Máquina",
+                "rest": "60s",
+                "sets": "3x12",
+                "notes": "",
+                "status": "undone",
+                "weight": "68kg",
+                "musculo": "Adutores"
+              },
+              {
+                "id": "xc6anzvc",
+                "nome": "Calf Raise na Máquina",
+                "rest": "45-60s",
+                "sets": "3x15",
+                "notes": "",
+                "status": "undone",
+                "weight": "40kg",
+                "musculo": "Panturrilhas"
+              },
+              {
+                "id": "x9w0y1as",
+                "nome": "Abdominal Crunch na Máquina",
+                "rest": "45-60s",
+                "sets": "3x12",
+                "notes": "",
+                "status": "undone",
+                "weight": "57kg",
+                "musculo": "Reto Abdominal"
+              },
+              {
+                "id": "xscpxyf4",
+                "nome": "Elevação de Pernas Deitado",
+                "rest": "45-60s",
+                "sets": "3x12",
+                "notes": "",
+                "status": "undone",
+                "weight": "Peso corporal",
+                "musculo": "Abdômen Inferior",
+                "skippedLast": true
+              },
+              {
+                "id": "xou5hale",
+                "nome": "Hiperextensão no Banco",
+                "rest": "60s",
+                "sets": "4x10",
+                "notes": "",
+                "status": "undone",
+                "weight": "Anilha 20kg",
+                "musculo": "Lombar/Posteriores"
+              }
+            ]
+          },
+          "sem2_Segunda": {
+            "dia": "Segunda",
+            "foco": "",
+            "serie": "C",
+            "semana": 2,
+            "_dayKey": "sem2_Segunda",
+            "exercicios": [
+              {
+                "id": "xicc1fbr",
+                "nome": "Chest Press na Máquina",
+                "rest": "60-90s",
+                "sets": "3x7",
+                "notes": "",
+                "status": "done",
+                "weight": "50kg"
+              },
+              {
+                "id": "xvydo7kd",
+                "nome": "Fly na Máquina",
+                "rest": "60s",
+                "sets": "3x10",
+                "status": "done",
+                "weight": "59kg"
+              },
+              {
+                "id": "xd06gzb2",
+                "nome": "Skull Crusher",
+                "rest": "60-90s",
+                "sets": "3x5",
+                "notes": "",
+                "status": "done",
+                "weight": "10kg cada lado"
+              },
+              {
+                "id": "x21hhmc3",
+                "nome": "Tríceps na Barra (Calistenia)",
+                "rest": "90s",
+                "sets": "3x8",
+                "status": "done",
+                "weight": "peso corporal"
+              },
+              {
+                "id": "x08dewtp",
+                "nome": "Crossover",
+                "rest": "45-60s",
+                "sets": "3x8",
+                "notes": "",
+                "status": "done",
+                "weight": "20kg cada lado"
+              },
+              {
+                "id": "xifvtabw",
+                "nome": "Tríceps na Corda",
+                "rest": "45-60s",
+                "sets": "3x10",
+                "notes": "",
+                "status": "done",
+                "weight": "27kg"
+              },
+              {
+                "id": "xahsvo7e",
+                "nome": "Crunch",
+                "rest": "45-60s",
+                "sets": "3x15",
+                "notes": "",
+                "status": "done",
+                "weight": "peso corporal"
+              },
+              {
+                "id": "xdp9bxis",
+                "nome": "Prancha",
+                "rest": "45-60s",
+                "sets": "3x40",
+                "notes": "",
+                "status": "skipped",
+                "weight": "peso corporal"
+              }
+            ]
+          },
+          "sem3_Segunda": {
+            "dia": "Segunda",
+            "foco": "",
+            "serie": "A",
+            "semana": 3,
+            "_dayKey": "sem3_Segunda",
+            "exercicios": [
+              {
+                "id": "x4luapq3",
+                "nome": "Overhead Press Sentado com Halteres",
+                "rest": "90s",
+                "sets": "3x5",
+                "notes": "",
+                "status": "done",
+                "weight": "20kg cada lado",
+                "musculo": "Ombros (deltoides anterior/medial)"
+              },
+              {
+                "id": "xafg6pp8",
+                "nome": "Elevação Lateral com Halteres",
+                "rest": "60s",
+                "sets": "3x7",
+                "notes": "",
+                "status": "done",
+                "weight": "12kg cada lado",
+                "musculo": "Ombros (deltoides medial)"
+              },
+              {
+                "id": "xck4wosa",
+                "nome": "Crucifixo Inverso Unilateral na Polia",
+                "rest": "60s",
+                "sets": "3x7",
+                "notes": "",
+                "status": "done",
+                "weight": "4 pesos",
+                "musculo": "Ombros (deltoides posterior)"
+              },
+              {
+                "id": "x8ypp9tt",
+                "nome": "Rotação Externa com Cabo",
+                "rest": "45s",
+                "sets": "3x15",
+                "notes": "",
+                "status": "done",
+                "weight": "2 pesos",
+                "musculo": "Ombros (manguito rotador)"
+              },
+              {
+                "id": "xpua41nk",
+                "nome": "Levantamento Frontal Bilateral (Corda) na Polia",
+                "rest": "75s",
+                "sets": "3x10",
+                "isCore": false,
+                "status": "done",
+                "weight": "17.5kg"
+              },
+              {
+                "id": "x07q3kvy",
+                "nome": "Sit-up",
+                "rest": "60s",
+                "sets": "3x40",
+                "isCore": true,
+                "status": "done",
+                "weight": "peso corporal"
+              },
+              {
+                "id": "xqw25l1a",
+                "nome": "Prancha",
+                "rest": "45s",
+                "sets": "3x40",
+                "notes": "",
+                "status": "done",
+                "weight": "peso corporal",
+                "musculo": "Core (reto abdominal/transverso)"
+              }
+            ]
+          },
+          "sem5_Segunda": {
+            "dia": "Segunda",
+            "foco": "",
+            "serie": "D",
+            "semana": 5,
+            "_dayKey": "sem5_Segunda",
+            "exercicios": [
+              {
+                "id": "x9p39e0v",
+                "nome": "Leg Press Inclinado",
+                "rest": "90-120s",
+                "sets": "3x8",
+                "notes": "",
+                "status": "done",
+                "weight": "100kg cada lado",
+                "musculo": "Quadríceps/Glúteos"
+              },
+              {
+                "id": "xljko2ja",
+                "nome": "Avanço com Halteres",
+                "rest": "75-90s",
+                "sets": "3x6",
+                "notes": "",
+                "status": "done",
+                "weight": "12kg cada lado",
+                "musculo": "Quadríceps/Glúteos"
+              },
+              {
+                "id": "xwx3aier",
+                "nome": "Glúteo na Máquina (Kickback)",
+                "rest": "60s",
+                "sets": "3x7",
+                "notes": "",
+                "status": "done",
+                "weight": "38kg",
+                "musculo": "Glúteos"
+              },
+              {
+                "id": "xb1lelx8",
+                "nome": "Adutor na Máquina",
+                "rest": "60s",
+                "sets": "3x10",
+                "notes": "",
+                "status": "done",
+                "weight": "65kg",
+                "musculo": "Adutores"
+              },
+              {
+                "id": "xoq9xs9r",
+                "nome": "Leg Extension",
+                "rest": "60-75s",
+                "sets": "3x10",
+                "isCore": false,
+                "status": "done",
+                "weight": "60kg"
+              },
+              {
+                "id": "x1wonufk",
+                "nome": "Abdutor na Máquina",
+                "rest": "60s",
+                "sets": "3x10",
+                "notes": "",
+                "status": "done",
+                "weight": "63kg",
+                "musculo": "Glúteo Médio"
+              },
+              {
+                "id": "x81hcxn7",
+                "nome": "Hiperextensão no Banco",
+                "rest": "60s",
+                "sets": "3x10",
+                "notes": "",
+                "status": "done",
+                "weight": "Anilha 20kg",
+                "musculo": "Core (lombar/eretores)"
+              },
+              {
+                "id": "xdtvxwf9",
+                "nome": "Calf Raise na Máquina",
+                "rest": "45-60s",
+                "sets": "3x12",
+                "notes": "",
+                "status": "done",
+                "weight": "40kg",
+                "musculo": "Panturrilhas"
+              },
+              {
+                "id": "xi7gzvsj",
+                "nome": "Abdominal Crunch na Máquina",
+                "rest": "45-60s",
+                "sets": "3x12",
+                "notes": "",
+                "status": "done",
+                "weight": "55kg",
+                "musculo": "Core (reto abdominal)"
+              },
+              {
+                "id": "xc23f2w5",
+                "nome": "Prancha",
+                "rest": "45-60s",
+                "sets": "3x45-60s",
+                "notes": "",
+                "status": "done",
+                "weight": "Peso corporal",
+                "musculo": "Core (reto abdominal inferior)"
+              }
+            ]
+          },
+          "sem8_Segunda": {
+            "dia": "Terça",
+            "foco": "",
+            "serie": "D",
+            "semana": 6,
+            "_dayKey": "sem8_Segunda",
+            "exercicios": [
+              {
+                "id": "xxonyb7t",
+                "nome": "Abdutor na Máquina",
+                "rest": "60s",
+                "sets": "3x12",
+                "notes": "",
+                "status": "done",
+                "weight": "68kg",
+                "musculo": "Glúteo Médio"
+              },
+              {
+                "id": "xrdhgjhd",
+                "nome": "Leg Extension",
+                "rest": "60s",
+                "sets": "4x10",
+                "notes": "",
+                "status": "done",
+                "weight": "54kg",
+                "musculo": "Quadríceps"
+              },
+              {
+                "id": "x5hv36uj",
+                "nome": "Adutor na Máquina",
+                "rest": "60s",
+                "sets": "3x12",
+                "notes": "",
+                "status": "done",
+                "weight": "68kg",
+                "musculo": "Adutores"
+              },
+              {
+                "id": "xzja0w75",
+                "nome": "Avanço no Smith",
+                "rest": "90s",
+                "sets": "3x4",
+                "notes": "",
+                "status": "done",
+                "weight": "10kg cada lado",
+                "musculo": "Quadríceps/Glúteos"
+              },
+              {
+                "id": "xj3sjeyx",
+                "nome": "Glúteo na Máquina (Kickback)",
+                "rest": "60s",
+                "sets": "3x7",
+                "notes": "",
+                "status": "done",
+                "weight": "32kg",
+                "musculo": "Glúteos"
+              },
+              {
+                "id": "xc6anzvc",
+                "nome": "Calf Raise na Máquina",
+                "rest": "45-60s",
+                "sets": "3x15",
+                "notes": "",
+                "status": "done",
+                "weight": "40kg",
+                "musculo": "Panturrilhas"
+              },
+              {
+                "id": "x9w0y1as",
+                "nome": "Abdominal Crunch na Máquina",
+                "rest": "45-60s",
+                "sets": "3x12",
+                "notes": "",
+                "status": "skipped",
+                "weight": "57kg",
+                "musculo": "Reto Abdominal"
+              },
+              {
+                "id": "xscpxyf4",
+                "nome": "Elevação de Pernas Deitado",
+                "rest": "45-60s",
+                "sets": "3x12",
+                "notes": "",
+                "status": "skipped",
+                "weight": "Peso corporal",
+                "musculo": "Abdômen Inferior",
+                "skippedLast": true
+              },
+              {
+                "id": "xou5hale",
+                "nome": "Hiperextensão no Banco",
+                "rest": "60s",
+                "sets": "4x10",
+                "notes": "",
+                "status": "skipped",
+                "weight": "Anilha 20kg",
+                "musculo": "Lombar/Posteriores"
+              }
+            ]
+          }
+        }
       }
     ],
     "chatInline": {
@@ -11155,6 +11306,44 @@
           "content": "```json\n{\n  \"modificacoes\": {\n    \"serieLabel\": \"C\",\n    \"acoes\": [\n      {\n        \"tipo\": \"remover\",\n        \"nome\": \"Prancha\"\n      }\n    ]\n  }\n}\n```"
         }
       ],
+      "sem9_Terça": [
+        {
+          "role": "user",
+          "content": "Trocar o Fly reverso pelo exercício fly reverso Alternado na polia (está na Bibliotecal"
+        },
+        {
+          "role": "user",
+          "content": "Cadê a IA?"
+        },
+        {
+          "role": "assistant",
+          "content": "Você mencionou \"Fly reverso Alternado na polia\", mas verificando a Biblioteca completa, o exercício que existe é:\n- **Crucifixo Inverso Unilateral na Polia** (série A)\n\n\"Fly reverso\" e \"Crucifixo Inverso\" são o mesmo movimento (reverse fly). Confirmo que você quer substituir o **Reverse Fly na Máquina** pelo **Crucifixo Inverso Unilateral na Polia**?\n\nSe sim, vou calibrar os parâmetros (sets, carga, descanso) baseado no exercício atual e nas características do movimento unilateral na polia. Aguardo sua confirmação."
+        },
+        {
+          "role": "user",
+          "content": "Sim"
+        },
+        {
+          "role": "assistant",
+          "content": "```json\n{\n  \"modificacoes\": {\n    \"serieLabel\": \"A\",\n    \"acoes\": [\n      {\n        \"tipo\": \"substituir\",\n        \"de\": \"Reverse Fly na Máquina\",\n        \"por\": \"Crucifixo Inverso Unilateral na Polia\",\n        \"sets\": \"4x8\",\n        \"weight\": \"5kg cada lado\",\n        \"rest\": \"60s\"\n      }\n    ]\n  }\n}\n```"
+        },
+        {
+          "role": "user",
+          "content": "Trocar rotação com Anilha por Abdominal Crunch"
+        },
+        {
+          "role": "assistant",
+          "content": "```json\n{\n  \"modificacoes\": {\n    \"serieLabel\": \"A\",\n    \"acoes\": [\n      {\n        \"tipo\": \"substituir\",\n        \"de\": \"Rotação de Tronco com Anilha\",\n        \"por\": \"Crunch\",\n        \"sets\": \"4x15\",\n        \"weight\": \"Peso corporal\",\n        \"rest\": \"45s\"\n      }\n    ]\n  }\n}\n```"
+        },
+        {
+          "role": "user",
+          "content": "Trocar prancha lateral por prancha"
+        },
+        {
+          "role": "assistant",
+          "content": "```json\n{\n  \"modificacoes\": {\n    \"serieLabel\": \"A\",\n    \"acoes\": [\n      {\n        \"tipo\": \"substituir\",\n        \"de\": \"Prancha Lateral\",\n        \"por\": \"Prancha\",\n        \"sets\": \"3x45s\",\n        \"weight\": \"Peso corporal\",\n        \"rest\": \"60s\"\n      }\n    ]\n  }\n}\n```"
+        }
+      ],
       "sem3_Segunda": [
         {
           "role": "user",
@@ -11340,13 +11529,15 @@
       "sem8_Quarta": "perdido",
       "sem8_Quinta": "perdido",
       "sem8_Terça": "ausente",
+      "sem9_Terça": "concluido",
       "sem2_Segunda": "concluido",
       "sem3_Segunda": "concluido",
       "sem4_Segunda": "perdido",
       "sem5_Segunda": "concluido",
       "sem6_Segunda": "perdido",
       "sem7_Segunda": "ausente",
-      "sem8_Segunda": "concluido"
+      "sem8_Segunda": "concluido",
+      "sem9_Segunda": "ausente"
     },
     "semanaOpen": {
       "sem1": false,
@@ -11356,64 +11547,73 @@
       "sem5": false,
       "sem6": true,
       "sem7": false,
-      "sem8": true
+      "sem8": false
     },
     "seriesData": {
       "s1": {
         "foco": "",
-        "semana": "SEMANA 5",
+        "semana": "SEMANA 9",
         "serieId": "s1",
         "exercises": [
           {
-            "id": "xgmpvt2m",
+            "id": "xlmgip0e",
             "name": "Overhead Press Sentado com Halteres",
-            "rest": "60-75s",
+            "rest": "120s",
             "sets": "4x5",
             "status": "done",
-            "weight": "20kg cada lado",
+            "weight": "22kg cada lado",
             "skippedLast": false
           },
           {
-            "id": "xh7vfdww",
+            "id": "xhrf2lno",
             "name": "Elevação Lateral com Halteres",
-            "rest": "45-60s",
+            "rest": "60s",
             "sets": "4x7",
             "status": "done",
-            "weight": "10-12kg cada lado",
+            "weight": "12kg cada lado",
             "skippedLast": false
           },
           {
-            "id": "xohevuvd",
-            "name": "Levantamento Frontal Bilateral (Corda) na Polia",
-            "rest": "45-60s",
+            "id": "xw9a20fd",
+            "name": "Reverse Fly na Máquina",
+            "rest": "60s",
+            "sets": "4x8",
+            "status": "done",
+            "weight": "14kg cada lado",
+            "skippedLast": false
+          },
+          {
+            "id": "x54xq3d5",
+            "name": "Elevação Lateral na Polia",
+            "rest": "45s",
+            "sets": "4x5",
+            "status": "done",
+            "weight": "9kg",
+            "skippedLast": false
+          },
+          {
+            "id": "xk8ygdqi",
+            "name": "Rotação Externa com Cabo",
+            "rest": "45s",
             "sets": "4x10",
             "status": "done",
-            "weight": "5 pesos",
+            "weight": "2 pesos",
             "skippedLast": false
           },
           {
-            "id": "xlqi3we3",
-            "name": "Crucifixo Inverso Unilateral na Polia",
-            "rest": "45-60s",
-            "sets": "4x7",
-            "status": "done",
-            "weight": "4-5 pesos",
-            "skippedLast": false
-          },
-          {
-            "id": "x0fp9y3e",
+            "id": "xgqtbw6x",
             "name": "Rotação de Tronco com Anilha",
-            "rest": "45-60s",
-            "sets": "3x12",
-            "status": "undone",
-            "weight": "Anilha leve",
+            "rest": "45s",
+            "sets": "1x70",
+            "status": "done",
+            "weight": "Peso corporal",
             "skippedLast": false
           },
           {
-            "id": "xbwjmmzj",
+            "id": "xr1szn4h",
             "name": "Prancha Lateral",
-            "rest": "45s",
-            "sets": "3x35",
+            "rest": "60s",
+            "sets": "3x45s",
             "status": "done",
             "weight": "Peso corporal",
             "skippedLast": false
@@ -12494,12 +12694,12 @@
           }
         ]
       },
-      "sem9_Quarta": {
+      "sem9_Quinta": {
         "dia": "Terça",
         "foco": "",
         "serie": "D",
         "semana": 6,
-        "_dayKey": "sem9_Quarta",
+        "_dayKey": "sem9_Quinta",
         "exercicios": [
           {
             "id": "xzja0w75",
@@ -12601,6 +12801,85 @@
             "status": "undone",
             "weight": "Anilha 20kg",
             "musculo": "Lombar/Posteriores"
+          }
+        ]
+      },
+      "sem9_Terça": {
+        "dia": "Terça",
+        "foco": "",
+        "serie": "A",
+        "semana": 9,
+        "_dayKey": "sem9_Terça",
+        "exercicios": [
+          {
+            "id": "xlmgip0e",
+            "nome": "Overhead Press Sentado com Halteres",
+            "rest": "120s",
+            "sets": "4x5",
+            "notes": "",
+            "status": "done",
+            "weight": "22kg cada lado",
+            "musculo": "Ombros (deltoide anterior/médio)"
+          },
+          {
+            "id": "xhrf2lno",
+            "nome": "Elevação Lateral com Halteres",
+            "rest": "60s",
+            "sets": "4x7",
+            "notes": "",
+            "status": "done",
+            "weight": "12kg cada lado",
+            "musculo": "Ombros (deltoide médio)"
+          },
+          {
+            "id": "x54xq3d5",
+            "nome": "Elevação Lateral na Polia",
+            "rest": "45s",
+            "sets": "4x5",
+            "notes": "",
+            "status": "done",
+            "weight": "9kg",
+            "musculo": "Ombros (deltoide médio)"
+          },
+          {
+            "id": "xw9a20fd",
+            "nome": "Crucifixo Inverso Unilateral na Polia",
+            "rest": "60s",
+            "sets": "4x8",
+            "notes": "",
+            "status": "done",
+            "weight": "14kg cada lado",
+            "musculo": "Ombros (deltoide posterior)"
+          },
+          {
+            "id": "xk8ygdqi",
+            "nome": "Rotação Externa com Cabo",
+            "rest": "45s",
+            "sets": "4x10",
+            "notes": "",
+            "status": "done",
+            "weight": "2 pesos",
+            "musculo": "Manguito rotador"
+          },
+          {
+            "id": "xgqtbw6x",
+            "nome": "Crunch",
+            "rest": "45s",
+            "sets": "1x70",
+            "notes": "Peso corporal + anilha",
+            "status": "done",
+            "weight": "Peso corporal",
+            "musculo": "Core (oblíquos)"
+          },
+          {
+            "id": "xr1szn4h",
+            "nome": "Prancha",
+            "rest": "60s",
+            "sets": "3x45s",
+            "notes": "",
+            "status": "done",
+            "weight": "Peso corporal",
+            "musculo": "Core (oblíquos/estabilizadores)"
           }
         ]
       },
@@ -28152,62 +28431,136 @@
     "bikeObjetivo": "Perda de gordura, resistência, cardio e ganho de força"
   },
   "bikeOdo": {
+    "dot": {
+      "trocas": [],
+      "intervaloDias": 365
+    },
+    "cera": {
+      "trocas": [],
+      "pesagens": [
+        {
+          "id": "xnispiqj",
+          "obs": "Primeira pesagem - 8 roletes secos",
+          "data": "2026-07-23T23:44:34.476Z",
+          "pesoTotal": 390
+        }
+      ],
+      "topUpsPote": [],
+      "pesoPanelaVazia": 95,
+      "imersoesSujasMax": 25
+    },
     "nome": "Specialized Crux Expert 56",
-    "dataCompra": "2026-07-13T03:00:00.000Z",
+    "coroa": {
+      "nome": "SRAM Rival D1 X-Sync 40t",
+      "anteriores": [],
+      "dataInstalacao": "2026-07-13T03:00:00.000Z",
+      "kmEsperadoTroca": 30000,
+      "kmInstalacaoTotal": 0
+    },
+    "total": 200.1,
     "usada": true,
-    "total": 140.9,
-    "parcial": 96.26,
-    "dataUltima": "2026-07-26T17:19:37.922Z",
+    "freios": {
+      "traseiro": {
+        "pastilha": {
+          "nome": "Pastilha",
+          "medicoes": [],
+          "anteriores": [],
+          "espessuraNova": null,
+          "dataInstalacao": null,
+          "espessuraMinima": 1,
+          "kmInstalacaoTotal": null
+        }
+      },
+      "dianteiro": {
+        "pastilha": {
+          "nome": "Pastilha",
+          "medicoes": [],
+          "anteriores": [],
+          "espessuraNova": null,
+          "dataInstalacao": null,
+          "espessuraMinima": 1,
+          "kmInstalacaoTotal": null
+        }
+      }
+    },
+    "parcial": 155.51,
+    "selante": {
+      "pesagens": [],
+      "garrafaAtual": {
+        "volumeMl": 118,
+        "dataInicio": "2026-07-25T23:06:14.167Z",
+        "pesoCheiaNova": 151
+      },
+      "garrafasAnteriores": []
+    },
     "leituras": [
       {
-        "id": "xeom4wyf",
+        "id": "xjp2ut2u",
         "tipo": "parcial",
-        "data": "2026-07-26T17:19:37.922Z",
-        "parcial": 96.26,
-        "delta": 26.7,
-        "totalApos": 140.9,
+        "data": "2026-07-29T04:47:59.338Z",
+        "parcial": 155.51,
+        "delta": 24.6,
+        "totalApos": 200.1,
         "obs": ""
       },
       {
+        "id": "xbtnnujr",
+        "obs": "",
+        "data": "2026-07-27T23:44:10.174Z",
+        "tipo": "parcial",
+        "delta": 34.6,
+        "parcial": 130.9,
+        "totalApos": 175.5
+      },
+      {
+        "id": "xeom4wyf",
+        "obs": "",
+        "data": "2026-07-26T17:19:37.922Z",
+        "tipo": "parcial",
+        "delta": 26.7,
+        "parcial": 96.26,
+        "totalApos": 140.9
+      },
+      {
         "id": "xil4eo9f",
-        "tipo": "data",
         "data": "2026-07-25T15:55:42.625Z",
+        "tipo": "data",
         "totalApos": 114.2
       },
       {
         "id": "xp9drivf",
-        "tipo": "data",
         "data": "2026-07-23T16:00:48.395Z",
+        "tipo": "data",
         "totalApos": 114.2
       },
       {
         "id": "xxhipvsf",
-        "tipo": "data",
         "data": "2026-07-22T23:21:48.199Z",
+        "tipo": "data",
         "totalApos": 114.2
       },
       {
         "id": "x6uqn6gb",
-        "tipo": "parcial",
+        "obs": "",
         "data": "2026-07-21T22:29:25.322Z",
-        "parcial": 69.61,
+        "tipo": "parcial",
         "delta": 33.1,
-        "totalApos": 114.2,
-        "obs": ""
+        "parcial": 69.61,
+        "totalApos": 114.2
       },
       {
         "id": "x2x04ybw",
-        "tipo": "parcial",
+        "obs": "",
         "data": "2026-07-20T15:02:06.961Z",
-        "parcial": 36.49,
+        "tipo": "parcial",
         "delta": 11.1,
-        "totalApos": 81.1,
-        "obs": ""
+        "parcial": 36.49,
+        "totalApos": 81.1
       },
       {
         "id": "xxu9bcbx",
-        "tipo": "setup",
         "data": "2026-07-20T01:34:52.919Z",
+        "tipo": "setup",
         "parcial": 25.39,
         "totalApos": 70
       }
@@ -28217,365 +28570,350 @@
         "id": "x9152731",
         "nome": "Corrente SRAM Rival Flattop",
         "status": "ativa",
-        "dataInstalacao": "2026-07-13T03:00:00.000Z",
-        "kmInstalacao": 3000,
-        "kmAcumulado": 81.1,
-        "kmInicioSessaoAtual": 81.1,
+        "imersoes": [],
         "medicoes": [
           {
             "id": "x0wlfxfz",
-            "data": "2026-07-21T03:14:55.207Z",
-            "kmIndividual": 81.1,
-            "degrau": 0,
             "obs": "",
-            "ferramentaId": "cc42"
+            "data": "2026-07-21T03:14:55.207Z",
+            "degrau": 0,
+            "ferramentaId": "cc42",
+            "kmIndividual": 81.1
           }
         ],
-        "imersoes": [],
-        "powerlockContador": 2
+        "kmAcumulado": 81.1,
+        "kmInstalacao": 3000,
+        "dataInstalacao": "2026-07-13T03:00:00.000Z",
+        "powerlockContador": 2,
+        "kmInicioSessaoAtual": 81.1
       }
     ],
-    "correnteExpectativaKm": 5000,
-    "correnteIntervaloLimpezaKm": 300,
-    "correnteExtensaoTopoffKm": 150,
-    "correnteMaxTopoffs": 2,
-    "cera": {
-      "imersoesSujasMax": 25,
-      "pesoPanelaVazia": 95,
-      "pesagens": [
-        {
-          "id": "xnispiqj",
-          "data": "2026-07-23T23:44:34.476Z",
-          "pesoTotal": 390,
-          "obs": "Primeira pesagem - 8 roletes secos"
-        }
-      ],
-      "trocas": [],
-      "topUpsPote": []
-    },
-    "correnteIntervaloImersaoKm": 300,
-    "ferramentasFolga": [
-      {
-        "id": "cc42",
-        "nome": "Park Tool CC-4.2",
-        "tipo": "steps",
-        "degraus": [
-          {
-            "valor": 0,
-            "label": "<0,5"
-          },
-          {
-            "valor": 0.5,
-            "label": "0,5"
-          },
-          {
-            "valor": 0.75,
-            "label": "0,75"
-          },
-          {
-            "valor": 1,
-            "label": "1,00"
-          }
-        ],
-        "idealValor": 0.5,
-        "limiteValor": 0.75,
-        "nota": "Uma das poucas ferramentas compatíveis com correntes SRAM Flattop (roletes mais grossos) — verifique compatibilidade antes de usar outra."
+    "dataCompra": "2026-07-13T03:00:00.000Z",
+    "dataUltima": "2026-07-29T04:47:59.338Z",
+    "rolamentos": {
+      "bb": {
+        "nome": "BB SRAM DUB BSA",
+        "anteriores": [],
+        "manutencoes": [],
+        "dataInstalacao": "2025-03-12T03:00:00.000Z",
+        "kmEsperadoTroca": 25000,
+        "kmInstalacaoTotal": 0,
+        "intervaloManutencaoKm": 7500
       },
-      {
-        "id": "sram-oficial",
-        "nome": "Medidor oficial SRAM",
-        "tipo": "steps",
-        "degraus": [
+      "headset-inferior": {
+        "nome": "Specialized  S162500005",
+        "anteriores": [],
+        "manutencoes": [
           {
-            "valor": 0,
-            "label": "<0,80"
-          },
-          {
-            "valor": 0.8,
-            "label": "0,80"
+            "id": "xck6cn7c",
+            "obs": "Limpeza do conjunto p/ troca do headset superior (Cane Creek)",
+            "data": "2026-07-25T03:00:00.000Z",
+            "kmIndividual": 3114.2
           }
         ],
-        "idealValor": null,
-        "limiteValor": 0.8,
-        "nota": "Ferramenta binária — só indica se a corrente já passou de 0,80% de desgaste, sem degraus intermediários."
+        "dataInstalacao": "2025-03-12T03:00:00.000Z",
+        "kmEsperadoTroca": 25000,
+        "kmInstalacaoTotal": 0,
+        "intervaloManutencaoKm": 3000
+      },
+      "headset-superior": {
+        "nome": "Cane Creek 40 (BAA0094K)",
+        "anteriores": [
+          {
+            "id": "xw0f87sx",
+            "obs": "Headset (superior) novo p/ corrigir folga",
+            "nome": "Specialized S212500024",
+            "kmRodados": 3114.2,
+            "dataRemocao": "2026-07-25T03:00:00.000Z",
+            "dataInstalacao": "2025-03-12T03:00:00.000Z",
+            "kmInstalacaoTotal": 0
+          }
+        ],
+        "manutencoes": [],
+        "dataInstalacao": "2026-07-25T03:00:00.000Z",
+        "kmEsperadoTroca": 25000,
+        "kmInstalacaoTotal": 3114.2,
+        "intervaloManutencaoKm": 3000
       }
-    ],
-    "ferramentaFolgaAtivaId": "cc42",
+    },
+    "_subTabBike": "rolamentos",
     "usoAnterior": {
       "modo": "fixo",
       "fixoKm": 3000,
-      "kmDiaFixo": null,
-      "dataInicial": null,
+      "divisor": 2,
       "dataFinal": null,
-      "divisor": 2
+      "kmDiaFixo": null,
+      "dataInicial": null
     },
-    "cuboIntervaloManutencaoKm": 20000,
-    "selanteIntervaloDias": 180,
-    "selante": {
-      "garrafaAtual": {
-        "pesoCheiaNova": 151,
-        "volumeMl": 118,
-        "dataInicio": "2026-07-25T23:06:14.167Z"
-      },
-      "pesagens": [],
-      "garrafasAnteriores": []
-    },
-    "_migracaoKmSelanteV2": true,
     "jogosDeRodas": [
       {
         "id": "xhvz12jw",
         "nome": "Roval Terra C",
         "status": "ativo",
-        "dianteira": {
-          "pneu": {
-            "nome": "Pathfinder Pro 2BR 700x38",
-            "dataInstalacao": "2025-03-12T03:00:00.000Z",
-            "kmInstalacaoTotal": 0,
-            "kmAcumulado": 0,
-            "kmInicioSessaoAtual": 0,
-            "kmEsperado": 8000,
-            "selante": {
-              "aplicacoes": [
-                {
-                  "id": "xnx1r3nn",
-                  "data": "2026-07-13T03:00:00.000Z",
-                  "kmTotal": 0,
-                  "quantidadeMl": 50,
-                  "obs": "Selante estimado na entrega da bike (pode estar errado)."
-                }
-              ]
-            }
-          },
+        "traseira": {
           "cubo": {
+            "nome": "NEW DT 370",
+            "kmAcumulado": 0,
+            "manutencoes": [],
             "dataInstalacao": "2026-07-13T03:00:00.000Z",
             "kmInstalacaoTotal": 0,
-            "kmAcumulado": 0,
             "kmInicioSessaoAtual": 0,
-            "manutencoes": [],
-            "nome": "NEW DT 370",
             "intervaloManutencaoKm": 25000
           },
-          "pneusAnteriores": [],
-          "disco": {
-            "dataInstalacao": "2026-07-13T03:00:00.000Z",
-            "kmInstalacaoTotal": 0,
-            "kmAcumulado": 0,
-            "kmInicioSessaoAtual": 0,
-            "espessuraMinima": 1.55,
-            "medicoes": [
-              {
-                "id": "xgk81y1a",
-                "data": "2026-07-27T03:00:00.000Z",
-                "kmIndividual": 3140.9,
-                "espessuraMm": 1.9,
-                "obs": ""
-              }
-            ],
-            "anteriores": [],
-            "espessuraNova": 1.85,
-            "nome": "SRAM Paceline 160mm"
-          },
-          "raios": {
-            "verificacoes": []
-          }
-        },
-        "traseira": {
           "pneu": {
             "nome": "Pathfinder Pro 2BR 700x38",
-            "dataInstalacao": "2025-03-12T03:00:00.000Z",
-            "kmInstalacaoTotal": 0,
-            "kmAcumulado": 0,
-            "kmInicioSessaoAtual": 0,
-            "kmEsperado": 5000,
             "selante": {
               "aplicacoes": [
                 {
                   "id": "xb9becn4",
+                  "obs": "Selante estimado na entrega da bike (pode estar errado).",
                   "data": "2026-07-13T03:00:00.000Z",
                   "kmTotal": 0,
-                  "quantidadeMl": 50,
-                  "obs": "Selante estimado na entrega da bike (pode estar errado)."
+                  "quantidadeMl": 50
                 }
               ]
-            }
-          },
-          "cubo": {
-            "dataInstalacao": "2026-07-13T03:00:00.000Z",
-            "kmInstalacaoTotal": 0,
+            },
+            "kmEsperado": 5000,
             "kmAcumulado": 0,
-            "kmInicioSessaoAtual": 0,
-            "manutencoes": [],
-            "nome": "NEW DT 370",
-            "intervaloManutencaoKm": 25000
+            "dataInstalacao": "2025-03-12T03:00:00.000Z",
+            "kmInstalacaoTotal": 0,
+            "kmInicioSessaoAtual": 0
           },
-          "pneusAnteriores": [],
           "disco": {
-            "dataInstalacao": "2026-07-13T03:00:00.000Z",
-            "kmInstalacaoTotal": 0,
-            "kmAcumulado": 0,
-            "kmInicioSessaoAtual": 0,
-            "espessuraMinima": 1.55,
+            "nome": "SRAM Paceline 160mm",
             "medicoes": [
               {
                 "id": "xcdbtgxt",
+                "obs": "",
                 "data": "2026-07-27T03:00:00.000Z",
-                "kmIndividual": 3140.9,
                 "espessuraMm": 1.9,
-                "obs": ""
+                "kmIndividual": 3140.9
               }
             ],
             "anteriores": [],
-            "espessuraNova": 1.85,
-            "nome": "SRAM Paceline 160mm"
-          },
-          "cassete": {
-            "nome": "SRAM XG-1251 XPLR 10-44",
-            "dataInstalacao": "2026-07-13T03:00:00.000Z",
-            "kmInstalacaoTotal": 3000,
             "kmAcumulado": 0,
-            "kmInicioSessaoAtual": 3000,
-            "kmEsperadoTroca": 25000,
-            "anteriores": []
+            "espessuraNova": 1.85,
+            "dataInstalacao": "2026-07-13T03:00:00.000Z",
+            "espessuraMinima": 1.55,
+            "kmInstalacaoTotal": 0,
+            "kmInicioSessaoAtual": 0
           },
           "raios": {
             "verificacoes": []
           },
+          "cassete": {
+            "nome": "SRAM XG-1251 XPLR 10-44",
+            "anteriores": [],
+            "kmAcumulado": 0,
+            "dataInstalacao": "2026-07-13T03:00:00.000Z",
+            "kmEsperadoTroca": 25000,
+            "kmInstalacaoTotal": 3000,
+            "kmInicioSessaoAtual": 3000
+          },
           "freehub": {
             "manutencoes": [],
             "intervaloManutencaoKm": 20000
-          }
+          },
+          "pneusAnteriores": []
+        },
+        "dianteira": {
+          "cubo": {
+            "nome": "NEW DT 370",
+            "kmAcumulado": 0,
+            "manutencoes": [],
+            "dataInstalacao": "2026-07-13T03:00:00.000Z",
+            "kmInstalacaoTotal": 0,
+            "kmInicioSessaoAtual": 0,
+            "intervaloManutencaoKm": 25000
+          },
+          "pneu": {
+            "nome": "Pathfinder Pro 2BR 700x38",
+            "selante": {
+              "aplicacoes": [
+                {
+                  "id": "xnx1r3nn",
+                  "obs": "Selante estimado na entrega da bike (pode estar errado).",
+                  "data": "2026-07-13T03:00:00.000Z",
+                  "kmTotal": 0,
+                  "quantidadeMl": 50
+                }
+              ]
+            },
+            "kmEsperado": 8000,
+            "kmAcumulado": 0,
+            "dataInstalacao": "2025-03-12T03:00:00.000Z",
+            "kmInstalacaoTotal": 0,
+            "kmInicioSessaoAtual": 0
+          },
+          "disco": {
+            "nome": "SRAM Paceline 160mm",
+            "medicoes": [
+              {
+                "id": "xgk81y1a",
+                "obs": "",
+                "data": "2026-07-27T03:00:00.000Z",
+                "espessuraMm": 1.9,
+                "kmIndividual": 3140.9
+              }
+            ],
+            "anteriores": [],
+            "kmAcumulado": 0,
+            "espessuraNova": 1.85,
+            "dataInstalacao": "2026-07-13T03:00:00.000Z",
+            "espessuraMinima": 1.55,
+            "kmInstalacaoTotal": 0,
+            "kmInicioSessaoAtual": 0
+          },
+          "raios": {
+            "verificacoes": []
+          },
+          "pneusAnteriores": []
         }
       }
     ],
-    "_jogoRodasSelecionado": "xhvz12jw",
-    "powerlockLimiteMontagens": 10,
-    "_subTabBike": "rolamentos",
-    "_migracaoDiscoParaJogoV1": true,
-    "freios": {
-      "dianteiro": {
-        "pastilha": {
-          "dataInstalacao": null,
-          "kmInstalacaoTotal": null,
-          "espessuraMinima": 1,
-          "medicoes": [],
-          "anteriores": [],
-          "espessuraNova": null,
-          "nome": "Pastilha"
-        }
-      },
-      "traseiro": {
-        "pastilha": {
-          "dataInstalacao": null,
-          "kmInstalacaoTotal": null,
-          "espessuraMinima": 1,
-          "medicoes": [],
-          "anteriores": [],
-          "espessuraNova": null,
-          "nome": "Pastilha"
-        }
-      }
-    },
-    "rolamentos": {
-      "bb": {
-        "dataInstalacao": "2025-03-12T03:00:00.000Z",
-        "kmInstalacaoTotal": 0,
-        "kmEsperadoTroca": 25000,
-        "intervaloManutencaoKm": 7500,
-        "manutencoes": [],
-        "anteriores": [],
-        "nome": "BB SRAM DUB BSA"
-      },
-      "headset-inferior": {
-        "dataInstalacao": "2025-03-12T03:00:00.000Z",
-        "kmInstalacaoTotal": 0,
-        "kmEsperadoTroca": 25000,
-        "intervaloManutencaoKm": 3000,
-        "manutencoes": [
-          {
-            "id": "xck6cn7c",
-            "data": "2026-07-25T03:00:00.000Z",
-            "kmIndividual": 3114.2,
-            "obs": "Limpeza do conjunto p/ troca do headset superior (Cane Creek)"
-          }
-        ],
-        "anteriores": [],
-        "nome": "Specialized  S162500005"
-      },
-      "headset-superior": {
-        "nome": "Cane Creek 40 (BAA0094K)",
-        "dataInstalacao": "2026-07-25T03:00:00.000Z",
-        "kmInstalacaoTotal": 3114.2,
-        "kmEsperadoTroca": 25000,
-        "intervaloManutencaoKm": 3000,
-        "manutencoes": [],
-        "anteriores": [
-          {
-            "id": "xw0f87sx",
-            "nome": "Specialized S212500024",
-            "dataInstalacao": "2025-03-12T03:00:00.000Z",
-            "dataRemocao": "2026-07-25T03:00:00.000Z",
-            "kmInstalacaoTotal": 0,
-            "kmRodados": 3114.2,
-            "obs": "Headset (superior) novo p/ corrigir folga"
-          }
-        ]
-      }
-    },
-    "_migracaoCuboManutencaoEstimativaV1": true,
-    "_migracaoManutencaoEstimativaV1": true,
-    "_migracaoAnterioresEstimativaV1": true,
-    "_migracaoCuboKmCombinadoV1": true,
-    "_migracaoPneuKmCombinadoV1": true,
-    "_migracaoDiscoKmCombinadoV1": true,
-    "raiosIntervaloVerificacaoKm": 7500,
-    "_migracaoRolamentoKmCombinadoV1": true,
-    "coroa": {
-      "nome": "SRAM Rival D1 X-Sync 40t",
-      "dataInstalacao": "2026-07-13T03:00:00.000Z",
-      "kmInstalacaoTotal": 0,
-      "kmEsperadoTroca": 30000,
-      "anteriores": []
-    },
-    "dot": {
-      "intervaloDias": 365,
-      "trocas": []
-    },
     "headsetPreload": {
       "historico": [
         {
           "id": "xyuteumi",
+          "obs": "Teste de folga com 3Nm - verificar se vai haver \"knock\" em frenagens.",
           "data": "2026-07-27T03:00:00.000Z",
-          "torqueNm": 3,
-          "obs": "Teste de folga com 3Nm - verificar se vai haver \"knock\" em frenagens."
+          "torqueNm": 3
         }
       ]
+    },
+    "ferramentasFolga": [
+      {
+        "id": "cc42",
+        "nome": "Park Tool CC-4.2",
+        "nota": "Uma das poucas ferramentas compatíveis com correntes SRAM Flattop (roletes mais grossos) — verifique compatibilidade antes de usar outra.",
+        "tipo": "steps",
+        "degraus": [
+          {
+            "label": "<0,5",
+            "valor": 0
+          },
+          {
+            "label": "0,5",
+            "valor": 0.5
+          },
+          {
+            "label": "0,75",
+            "valor": 0.75
+          },
+          {
+            "label": "1,00",
+            "valor": 1
+          }
+        ],
+        "idealValor": 0.5,
+        "limiteValor": 0.75
+      },
+      {
+        "id": "sram-oficial",
+        "nome": "Medidor oficial SRAM",
+        "nota": "Ferramenta binária — só indica se a corrente já passou de 0,80% de desgaste, sem degraus intermediários.",
+        "tipo": "steps",
+        "degraus": [
+          {
+            "label": "<0,80",
+            "valor": 0
+          },
+          {
+            "label": "0,80",
+            "valor": 0.8
+          }
+        ],
+        "idealValor": null,
+        "limiteValor": 0.8
+      }
+    ],
+    "correnteMaxTopoffs": 2,
+    "_migracaoKmSelanteV2": true,
+    "selanteIntervaloDias": 180,
+    "_jogoRodasSelecionado": "xhvz12jw",
+    "correnteExpectativaKm": 5000,
+    "ferramentaFolgaAtivaId": "cc42",
+    "_migracaoDiscoParaJogoV1": true,
+    "correnteExtensaoTopoffKm": 150,
+    "powerlockLimiteMontagens": 10,
+    "cuboIntervaloManutencaoKm": 20000,
+    "_migracaoCuboKmCombinadoV1": true,
+    "_migracaoPneuKmCombinadoV1": true,
+    "correnteIntervaloImersaoKm": 300,
+    "correnteIntervaloLimpezaKm": 300,
+    "_migracaoDiscoKmCombinadoV1": true,
+    "raiosIntervaloVerificacaoKm": 7500,
+    "_migracaoAnterioresEstimativaV1": true,
+    "_migracaoManutencaoEstimativaV1": true,
+    "_migracaoRolamentoKmCombinadoV1": true,
+    "_migracaoCuboManutencaoEstimativaV1": true,
+    "selim": {
+      "historico": []
     }
   },
   "planoDia": 0,
-  "_updatedAt": "2026-07-27T20:30:15.820Z",
+  "_updatedAt": "2026-07-29T04:57:14.750Z",
   "lastBibTab": "workout-s4",
   "_migrations": {
     "bikeFocoCleared": true
   },
   "bikeHistory": [
     {
-      "id": "xph3wua4",
+      "id": "xax9gjj1",
       "type": "bike",
-      "date": "2026-07-25T03:00:00.000Z",
-      "registeredAt": "2026-07-25T21:36:00.000Z",
-      "dayKey": "sem8_Sábado",
-      "semana": "8",
-      "dia": "Sábado",
+      "date": "2026-07-28T03:00:00.000Z",
+      "registeredAt": "2026-07-29T00:28:00.000Z",
+      "dayKey": "sem9_Terça",
+      "semana": "9",
+      "dia": "Terça",
       "foco": "",
       "duracao": "",
-      "distancia": "23.89",
-      "tempoMov": "01:07:44",
-      "tempoTotal": "01:26:43",
-      "velocidade": "21.2",
-      "elevacao": "276",
-      "kcal": "718",
-      "percurso": "Botânico - Igapó",
+      "distancia": "24.61",
+      "tempoMov": "01:02:29",
+      "tempoTotal": "01:05:28",
+      "velocidade": "23.6",
+      "elevacao": "200",
+      "kcal": "790",
+      "percurso": "Igapó Extendido",
       "timingReal": ""
+    },
+    {
+      "id": "x9r7e21j",
+      "dia": "Segunda",
+      "date": "2026-07-27T03:00:00.000Z",
+      "foco": "",
+      "kcal": "1072",
+      "type": "bike",
+      "dayKey": "sem9_Segunda",
+      "semana": "9",
+      "duracao": "",
+      "elevacao": "256",
+      "percurso": "Igapó - Extended",
+      "tempoMov": "01:34:56",
+      "distancia": "34.64",
+      "tempoTotal": "02:36:29",
+      "timingReal": "",
+      "velocidade": "22.6",
+      "registeredAt": "2026-07-27T23:45:10.202Z"
+    },
+    {
+      "id": "xph3wua4",
+      "dia": "Sábado",
+      "date": "2026-07-25T03:00:00.000Z",
+      "foco": "",
+      "kcal": "718",
+      "type": "bike",
+      "dayKey": "sem8_Sábado",
+      "semana": "8",
+      "duracao": "",
+      "elevacao": "276",
+      "percurso": "Botânico - Igapó",
+      "tempoMov": "01:07:44",
+      "distancia": "23.89",
+      "tempoTotal": "01:26:43",
+      "timingReal": "",
+      "velocidade": "21.2",
+      "registeredAt": "2026-07-25T21:36:00.000Z"
     },
     {
       "id": "x2eirjhj",
@@ -28844,6 +29182,10 @@
       "open": false,
       "chatOpen": false
     },
+    "sem9_Terça": {
+      "open": false,
+      "chatOpen": true
+    },
     "sem2_Segunda": {
       "open": false,
       "chatOpen": true
@@ -28893,6 +29235,10 @@
       "chatOpen": true
     },
     "sem8_Sábado": {
+      "open": false,
+      "chatOpen": false
+    },
+    "sem9_Segunda": {
       "open": false,
       "chatOpen": false
     }
@@ -29039,6 +29385,10 @@
     {
       "role": "system",
       "text": "✓ Terça semana 8 expandido com 9 exercícios."
+    },
+    {
+      "role": "system",
+      "text": "✓ Terça semana 9 expandido com 7 exercícios."
     }
   ],
   "_duplicatasPendentes": [

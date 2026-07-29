@@ -1410,7 +1410,7 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
     <button id="undo-btn" onclick="undoAction()" title="Nada para desfazer" disabled style="font-family:'DM Mono',monospace;font-size:11px;background:none;border:1px solid var(--border);color:var(--muted);border-radius:4px;padding:3px 10px;cursor:default;opacity:0.3;transition:opacity .2s">↩</button>
     <button class="btn btn-header-only" onclick="exportData()">EXPORTAR</button>
     <button class="btn btn-header-only" onclick="importData()">IMPORTAR</button>
-    <span style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted);margin-left:4px">v0.9.1.25</span>
+    <span style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted);margin-left:4px">v0.9.1.31</span>
     <div id="auth-status" style="display:flex;align-items:center;margin-left:4px"></div>
 
     <div class="mobile-menu-wrap" id="mobile-menu-wrap">
@@ -2460,9 +2460,19 @@ function renderHistory() {
   }
 
   // ── Timeline ──
+  // date é carimbado à MEIA-NOITE do dia da agenda, então treino e pedal do mesmo dia
+  // empatam — e no empate o sort preserva a ordem do array (gym antes de bike), fazendo o
+  // pedal cair abaixo do treino mesmo tendo vindo depois. registeredAt guarda o momento real
+  // do registro e serve de desempate.
   var allItems = gymItems.map(function(x) { return { _type:'gym', _date: new Date(x._data.date), _data: x._data, _ciclo: x._ciclo }; })
     .concat(bikeItems.map(function(x) { return { _type:'bike', _date: new Date(x._data.date), _data: x._data, _ciclo: x._ciclo }; }))
-    .sort(function(a, b) { return b._date - a._date; });
+    .sort(function(a, b) {
+      var diff = b._date - a._date;
+      if (diff !== 0) return diff;
+      var ra = a._data.registeredAt ? new Date(a._data.registeredAt).getTime() : a._date.getTime();
+      var rb = b._data.registeredAt ? new Date(b._data.registeredAt).getTime() : b._date.getTime();
+      return rb - ra;
+    });
 
   if (!allItems.length) {
     list.innerHTML = filtrosHTML + infoHTML + '<div style="color:var(--muted);font-family:DM Mono,monospace;font-size:12px;padding:20px 0">Nenhum treino registrado.</div>';
@@ -2495,7 +2505,10 @@ function renderHistory() {
         '</div>' +
         '<div class="history-date">' + escHtml(meta) + timing + (regHora ? ' · ' + regHora : '') + '</div>' +
         '</div>' +
-        (_historyViewMode === 'atual' ? '<button class="ex-action-btn" onclick="removeBikeHistoryEntry(\'' + b.id + '\')" title="Remover" style="flex-shrink:0;margin-left:8px">✕</button>' : '') +
+        (_historyViewMode === 'atual' ? '<div style="display:flex;gap:4px;flex-shrink:0;margin-left:8px">' +
+          '<button class="ex-action-btn" onclick="editHistoryDataPrompt(\'' + b.id + '\',\'bike\')" title="Editar datas">&#9998;</button>' +
+          '<button class="ex-action-btn" onclick="removeBikeHistoryEntry(\'' + b.id + '\')" title="Remover">✕</button>' +
+          '</div>' : '') +
         '</div></div>';
     } else {
       var h = entry._data;
@@ -2533,6 +2546,7 @@ function renderHistory() {
         '</div>' +
         '<div style="display:flex;align-items:center;gap:10px">' +
         '<span class="history-badge">' + h.done + '/' + h.total + ' exercícios</span>' +
+        (_historyViewMode === 'atual' ? '<button class="ex-action-btn" onclick="editHistoryDataPrompt(\'' + h.id + '\',\'gym\')" title="Editar datas" style="flex-shrink:0">&#9998;</button>' : '') +
         (_historyViewMode === 'atual' ? '<button class="ex-action-btn" onclick="removeHistoryEntry(\'' + h.id + '\')" title="Remover" style="flex-shrink:0">✕</button>' : '') +
         '</div></div>' +
         exHTML + '</div>';
@@ -2774,6 +2788,91 @@ function analisarCicloNoChat(idx) {
 function toggleHistoryEx(id) {
   var el = document.getElementById('hist-ex-' + id);
   if (el) el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+
+// Edição das datas de um registro do histórico. Os dois campos são independentes por
+// design: `date` é o DIA em que a atividade aconteceu (hora zerada, é o que ordena e o que
+// aparece como data do card) e `registeredAt` é o MOMENTO em que foi registrado (é a hora
+// que aparece no card). Registrar um pedal de madrugada, depois do fato, fazia os dois
+// divergirem sem nenhuma forma de corrigir pela interface — era preciso editar o JSON à mão.
+function editHistoryDataPrompt(id, tipo) {
+  var arr = tipo === 'bike' ? (state.bikeHistory || []) : (state.history || []);
+  var it = arr.find(function(x) { return x.id === id; });
+  if (!it) { toast('Registro não encontrado'); return; }
+
+  function pad(n) { return (n < 10 ? '0' : '') + n; }
+  var d = it.date ? new Date(it.date) : new Date();
+  var dataStr = pad(d.getDate()) + '/' + pad(d.getMonth() + 1) + '/' + d.getFullYear();
+  var r = it.registeredAt ? new Date(it.registeredAt) : null;
+  var regDataStr = r ? pad(r.getDate()) + '/' + pad(r.getMonth() + 1) + '/' + r.getFullYear() : '';
+  var regHoraStr = r ? pad(r.getHours()) + ':' + pad(r.getMinutes()) : '';
+
+  var titulo = tipo === 'bike'
+    ? ('🚲 ' + (it.foco || 'Ride'))
+    : ((it.serieLabel || '') + ' — ' + (it.serieName || ''));
+
+  document.getElementById('modal-title').textContent = 'EDITAR DATAS DO REGISTRO';
+  document.getElementById('modal-body').innerHTML =
+    '<p style="font-family:DM Sans,sans-serif;font-size:12px;color:var(--muted);margin:0 0 14px">' + escHtml(titulo) + '</p>' +
+
+    '<label style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;color:var(--muted)">DIA ' + (tipo === 'bike' ? 'DO PEDAL' : 'DO TREINO') + ' (dd/mm/aaaa)</label>' +
+    '<div style="display:flex;gap:6px;margin:4px 0 4px">' +
+    '<input id="edhist-data" type="text" inputmode="numeric" value="' + dataStr + '" style="flex:1;box-sizing:border-box;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:DM Mono,monospace">' +
+    '<button type="button" onclick="toggleDatepickerInline(\'edhist\',\'edhist-dp-wrap\')" title="Abrir calendário" style="padding:0 14px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);cursor:pointer;font-size:16px">&#128197;</button>' +
+    '</div>' +
+    '<div id="edhist-dp-wrap" style="display:none;margin:0 0 8px">' + datepickerInlineHTML('edhist', 'edhist-data') + '</div>' +
+    '<p style="font-family:DM Sans,sans-serif;font-size:11px;color:var(--muted);margin:0 0 14px">É a data que aparece no card e que ordena o histórico.</p>' +
+
+    '<label style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;color:var(--muted)">REGISTRADO EM (dd/mm/aaaa)</label>' +
+    '<div style="display:flex;gap:6px;margin:4px 0 8px">' +
+    '<input id="edhist-regdata" type="text" inputmode="numeric" value="' + regDataStr + '" placeholder="dd/mm/aaaa" style="flex:1;box-sizing:border-box;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:DM Mono,monospace">' +
+    '<button type="button" onclick="toggleDatepickerInline(\'edhistreg\',\'edhistreg-dp-wrap\')" title="Abrir calendário" style="padding:0 14px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);cursor:pointer;font-size:16px">&#128197;</button>' +
+    '</div>' +
+    '<div id="edhistreg-dp-wrap" style="display:none;margin:0 0 8px">' + datepickerInlineHTML('edhistreg', 'edhist-regdata') + '</div>' +
+    '<label style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;color:var(--muted)">HORA DO REGISTRO (hh:mm)</label>' +
+    '<input id="edhist-reghora" type="text" inputmode="numeric" value="' + regHoraStr + '" placeholder="hh:mm" style="display:block;width:100%;box-sizing:border-box;margin:4px 0 4px;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:DM Mono,monospace">' +
+    '<p style="font-family:DM Sans,sans-serif;font-size:11px;color:var(--muted);margin:0 0 14px">É a hora exibida no card. Deixe os dois em branco para remover o carimbo de registro.</p>' +
+
+    '<button onclick="editHistoryDataAplicar(\'' + id + '\',\'' + tipo + '\')" style="display:block;width:100%;font-family:DM Mono,monospace;font-size:11px;padding:10px;border-radius:8px;border:none;background:var(--accent);color:#000;cursor:pointer">SALVAR</button>';
+
+  var confirmBtn = document.getElementById('modal-confirm');
+  if (confirmBtn) confirmBtn.style.display = 'none';
+  document.getElementById('modal').classList.add('open');
+}
+
+function editHistoryDataAplicar(id, tipo) {
+  var arr = tipo === 'bike' ? (state.bikeHistory || []) : (state.history || []);
+  var it = arr.find(function(x) { return x.id === id; });
+  if (!it) { toast('Registro não encontrado'); return; }
+
+  var dataStr = (document.getElementById('edhist-data').value || '').trim();
+  var dm = dataStr.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (!dm) { toast('Data do treino inválida — use dd/mm/aaaa'); return; }
+
+  var regDataStr = (document.getElementById('edhist-regdata').value || '').trim();
+  var regHoraStr = (document.getElementById('edhist-reghora').value || '').trim();
+  var novoRegisteredAt;
+  if (regDataStr === '' && regHoraStr === '') {
+    novoRegisteredAt = null;
+  } else {
+    var rdm = regDataStr.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+    if (!rdm) { toast('Data do registro inválida — use dd/mm/aaaa'); return; }
+    var rhm = regHoraStr.match(/^(\d{1,2}):(\d{2})$/);
+    if (!rhm) { toast('Hora do registro inválida — use hh:mm'); return; }
+    var hh = parseInt(rhm[1]), mi = parseInt(rhm[2]);
+    if (hh > 23 || mi > 59) { toast('Hora do registro inválida'); return; }
+    novoRegisteredAt = new Date(parseInt(rdm[3]), parseInt(rdm[2]) - 1, parseInt(rdm[1]), hh, mi).toISOString();
+  }
+
+  pushUndo('Editar datas do registro');
+  // hora zerada: `date` representa o DIA da atividade, mantendo a convenção do resto do app
+  it.date = new Date(parseInt(dm[3]), parseInt(dm[2]) - 1, parseInt(dm[1])).toISOString();
+  if (novoRegisteredAt === null) delete it.registeredAt;
+  else it.registeredAt = novoRegisteredAt;
+  saveState();
+  closeModal();
+  renderHistory();
+  toast('Datas atualizadas ✓');
 }
 
 function removeHistoryEntry(id) {
@@ -6894,6 +6993,11 @@ function _bikeRolamentosInit() {
   // o.rolamentos pra não interferir nos loops genéricos que iteram os componentes ali.
   if (!o.headsetPreload) o.headsetPreload = { historico: [] };
   if (!o.headsetPreload.historico) o.headsetPreload.historico = [];
+
+  // Altura do selim — só registro, lido pelas marcações do canote. Sem km, sem vida útil:
+  // é uma referência de fit pra reconstruir a posição depois de mexer no selim.
+  if (!o.selim) o.selim = { historico: [] };
+  if (!o.selim.historico) o.selim.historico = [];
 }
 
 function _bikeRolamentoLabel(tipo) {
@@ -7055,11 +7159,110 @@ function renderBikeRolamentosHTML() {
     blocoHTML('bb', 'BB') +
     '</div>';
 
+  // ─── ALTURA DO SELIM — só registro (marcação do canote), sem km e sem vida útil ───
+  var selimHist = (o.selim.historico || []).slice(1, 11).map(function(s) {
+    var d = new Date(s.data).toLocaleDateString('pt-BR');
+    var obsHTML = s.obs ? ' <span style="color:var(--muted)">— ' + escHtml(s.obs) + '</span>' : '';
+    return '<div style="padding:6px 0;border-bottom:1px solid var(--border);font-family:DM Mono,monospace;font-size:11px;color:var(--text);display:flex;justify-content:space-between;align-items:center"><span><span style="color:var(--muted)">' + d + '</span> · ' + escHtml(s.marcacao) + obsHTML + '</span><span onclick="bikeSelimExcluirConfirm(\'' + s.id + '\')" style="color:var(--perdido,#a33);cursor:pointer;padding:2px 6px;flex-shrink:0" title="Excluir">✕</span></div>';
+  }).join('');
+  var selimAtual = o.selim.historico[0]; // unshift — mais recente primeiro
+  var selimAtualHTML = selimAtual ?
+    '<div style="margin-bottom:10px;display:flex;justify-content:space-between;align-items:flex-start">' +
+    '<div>' +
+    '<div style="font-family:DM Mono,monospace;font-size:9px;letter-spacing:1px;color:var(--muted)">MARCAÇÃO ATUAL DO CANOTE</div>' +
+    '<div style="font-family:Bebas Neue,sans-serif;font-size:28px;color:var(--text);line-height:1.2">' + escHtml(selimAtual.marcacao) + '</div>' +
+    '<div style="font-family:DM Mono,monospace;font-size:10px;color:var(--muted)">desde ' + new Date(selimAtual.data).toLocaleDateString('pt-BR') + (selimAtual.obs ? ' — ' + escHtml(selimAtual.obs) : '') + '</div>' +
+    '</div>' +
+    '<span onclick="bikeSelimExcluirConfirm(\'' + selimAtual.id + '\')" style="color:var(--perdido,#a33);cursor:pointer;padding:2px 6px;flex-shrink:0" title="Excluir">✕</span>' +
+    '</div>' :
+    '<p style="font-family:DM Sans,sans-serif;font-size:12px;color:var(--muted);margin:0 0 10px">Nenhuma marcação registrada ainda.</p>';
+
+  var selimHTML = '<div style="background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:10px">' +
+    '<div style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;color:var(--muted);margin-bottom:8px">ALTURA DO SELIM</div>' +
+    '<p style="font-family:DM Sans,sans-serif;font-size:11px;color:var(--muted);margin:0 0 10px">Referência de fit lida nas marcações do canote — pra reconstruir a posição depois de mexer no selim ou desmontar. Sem km, sem vida útil.</p>' +
+    selimAtualHTML +
+    '<button onclick="bikeSelimPrompt()" style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;padding:8px 14px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text);cursor:pointer;margin-bottom:' + (selimHist ? '12px' : '0') + '">REGISTRAR ALTURA</button>' +
+    (selimHist ? '<div style="font-family:DM Mono,monospace;font-size:9px;letter-spacing:1px;color:var(--muted);margin-bottom:2px">HISTÓRICO</div>' + selimHist : '') +
+    '</div>';
+
   return '<div style="margin:12px 0 20px">' +
     '<div style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:2px;color:var(--muted);margin-bottom:8px">ROLAMENTOS</div>' +
     headsetHTML +
     bbHTML +
+    '</div>' +
+    '<div style="margin:12px 0 20px">' +
+    '<div style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:2px;color:var(--muted);margin-bottom:8px">POSIÇÃO</div>' +
+    selimHTML +
     '</div>';
+}
+
+function bikeSelimPrompt() {
+  _bikeRolamentosInit();
+  var atual = state.bikeOdo.selim.historico[0];
+  var title = document.getElementById('modal-title');
+  var body = document.getElementById('modal-body');
+  var confirmBtn = document.getElementById('modal-confirm');
+  if (title) title.textContent = 'ALTURA DO SELIM';
+  if (body) body.innerHTML =
+    '<p style="font-family:DM Sans,sans-serif;font-size:12px;color:var(--muted);margin:0 0 10px">Marcação lida no canote. Aceita qualquer formato — número, mm, ou o que estiver gravado.</p>' +
+    (atual ? '<div style="font-family:DM Sans,sans-serif;font-size:13px;color:var(--text);background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin:0 0 14px">Atual: <b>' + escHtml(atual.marcacao) + '</b> desde ' + new Date(atual.data).toLocaleDateString('pt-BR') + '</div>' : '') +
+    '<label style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;color:var(--muted)">DATA (dd/mm/aaaa)</label>' +
+    '<div style="display:flex;gap:6px;margin:4px 0 8px">' +
+    '<input id="selim-data" type="text" inputmode="numeric" value="' + new Date().toLocaleDateString('pt-BR') + '" style="flex:1;box-sizing:border-box;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:DM Mono,monospace">' +
+    '<button type="button" onclick="toggleDatepickerInline(\'selim\',\'selim-dp-wrap\')" title="Abrir calendário" style="padding:0 14px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);cursor:pointer;font-size:16px">&#128197;</button>' +
+    '</div>' +
+    '<div id="selim-dp-wrap" style="display:none;margin:0 0 12px">' + datepickerInlineHTML('selim', 'selim-data') + '</div>' +
+    '<label style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;color:var(--muted)">MARCAÇÃO DO CANOTE</label>' +
+    '<input id="selim-marcacao" type="text" value="' + (atual ? escHtml(atual.marcacao) : '') + '" placeholder="Ex: 12.5" style="display:block;width:100%;box-sizing:border-box;margin:4px 0 12px;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:DM Mono,monospace">' +
+    '<input id="selim-obs" type="text" placeholder="Observação (opcional — ex: motivo do ajuste)" style="display:block;width:100%;box-sizing:border-box;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:DM Sans,sans-serif;font-size:12px;margin-bottom:10px">' +
+    '<button onclick="bikeSelimAplicar()" style="display:block;width:100%;font-family:DM Mono,monospace;font-size:11px;padding:10px;border-radius:8px;border:none;background:var(--accent);color:#000;cursor:pointer">REGISTRAR</button>';
+  if (confirmBtn) confirmBtn.style.display = 'none';
+  document.getElementById('modal').classList.add('open');
+}
+
+function bikeSelimAplicar() {
+  _bikeRolamentosInit();
+  var dataStr = (document.getElementById('selim-data').value || '').trim();
+  var dm = dataStr.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (!dm) { toast('Data inválida — use dd/mm/aaaa'); return; }
+  var marcacao = (document.getElementById('selim-marcacao').value || '').trim();
+  if (!marcacao) { toast('Informe a marcação do canote'); return; }
+  var obsEl = document.getElementById('selim-obs');
+  pushUndo('Registrar altura do selim');
+  state.bikeOdo.selim.historico.unshift({
+    id: uid(),
+    data: new Date(parseInt(dm[3]), parseInt(dm[2]) - 1, parseInt(dm[1])).toISOString(),
+    marcacao: marcacao,
+    obs: (obsEl && obsEl.value.trim()) || ''
+  });
+  saveState();
+  closeModal();
+  renderBikeTab();
+  toast('Altura do selim registrada ✓');
+}
+
+function bikeSelimExcluirConfirm(id) {
+  var s = state.bikeOdo.selim.historico.find(function(x) { return x.id === id; });
+  if (!s) return;
+  var title = document.getElementById('modal-title');
+  var body = document.getElementById('modal-body');
+  var confirmBtn = document.getElementById('modal-confirm');
+  if (title) title.textContent = 'EXCLUIR REGISTRO DE ALTURA';
+  if (body) body.innerHTML =
+    '<p style="font-family:DM Sans,sans-serif;font-size:13px;color:var(--text);margin:0 0 4px">Excluir o registro de <b>' + escHtml(s.marcacao) + '</b> de ' + new Date(s.data).toLocaleDateString('pt-BR') + '?</p>' +
+    '<p style="font-family:DM Sans,sans-serif;font-size:11px;color:var(--muted);margin:0 0 14px">Se for engano, dá pra reverter logo em seguida pelo botão ↩ de desfazer no topo.</p>' +
+    '<button onclick="bikeSelimExcluirAplicar(\'' + id + '\')" style="display:block;width:100%;font-family:DM Mono,monospace;font-size:11px;padding:10px;border-radius:8px;border:none;background:var(--perdido,#a33);color:#fff;cursor:pointer">EXCLUIR</button>';
+  if (confirmBtn) confirmBtn.style.display = 'none';
+  document.getElementById('modal').classList.add('open');
+}
+
+function bikeSelimExcluirAplicar(id) {
+  pushUndo('Excluir registro de altura do selim');
+  state.bikeOdo.selim.historico = state.bikeOdo.selim.historico.filter(function(x) { return x.id !== id; });
+  saveState();
+  closeModal();
+  renderBikeTab();
+  toast('Registro excluído ✓');
 }
 
 function bikeRolamentoInstalacaoPrompt(tipo) {
@@ -7436,6 +7639,31 @@ function _bikeFreiosInit() {
   if (!o.dot) o.dot = { intervaloDias: 365, trocas: [] };
   if (!o.dot.trocas) o.dot.trocas = [];
   if (o.dot.intervaloDias === undefined || o.dot.intervaloDias === null) o.dot.intervaloDias = 365;
+
+  // Migração: a pastilha era a última peça ainda ancorada na km BRUTA do odômetro. Todo o
+  // resto já usa a escala COMBINADA (total + uso anterior estimado). Aqui as âncoras, as
+  // medições e o histórico são convertidos somando o uso anterior — mesmo padrão de
+  // _migracaoRolamentoKmCombinadoV1. Âncora 0 (peça original da bike) não é convertida:
+  // continua acompanhando a km total, que já inclui o uso anterior.
+  if (!o._migracaoPastilhaKmCombinadoV1) {
+    var usoAnteriorMigPast = _bikeUsoAnteriorEstimado() || 0;
+    ['dianteira', 'traseira'].forEach(function(pos) {
+      var comp = o.freios[pos] && o.freios[pos].pastilha;
+      if (!comp) return;
+      if (comp.kmInstalacaoTotal !== null && comp.kmInstalacaoTotal !== 0) {
+        comp.kmInstalacaoTotal = Math.round((comp.kmInstalacaoTotal + usoAnteriorMigPast) * 10) / 10;
+        (comp.medicoes || []).forEach(function(m) {
+          m.kmIndividual = Math.round((m.kmIndividual + usoAnteriorMigPast) * 10) / 10;
+        });
+      }
+      (comp.anteriores || []).forEach(function(a) {
+        if (a.kmInstalacaoTotal !== null && a.kmInstalacaoTotal !== 0) {
+          a.kmRodados = Math.round((a.kmRodados + usoAnteriorMigPast) * 10) / 10;
+        }
+      });
+    });
+    o._migracaoPastilhaKmCombinadoV1 = true;
+  }
 }
 
 function _bikeFreioComp(pos, tipo) {
@@ -7467,10 +7695,14 @@ function _bikeFreioLabel(tipo) {
   return tipo === 'disco' ? 'Disco' : 'Pastilha';
 }
 
+// Km individual da pastilha = km combinado atual - âncora de instalação (também combinada).
+// A pastilha fica na pinça, presa ao quadro/garfo — NÃO acompanha o jogo de rodas (quem
+// acompanha é o disco, que é preso à roda). Por isso não tem kmAcumulado/sessão: escala
+// combinada direta, igual à coroa.
 function _bikeFreioKm(pos, tipo) {
   var comp = _bikeFreioComp(pos, tipo);
   if (!comp || comp.kmInstalacaoTotal === null) return 0;
-  return Math.round((state.bikeOdo.total - comp.kmInstalacaoTotal) * 10) / 10;
+  return Math.round((_bikeCombinadoAtual() - comp.kmInstalacaoTotal) * 10) / 10;
 }
 
 function _bikeFreioUltimaEspessura(pos, tipo) {
@@ -7624,13 +7856,16 @@ function renderBikeFreiosHTML() {
         var kmAtual = _bikeFreioKm(pos, tipo);
         var ultimaEsp = _bikeFreioUltimaEspessura(pos, tipo);
         var dinamica = _bikeFreioDinamica(pos, tipo);
-        var dataInst = new Date(comp.dataInstalacao).toLocaleDateString('pt-BR');
+        var temEstimativaPast = _bikeUsoAnteriorEstimado() !== null;
+        var instaladoTxtPast = comp.kmInstalacaoTotal === 0 ?
+          'Original da bicicleta — acompanha a km total dela' :
+          'Trocada em ' + new Date(comp.dataInstalacao).toLocaleDateString('pt-BR') + ' (bike com ' + (Math.round(comp.kmInstalacaoTotal * 10) / 10) + 'km combinado)';
         corpoHTML =
           '<input value="' + escHtml(comp.nome || label) + '" placeholder="' + label + '" onchange="bikeFreioRenomear(\'' + pos + '\',\'' + tipo + '\',this.value)" style="display:block;width:100%;box-sizing:border-box;margin:0 0 10px;padding:4px 2px;border:none;border-bottom:1px solid var(--border);background:transparent;color:var(--text);font-family:DM Sans,sans-serif;font-size:15px;font-weight:600">' +
           '<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:10px">' +
           '<div style="flex:1;min-width:100px">' +
           '<div style="font-family:DM Mono,monospace;font-size:9px;letter-spacing:1px;color:var(--muted)">IDADE</div>' +
-          '<div style="font-family:Bebas Neue,sans-serif;font-size:26px;color:var(--text);line-height:1.2">' + _bikeKmDisplay(kmAtual, comp.dataInstalacao, comp.kmInstalacaoTotal) + '<span style="font-size:12px"> km</span></div>' +
+          '<div style="font-family:Bebas Neue,sans-serif;font-size:26px;color:var(--text);line-height:1.2">' + (temEstimativaPast ? '≈' : '') + kmAtual + '<span style="font-size:12px"> km</span></div>' +
           '</div>' +
           '<div style="flex:1;min-width:100px">' +
           '<div style="font-family:DM Mono,monospace;font-size:9px;letter-spacing:1px;color:var(--muted)">ESPESSURA ATUAL</div>' +
@@ -7639,7 +7874,7 @@ function renderBikeFreiosHTML() {
           '</div>' +
           '<div style="font-family:DM Mono,monospace;font-size:10px;color:var(--muted);margin:0 0 8px">Espessura nova (fábrica): <span onclick="bikeFreioNovaPrompt(\'' + pos + '\',\'' + tipo + '\')" style="color:var(--accent);text-decoration:underline;cursor:pointer">' + (comp.espessuraNova !== null && comp.espessuraNova !== undefined ? comp.espessuraNova + 'mm' : 'não informada') + '</span></div>' +
           _bikeVidaUtilLinhaHTML('DINÂMICO — mínima <span onclick="bikeFreioMinimaPrompt(\'' + pos + '\',\'' + tipo + '\')" style="color:var(--accent);text-decoration:underline;cursor:pointer">' + comp.espessuraMinima + 'mm</span>', dinamica) +
-          '<div onclick="bikeFreioInstalacaoPrompt(\'' + pos + '\',\'' + tipo + '\')" style="font-family:DM Mono,monospace;font-size:10px;color:var(--muted);margin:10px 0;cursor:pointer;border-bottom:1px dotted var(--border);display:inline-block">Instalado em ' + dataInst + ' (bike com ' + (Math.round(comp.kmInstalacaoTotal * 10) / 10) + 'km)</div>' +
+          '<div onclick="bikeFreioInstalacaoPrompt(\'' + pos + '\',\'' + tipo + '\')" style="font-family:DM Mono,monospace;font-size:10px;color:var(--muted);margin:10px 0;cursor:pointer;border-bottom:1px dotted var(--border);display:inline-block">' + instaladoTxtPast + '</div>' +
           '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:' + (medicoesHTML || anterioresHTML ? '12px' : '0') + '">' +
           '<button onclick="bikeFreioMedicaoPrompt(\'' + pos + '\',\'' + tipo + '\')" style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;padding:8px 14px;border-radius:8px;border:none;background:var(--accent);color:#000;cursor:pointer">REGISTRAR MEDIÇÃO</button>' +
           '<button onclick="bikeFreioTrocarPrompt(\'' + pos + '\',\'' + tipo + '\')" style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;padding:8px 14px;border-radius:8px;border:1px solid var(--perdido,#a33);background:transparent;color:var(--muted);cursor:pointer">TROCAR ' + label.toUpperCase() + '</button>' +
@@ -7778,37 +8013,63 @@ function bikeDotTrocaExcluirAplicar(id) {
 function bikeFreioInstalacaoPrompt(pos, tipo) {
   var comp = _bikeFreioComp(pos, tipo);
   var label = _bikeFreioLabel(tipo);
-  var totalAtual = Math.round(state.bikeOdo.total * 10) / 10;
-  var dataDefault = comp.dataInstalacao ? new Date(comp.dataInstalacao).toLocaleDateString('pt-BR') : new Date().toLocaleDateString('pt-BR');
-  var kmDefault = comp.kmInstalacaoTotal !== null ? Math.round(comp.kmInstalacaoTotal * 10) / 10 : 0;
+  var combinadoAtual = _bikeCombinadoAtual();
+  var opcaoAtual = (comp.kmInstalacaoTotal === 0) ? 'original' : 'trocado';
+  var dataDefault = (opcaoAtual === 'trocado' && comp.dataInstalacao) ? new Date(comp.dataInstalacao).toLocaleDateString('pt-BR') : new Date().toLocaleDateString('pt-BR');
+  var kmDefault = (opcaoAtual === 'trocado' && comp.kmInstalacaoTotal !== null) ? Math.round(comp.kmInstalacaoTotal * 10) / 10 : combinadoAtual;
   var title = document.getElementById('modal-title');
   var body = document.getElementById('modal-body');
   var confirmBtn = document.getElementById('modal-confirm');
   if (title) title.textContent = (comp.dataInstalacao === null ? 'CADASTRAR ' : 'EDITAR INSTALAÇÃO — ') + label.toUpperCase() + ' ' + pos.toUpperCase();
+
+  function radio(valor, texto) {
+    return '<label style="display:flex;align-items:flex-start;gap:8px;font-family:DM Sans,sans-serif;font-size:12px;color:var(--text);cursor:pointer;margin-bottom:10px">' +
+      '<input type="radio" name="freio-inst-quando" value="' + valor + '" ' + (opcaoAtual === valor ? 'checked' : '') + ' onchange="document.getElementById(\'freio-inst-trocado-wrap\').style.display=(this.value===\'trocado\'?\'block\':\'none\')" style="margin-top:3px">' +
+      '<span>' + texto + '</span>' +
+      '</label>';
+  }
+
   if (body) body.innerHTML =
-    '<label style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;color:var(--muted)">DATA DE INSTALAÇÃO (dd/mm/aaaa)</label>' +
+    '<label style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;color:var(--muted);display:block;margin-bottom:8px">ESSA ' + label.toUpperCase() + ' É:</label>' +
+    radio('original', 'Original da bicicleta — a km dela sempre acompanha a km total da bike') +
+    radio('trocado', 'Trocada — a km dela começa a contar a partir da km da bike na data da troca') +
+    '<div id="freio-inst-trocado-wrap" style="display:' + (opcaoAtual === 'trocado' ? 'block' : 'none') + ';margin:8px 0 0 26px">' +
+    '<label style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;color:var(--muted)">DATA DA TROCA (dd/mm/aaaa)</label>' +
     '<div style="display:flex;gap:6px;margin:4px 0 8px">' +
     '<input id="freio-inst-data" type="text" inputmode="numeric" value="' + dataDefault + '" style="flex:1;box-sizing:border-box;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:DM Mono,monospace">' +
     '<button type="button" onclick="toggleDatepickerInline(\'freioinst\',\'freio-inst-dp-wrap\')" title="Abrir calendário" style="padding:0 14px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);cursor:pointer;font-size:16px">&#128197;</button>' +
     '</div>' +
     '<div id="freio-inst-dp-wrap" style="display:none;margin:0 0 12px">' + datepickerInlineHTML('freioinst', 'freio-inst-data') + '</div>' +
-    '<label style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;color:var(--muted)">KM DA BIKE (TOTAL) NA INSTALAÇÃO</label>' +
+    '<label style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;color:var(--muted)">KM DA BIKE NESSA DATA (COMBINADO)</label>' +
     '<input id="freio-inst-km" type="number" step="0.1" min="0" value="' + kmDefault + '" style="display:block;width:100%;box-sizing:border-box;margin:4px 0 4px;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:DM Mono,monospace">' +
-    '<p style="font-family:DM Sans,sans-serif;font-size:11px;color:var(--muted);margin:0 0 12px">Padrão 0 = ' + label.toLowerCase() + ' original da bike, nunca trocado(a). Se está instalando agora, troque pro valor atual (' + totalAtual + ').</p>' +
-    '<button onclick="bikeFreioInstalacaoAplicar(\'' + pos + '\',\'' + tipo + '\')" style="display:block;width:100%;font-family:DM Mono,monospace;font-size:11px;padding:10px;border-radius:8px;border:none;background:var(--accent);color:#000;cursor:pointer">SALVAR</button>';
+    '<p style="font-family:DM Sans,sans-serif;font-size:11px;color:var(--muted);margin:0 0 12px">Padrão = km combinado de hoje (' + combinadoAtual + '), pra quando a troca é agora. Se foi no passado, ajuste pro valor combinado daquele momento.</p>' +
+    '</div>' +
+    '<button onclick="bikeFreioInstalacaoAplicar(\'' + pos + '\',\'' + tipo + '\')" style="display:block;width:100%;font-family:DM Mono,monospace;font-size:11px;padding:10px;border-radius:8px;border:none;background:var(--accent);color:#000;cursor:pointer;margin-top:8px">SALVAR</button>';
   if (confirmBtn) confirmBtn.style.display = 'none';
   document.getElementById('modal').classList.add('open');
 }
 
 function bikeFreioInstalacaoAplicar(pos, tipo) {
   var comp = _bikeFreioComp(pos, tipo);
-  var dataStr = (document.getElementById('freio-inst-data').value || '').trim();
-  var km = parseFloat(document.getElementById('freio-inst-km').value);
-  var m = dataStr.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
-  if (!m) { toast('Data inválida — use dd/mm/aaaa'); return; }
-  if (isNaN(km) || km < 0) { toast('Km inválido'); return; }
+  var opcaoEl = document.querySelector('input[name="freio-inst-quando"]:checked');
+  var opcao = opcaoEl ? opcaoEl.value : 'trocado';
+
+  var dataISO, km;
+  if (opcao === 'original') {
+    dataISO = state.bikeOdo.dataCompra || new Date().toISOString();
+    km = 0;
+  } else {
+    var dataStr = (document.getElementById('freio-inst-data').value || '').trim();
+    var m = dataStr.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+    if (!m) { toast('Data inválida — use dd/mm/aaaa'); return; }
+    var kmVal = parseFloat(document.getElementById('freio-inst-km').value);
+    if (isNaN(kmVal) || kmVal < 0) { toast('Km inválido'); return; }
+    dataISO = new Date(parseInt(m[3]), parseInt(m[2]) - 1, parseInt(m[1])).toISOString();
+    km = kmVal;
+  }
+
   pushUndo('Instalação ' + _bikeFreioLabel(tipo) + ' ' + pos);
-  comp.dataInstalacao = new Date(parseInt(m[3]), parseInt(m[2]) - 1, parseInt(m[1])).toISOString();
+  comp.dataInstalacao = dataISO;
   comp.kmInstalacaoTotal = km;
   saveState();
   closeModal();
@@ -7925,18 +8186,22 @@ function bikeFreioMedicaoAplicar(pos, tipo) {
 function bikeFreioTrocarPrompt(pos, tipo) {
   var comp = _bikeFreioComp(pos, tipo);
   var label = _bikeFreioLabel(tipo);
+  var combinadoAtual = _bikeCombinadoAtual();
+  var temEstimativa = _bikeUsoAnteriorEstimado() !== null;
   var title = document.getElementById('modal-title');
   var body = document.getElementById('modal-body');
   var confirmBtn = document.getElementById('modal-confirm');
   if (title) title.textContent = 'TROCAR ' + label.toUpperCase() + ' ' + pos.toUpperCase();
   if (body) body.innerHTML =
-    '<p style="font-family:DM Sans,sans-serif;font-size:12px;color:var(--muted);margin:0 0 10px">Arquiva ' + (tipo === 'disco' ? 'o disco' : 'a pastilha') + ' atual (' + _bikeKmDisplay(_bikeFreioKm(pos, tipo), comp.dataInstalacao, comp.kmInstalacaoTotal) + 'km rodados) no histórico e começa a rastrear ' + (tipo === 'disco' ? 'o novo' : 'a nova') + ' do zero.</p>' +
+    '<p style="font-family:DM Sans,sans-serif;font-size:12px;color:var(--muted);margin:0 0 10px">Arquiva a pastilha atual (' + (temEstimativa ? '≈' : '') + _bikeFreioKm(pos, tipo) + 'km rodados) no histórico e começa a rastrear a nova do zero.</p>' +
     '<label style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;color:var(--muted)">DATA DA TROCA (dd/mm/aaaa)</label>' +
     '<div style="display:flex;gap:6px;margin:4px 0 8px">' +
     '<input id="freio-trocar-data" type="text" inputmode="numeric" value="' + new Date().toLocaleDateString('pt-BR') + '" style="flex:1;box-sizing:border-box;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:DM Mono,monospace">' +
     '<button type="button" onclick="toggleDatepickerInline(\'freiotrocar\',\'freio-trocar-dp-wrap\')" title="Abrir calendário" style="padding:0 14px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);cursor:pointer;font-size:16px">&#128197;</button>' +
     '</div>' +
     '<div id="freio-trocar-dp-wrap" style="display:none;margin:0 0 12px">' + datepickerInlineHTML('freiotrocar', 'freio-trocar-data') + '</div>' +
+    '<label style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;color:var(--muted)">KM DA BIKE NESSA DATA (COMBINADO)</label>' +
+    '<input id="freio-trocar-km" type="number" step="0.1" min="0" value="' + combinadoAtual + '" style="display:block;width:100%;box-sizing:border-box;margin:4px 0 12px;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:DM Mono,monospace">' +
     '<label style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;color:var(--muted)">NOME DA NOVA ' + label.toUpperCase() + '</label>' +
     '<input id="freio-trocar-nome" type="text" value="' + escHtml(comp.nome || label) + '" style="display:block;width:100%;box-sizing:border-box;margin:4px 0 12px;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:DM Sans,sans-serif">' +
     '<input id="freio-trocar-obs" type="text" placeholder="Observação (opcional — ex: marca/modelo)" style="display:block;width:100%;box-sizing:border-box;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:DM Sans,sans-serif;font-size:12px;margin-bottom:10px">' +
@@ -7952,11 +8217,11 @@ function bikeFreioTrocarAplicar(pos, tipo) {
   var dm = dataStr.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
   if (!dm) { toast('Data inválida — use dd/mm/aaaa'); return; }
   var dataISO = new Date(parseInt(dm[3]), parseInt(dm[2]) - 1, parseInt(dm[1])).toISOString();
-  var estimativa = bikeEstimarKmNaData(dataISO);
-  var kmNaData = estimativa ? Math.round(estimativa.km * 10) / 10 : state.bikeOdo.total;
+  var kmNaData = parseFloat(document.getElementById('freio-trocar-km').value);
+  if (isNaN(kmNaData) || kmNaData < 0) { toast('Km inválido'); return; }
   var nomeNovo = (document.getElementById('freio-trocar-nome').value || '').trim() || _bikeFreioLabel(tipo);
   var obsEl = document.getElementById('freio-trocar-obs');
-  var kmRodados = _bikeKmMelhorEstimativa(_bikeFreioKm(pos, tipo), comp.kmInstalacaoTotal);
+  var kmRodados = _bikeFreioKm(pos, tipo);
   pushUndo('Trocar ' + _bikeFreioLabel(tipo) + ' ' + pos);
   if (!comp.anteriores) comp.anteriores = [];
   comp.anteriores.push({
@@ -10018,26 +10283,13 @@ function _bikeRodaAtual(pos) {
   return jogo ? jogo[pos] : null;
 }
 
-// Km individual de um componente com sessão (pneu ou cubo) — igual à corrente: acumulado
-// de sessões anteriores + (se o jogo estiver ativo) o trecho da sessão atual.
-function _bikeCompKm(comp, jogoAtivo) {
-  if (!comp) return 0;
-  if (jogoAtivo && comp.kmInicioSessaoAtual !== null && comp.kmInicioSessaoAtual !== undefined) {
-    return Math.round((comp.kmAcumulado + (state.bikeOdo.total - comp.kmInicioSessaoAtual)) * 10) / 10;
-  }
-  return Math.round((comp.kmAcumulado || 0) * 10) / 10;
-}
-
-function _bikeCompCongelar(comp) {
-  if (!comp) return;
-  comp.kmAcumulado = _bikeCompKm(comp, true);
-  comp.kmInicioSessaoAtual = null;
-}
-
-function _bikeCompRetomar(comp) {
-  if (!comp) return;
-  comp.kmInicioSessaoAtual = state.bikeOdo.total;
-}
+// NOTA: aqui existiam _bikeCompKm / _bikeCompCongelar / _bikeCompRetomar, helpers genéricos
+// de sessão que trabalhavam na km BRUTA do odômetro. Depois que todos os componentes
+// migraram para a escala COMBINADA, cada um passou a ter sua própria versão
+// (_bikeRodaDiscoCongelar, _bikeRodaCuboCongelar, _bikeCasseteCongelar, ...) e as genéricas
+// ficaram sem chamador — mas continuaram no arquivo, e o fluxo de MOVER disco ainda as
+// usava, inflando a km do disco em exatamente o uso anterior estimado a cada movimentação.
+// Foram removidas de propósito: reintroduzi-las traria o mesmo bug de volta.
 
 // Dias desde a última aplicação de selante numa roda — null se nunca registrada.
 function _bikeRodaSelanteDiasDesde(pos) {
@@ -11574,16 +11826,20 @@ function bikeRodaDiscoMoverConfirmar(pos) {
 
   // Congela cada disco no estado em que estava (idempotente — só faz diferença se
   // realmente tinha uma sessão ativa rodando).
-  _bikeCompCongelar(jogoOrigem[pos].disco);
-  _bikeCompCongelar(jogoDestino[pos].disco);
+  // Usa as versões específicas do disco, que trabalham na escala COMBINADA. Antes aqui
+  // chamava _bikeCompCongelar/_bikeCompRetomar, que gravam a âncora de sessão na km BRUTA
+  // — mas _bikeRodaDiscoKm lê subtraindo de _bikeCombinadoAtual(). O descasamento fazia a
+  // km do disco saltar exatamente o valor do uso anterior estimado a cada movimentação.
+  _bikeRodaDiscoCongelar(jogoOrigem, pos);
+  _bikeRodaDiscoCongelar(jogoDestino, pos);
 
   var temp = jogoOrigem[pos].disco;
   jogoOrigem[pos].disco = jogoDestino[pos].disco;
   jogoDestino[pos].disco = temp;
 
   // Retoma cada disco de acordo com o status do jogo em que ele ficou agora.
-  if (jogoOrigem.status === 'ativo') _bikeCompRetomar(jogoOrigem[pos].disco);
-  if (jogoDestino.status === 'ativo') _bikeCompRetomar(jogoDestino[pos].disco);
+  if (jogoOrigem.status === 'ativo') _bikeRodaDiscoRetomar(jogoOrigem, pos);
+  if (jogoDestino.status === 'ativo') _bikeRodaDiscoRetomar(jogoDestino, pos);
 
   saveState();
   closeModal();
@@ -13097,8 +13353,11 @@ function irParaTreino(dayKey, serieLabel, callbackOrChatOpen) {
   var existingBike = container.querySelector('.bike-section-wrap');
   if (existingBike) existingBike.remove();
   var bikeTemDia = _bikeTemDia(dayKey);
-  var status = (state.plano.diasStatus && state.plano.diasStatus[dayKey]) || 'pendente';
-  if (bikeTemDia && status !== 'concluido') {
+  // Antes havia um "&& status !== 'concluido'" aqui: ao concluir a musculação, a janela de
+  // pedal sumia do dia expandido. Como a lista da agenda também omite a seção quando o dia
+  // está expandido (ela é anexada por aqui), não sobrava lugar nenhum pra registrar o pedal
+  // num dia em que se treinou E pedalou. Concluir o treino não diz nada sobre ter pedalado.
+  if (bikeTemDia) {
     var bikeInfo = state.plano.diasBike && state.plano.diasBike[dayKey];
     var hoje2 = new Date(); hoje2.setHours(0,0,0,0);
     var diaChegouBike = false;
