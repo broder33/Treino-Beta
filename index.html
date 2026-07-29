@@ -1410,7 +1410,7 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
     <button id="undo-btn" onclick="undoAction()" title="Nada para desfazer" disabled style="font-family:'DM Mono',monospace;font-size:11px;background:none;border:1px solid var(--border);color:var(--muted);border-radius:4px;padding:3px 10px;cursor:default;opacity:0.3;transition:opacity .2s">↩</button>
     <button class="btn btn-header-only" onclick="exportData()">EXPORTAR</button>
     <button class="btn btn-header-only" onclick="importData()">IMPORTAR</button>
-    <span style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted);margin-left:4px">v0.9.1.23</span>
+    <span style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted);margin-left:4px">v0.9.1.25</span>
     <div id="auth-status" style="display:flex;align-items:center;margin-left:4px"></div>
 
     <div class="mobile-menu-wrap" id="mobile-menu-wrap">
@@ -1421,6 +1421,7 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
         <button class="mobile-menu-item mobile-only" onclick="importData();closeMobileMenu()">IMPORTAR</button>
         <div style="height:1px;background:var(--border);margin:4px 0"></div>
         <button class="mobile-menu-item" onclick="syncFromCloud();closeMobileMenu()">SINCRONIZAR COM A NUVEM</button>
+        <button class="mobile-menu-item" onclick="pushToCloud();closeMobileMenu()">ENVIAR PARA A NUVEM</button>
         <div style="height:1px;background:var(--border);margin:4px 0"></div>
         <button class="mobile-menu-item" onclick="limparChatInlineDiasPassados(false);closeMobileMenu()">LIMPAR CHAT — DIAS PASSADOS</button>
         <button class="mobile-menu-item" onclick="limparChatInlineDiasPassados(true);closeMobileMenu()">LIMPAR CHAT — SEMANAS ANTERIORES</button>
@@ -15200,6 +15201,90 @@ function formatTS(iso) {
     d.toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit',second:'2-digit'});
 }
 
+// Espelho do syncFromCloud: força o LOCAL a subir pra nuvem. Existe porque supabaseLoad()
+// não empurra nada quando o local é mais novo — só baixa. Se um upload se perdeu (app
+// fechado dentro do debounce de 2s, falha de rede engolida no catch), o aparelho ficava
+// com o dado bom preso, sem nenhuma forma de mandá-lo pra cima.
+async function pushToCloud() {
+  if (!_supabaseUser) { toast('Faça login para sincronizar'); return; }
+  try {
+    var dbp = getSbClient(); if (!dbp) throw new Error('sem cliente Supabase');
+    var res = await supabaseWithTimeout(() =>
+      dbp.from('user_data').select('updated_at').eq('id', _supabaseUser.id).limit(1),
+      8000);
+    if (res.error) throw res.error;
+
+    var cloudUpdatedAt = (res.data && res.data.length) ? res.data[0].updated_at : null;
+    var localUpdatedAt = state._updatedAt || null;
+    var localNewer = cloudUpdatedAt && localUpdatedAt
+      ? new Date(localUpdatedAt) > new Date(cloudUpdatedAt)
+      : true;
+
+    var aviso = localNewer
+      ? '⬆ Seus dados locais são mais recentes. A nuvem será substituída por esta versão.'
+      : '⚠️ A nuvem é MAIS RECENTE que este aparelho. Enviar vai substituir a versão da nuvem por esta, que é mais antiga.';
+
+    document.getElementById('modal-title').textContent = 'ENVIAR PARA A NUVEM';
+    document.getElementById('modal-body').innerHTML =
+      '<div style="display:flex;flex-direction:column;gap:10px">' +
+        '<div style="display:flex;justify-content:space-between;font-family:DM Mono,monospace;font-size:11px;background:var(--surface2);border-radius:8px;padding:10px 14px;gap:10px">' +
+          '<span style="color:var(--muted);flex-shrink:0">Conta</span>' +
+          '<span style="color:var(--muted);word-break:break-all;text-align:right">' + escHtml(_supabaseUser.email || _supabaseUser.id) + '</span>' +
+        '</div>' +
+        '<div style="display:flex;justify-content:space-between;font-family:DM Mono,monospace;font-size:12px;background:var(--surface2);border-radius:8px;padding:10px 14px">' +
+          '<span style="color:var(--muted)">Local (será enviado)</span>' +
+          '<span style="color:' + (localNewer ? 'var(--accent)' : 'var(--partial)') + '">' + formatTS(localUpdatedAt) + '</span>' +
+        '</div>' +
+        '<div style="display:flex;justify-content:space-between;font-family:DM Mono,monospace;font-size:12px;background:var(--surface2);border-radius:8px;padding:10px 14px">' +
+          '<span style="color:var(--muted)">☁ Nuvem (será substituída)</span>' +
+          '<span style="color:var(--muted)">' + formatTS(cloudUpdatedAt) + '</span>' +
+        '</div>' +
+        '<div style="font-size:12px;color:' + (localNewer ? 'var(--accent3)' : 'var(--partial)') + ';line-height:1.5;padding:4px 2px">' + aviso + '</div>' +
+      '</div>';
+
+    modalCallback = async function() {
+      closeModal();
+      toast('Enviando…');
+      // carimba como edição atual pra garantir que a nuvem fique estritamente mais nova
+      state._updatedAt = new Date().toISOString();
+      try {
+        var dbp2 = getSbClient();
+        var up = await supabaseWithTimeout(() =>
+          dbp2.from('user_data').upsert({
+            id: _supabaseUser.id,
+            state: JSON.parse(JSON.stringify(state)),
+            updated_at: state._updatedAt
+          }), 15000);
+        if (up.error) throw up.error;
+        saveState(true);
+        toast('Enviado para a nuvem ✓');
+      } catch(err) {
+        console.warn('pushToCloud error:', err);
+        toast('FALHOU: ' + (err.message || err));
+      }
+    };
+    document.getElementById('modal-confirm').onclick = modalCallback;
+    document.getElementById('modal').classList.add('open');
+
+  } catch(e) {
+    console.warn('pushToCloud error:', e);
+    toast('Erro: ' + (e.message || e));
+  }
+}
+
+// No celular o SO congela a página ao mandar o app pro fundo, e o setTimeout de 2s do
+// debounce nunca dispara — o upload se perde em silêncio. Aqui ele é forçado na saída.
+function flushSyncPendente() {
+  if (!_syncTimeout) return;
+  clearTimeout(_syncTimeout);
+  _syncTimeout = null;
+  supabaseSave();
+}
+window.addEventListener('pagehide', flushSyncPendente);
+document.addEventListener('visibilitychange', function() {
+  if (document.hidden) flushSyncPendente();
+});
+
 async function syncFromCloud() {
   if (!_supabaseUser) { toast('Faça login para sincronizar'); return; }
 
@@ -15607,7 +15692,9 @@ loadPersistedState(function() {
   // Register Service Worker for PWA
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', function() {
-      navigator.serviceWorker.register('./sw.js').then(function(reg) {
+      // updateViaCache:'none' — o próprio sw.js nunca vem do cache HTTP, senão a correção
+      // de cache pode nunca chegar ao aparelho que está preso numa versão antiga.
+      navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' }).then(function(reg) {
         reg.update();
         // When a new SW is waiting, force it to activate immediately
         reg.addEventListener('updatefound', function() {
