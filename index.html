@@ -1410,7 +1410,7 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
     <button id="undo-btn" onclick="undoAction()" title="Nada para desfazer" disabled style="font-family:'DM Mono',monospace;font-size:11px;background:none;border:1px solid var(--border);color:var(--muted);border-radius:4px;padding:3px 10px;cursor:default;opacity:0.3;transition:opacity .2s">↩</button>
     <button class="btn btn-header-only" onclick="exportData()">EXPORTAR</button>
     <button class="btn btn-header-only" onclick="importData()">IMPORTAR</button>
-    <span style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted);margin-left:4px">v0.9.1.20</span>
+    <span style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted);margin-left:4px">v0.9.1.22</span>
     <div id="auth-status" style="display:flex;align-items:center;margin-left:4px"></div>
 
     <div class="mobile-menu-wrap" id="mobile-menu-wrap">
@@ -15150,9 +15150,46 @@ function scheduleSyncToSupabase() {
   if (!_supabaseLoadComplete) return; // never upload before initial cloud load finishes
   if (_syncTimeout) clearTimeout(_syncTimeout);
   _syncTimeout = setTimeout(function() {
+    _syncTimeout = null;
     supabaseSave();
   }, 2000);
 }
+
+// A leitura da nuvem só acontecia no boot (supabaseInit). Uma aba deixada aberta — típico
+// no desktop, que raramente é fechado — nunca mais consultava a nuvem, então alterações
+// feitas no PWA não apareciam ali até um F5 manual. Aqui a checagem é refeita sempre que a
+// aba volta ao foco / fica visível / a rede volta.
+// Usa o MESMO supabaseLoad() do boot, que só baixa se a nuvem for ESTRITAMENTE mais recente
+// que o local — nunca sobrescreve alteração local mais nova.
+var _repullEmAndamento = false;
+async function supabaseRepullSeVisivel() {
+  if (document.hidden) return;
+  if (!_supabaseUser || !_supabaseLoadComplete) return;
+  if (_repullEmAndamento) return;
+  if (_syncTimeout) return; // edição local ainda não subiu — deixa o upload acontecer antes
+  _repullEmAndamento = true;
+  var antes = state._updatedAt || null;
+  try {
+    await supabaseLoad();
+    if ((state._updatedAt || null) !== antes) {
+      render();
+      renderAgendaLinear();
+      if (typeof renderBikeTab === 'function') renderBikeTab();
+      if (state.planoChatHistory) planoChatHistory = state.planoChatHistory;
+      if (state.planoChatMessages && state.planoChatMessages.length) renderPlanoChatMessages();
+      if (state.planoRascunho || state.plano) renderPlanoMacro(state.planoRascunho || state.plano);
+      toast('Dados atualizados da nuvem ☁');
+    }
+  } catch(e) {
+    console.warn('Repull error:', e);
+  } finally {
+    _repullEmAndamento = false;
+  }
+}
+
+document.addEventListener('visibilitychange', supabaseRepullSeVisivel);
+window.addEventListener('focus', supabaseRepullSeVisivel);
+window.addEventListener('online', supabaseRepullSeVisivel);
 
 function formatTS(iso) {
   if (!iso) return '—';
@@ -15521,7 +15558,13 @@ loadPersistedState(function() {
     if (rascunhoSemanas.length === planoSemanas.length) {
       // Likely already applied — clear it
       state.planoRascunho = null;
-      saveState();
+      // saveState(true): limpeza interna de boot, NÃO é edição do usuário. Com saveState()
+      // normal isso carimbava state._updatedAt = agora a CADA carregamento, antes de
+      // supabaseInit() rodar (500ms depois). Resultado: o local sempre parecia mais novo que
+      // a nuvem, supabaseLoad() nunca baixava nada, e nem hard reload resolvia — porque o
+      // reload re-carimbava o timestamp de novo. fromCloud=true persiste local sem mexer no
+      // _updatedAt e sem agendar upload.
+      saveState(true);
     }
   }
   // Restore planoRascunho panel on init
