@@ -1410,7 +1410,7 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
     <button id="undo-btn" onclick="undoAction()" title="Nada para desfazer" disabled style="font-family:'DM Mono',monospace;font-size:11px;background:none;border:1px solid var(--border);color:var(--muted);border-radius:4px;padding:3px 10px;cursor:default;opacity:0.3;transition:opacity .2s">↩</button>
     <button class="btn btn-header-only" onclick="exportData()">EXPORTAR</button>
     <button class="btn btn-header-only" onclick="importData()">IMPORTAR</button>
-    <span style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted);margin-left:4px">v0.9.1.31</span>
+    <span style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted);margin-left:4px">v0.9.1.36</span>
     <div id="auth-status" style="display:flex;align-items:center;margin-left:4px"></div>
 
     <div class="mobile-menu-wrap" id="mobile-menu-wrap">
@@ -1786,6 +1786,26 @@ let modalCallback = null;
 
 function uid() { return 'x' + Math.random().toString(36).slice(2,9); }
 
+// Dia LOCAL de um timestamp, no formato YYYY-MM-DD.
+// Existe porque .toISOString().slice(0,10) devolve o dia em UTC: com o carimbo passando a
+// guardar a hora real, um treino às 22:00 (UTC−3) viraria 01:00Z do DIA SEGUINTE e deixaria
+// de casar com o dia da agenda. Aqui a data é montada a partir dos componentes locais.
+function _diaLocal(d) {
+  var dt = (d instanceof Date) ? d : new Date(d);
+  if (isNaN(dt.getTime())) return '';
+  var m = dt.getMonth() + 1, dia = dt.getDate();
+  return dt.getFullYear() + '-' + (m < 10 ? '0' : '') + m + '-' + (dia < 10 ? '0' : '') + dia;
+}
+
+// Carimbo único de um registro: o DIA vem da agenda, a HORA é a de agora. Se o dia não for
+// conhecido, usa o momento atual inteiro.
+function _carimboNoDia(dataDia) {
+  var agora = new Date();
+  if (!dataDia) return agora.toISOString();
+  return new Date(dataDia.getFullYear(), dataDia.getMonth(), dataDia.getDate(),
+                  agora.getHours(), agora.getMinutes(), agora.getSeconds()).toISOString();
+}
+
 function autoResize(el) {
   el.style.height = 'auto';
   el.style.height = el.scrollHeight + 'px';
@@ -2074,25 +2094,6 @@ function getEx(serieId, exId) {
   return s.exercises.find(e => e.id === exId);
 }
 
-function cycleStatus(serieId, exId) {
-  const ex = getEx(serieId, exId);
-  if (!ex) return;
-  const cycle = { undone: 'partial', partial: 'done', done: 'skipped', skipped: 'undone' };
-  _pendingUndoLabel = 'Status: ' + (ex.name || 'exercício');
-  ex.status = cycle[ex.status] || 'undone';
-  saveState();
-  rerenderSerie(serieId);
-}
-
-function setExStatus(serieId, exId, status) {
-  const ex = getEx(serieId, exId);
-  if (!ex) return;
-  _pendingUndoLabel = 'Status: ' + (ex.name || 'exercício');
-  ex.status = status;
-  saveState();
-  rerenderSerie(serieId);
-}
-
 function updateExField(serieId, exId, field, value) {
   const ex = getEx(serieId, exId);
   if (!ex) return;
@@ -2108,38 +2109,6 @@ function updateSerieName(serieId, value) {
   renderTabs();
 }
 
-function getPlanSerie(serieId) {
-  if (!state.plano || !state.plano.seriesData) return null;
-  return state.plano.seriesData[serieId] || null;
-}
-
-function setSerieMode(serieId, planMode) {
-  if (planMode && !state.plano) { toast('Gere um plano primeiro na aba PLANO'); return; }
-  const s = state.series.find(s => s.id === serieId);
-  s.planMode = planMode;
-  saveState();
-  rerenderSerie(serieId);
-}
-
-function addPlanExercise(serieId) {
-  if (!state.plano || !state.plano.seriesData) return;
-  openModal('NOVO EXERCÍCIO (PLANO)', [
-    { label:'NOME', key:'name', type:'text', placeholder:'Ex: Agachamento Frontal' },
-    { label:'SÉRIES × REPS', key:'sets', type:'text', placeholder:'Ex: 3x8' },
-    { label:'CARGA', key:'weight', type:'text', placeholder:'Ex: 20kg' },
-  ], data => {
-    if (!state.plano.seriesData[serieId]) return;
-    state.plano.seriesData[serieId].exercises.push({
-      id: uid(), name: data.name||'Novo Exercício',
-      sets: data.sets||'3x10', weight: data.weight||'—',
-      notes:'', status:'undone'
-    });
-    saveState();
-    rerenderSerie(serieId);
-    toast('Exercício adicionado ao plano');
-  });
-}
-
 function removePlanExercise(serieId, exId) {
   if (!state.plano || !state.plano.seriesData) return;
   const pd = state.plano.seriesData[serieId];
@@ -2147,58 +2116,6 @@ function removePlanExercise(serieId, exId) {
   pd.exercises = pd.exercises.filter(e => e.id !== exId);
   saveState();
   rerenderSerie(serieId);
-}
-
-function updatePlanExField(serieId, exId, field, value) {
-  if (!state.plano || !state.plano.seriesData) return;
-  const pd = state.plano.seriesData[serieId];
-  if (!pd) return;
-  const ex = pd.exercises.find(e => e.id === exId);
-  if (ex) { ex[field] = value; saveState(); }
-}
-
-function markAll(serieId, status) {
-  const s = state.series.find(s => s.id === serieId);
-  s.exercises.forEach(e => e.status = status);
-  saveState();
-  rerenderSerie(serieId);
-}
-
-function finishSerie(serieId) {
-  const s = state.series.find(s => s.id === serieId);
-  const done = s.exercises.filter(e => e.status === 'done').length;
-  const total = s.exercises.length;
-
-  // Format now as datetime-local default value (YYYY-MM-DDTHH:MM)
-  const now = new Date();
-  const pad = n => String(n).padStart(2,'0');
-  const defaultDate = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`;
-
-  openModal('REGISTRAR NO HISTÓRICO', [
-    { label:'DATA E HORA', key:'date', type:'datetime-local', placeholder:'', default: defaultDate },
-  ], data => {
-    const date = data.date ? new Date(data.date).toISOString() : new Date().toISOString();
-    s.lastDone = date;
-    state.history.unshift({
-      id: uid(),
-      serieId,
-      serieName: s.name,
-      serieLabel: s.label,
-      date,
-      done,
-      total,
-      variant: s.variants[s.activeVariant] || 'Principal'
-    });
-    // Mark skipped exercises as priority for next session, then reset all statuses
-  s.exercises.forEach(ex => {
-    ex.skippedLast = ex.status === 'skipped';
-    ex.status = 'undone';
-  });
-    state.history.sort((a,b) => new Date(b.date) - new Date(a.date));
-    saveState();
-    toast(`Série ${s.label} registrada! ${done}/${total} exercícios ✓`);
-    render();
-  });
 }
 
 function addExercise(serieId) {
@@ -2241,25 +2158,6 @@ function moveEx(serieId, exId, dir) {
   [s.exercises[idx], s.exercises[newIdx]] = [s.exercises[newIdx], s.exercises[idx]];
   saveState();
   rerenderSerie(serieId);
-}
-
-function setVariant(serieId, idx) {
-  const s = state.series.find(s => s.id === serieId);
-  s.activeVariant = idx;
-  saveState();
-  rerenderSerie(serieId);
-}
-
-function addVariant(serieId) {
-  openModal('NOVA VARIANTE', [
-    { label:'NOME DA VARIANTE', key:'name', type:'text', placeholder:'Ex: Variação Pesada' }
-  ], data => {
-    const s = state.series.find(s => s.id === serieId);
-    s.variants.push(data.name || 'Nova Variante');
-    saveState();
-    rerenderSerie(serieId);
-    toast('Variante adicionada');
-  });
 }
 
 function removeSerie(serieId) {
@@ -2460,19 +2358,10 @@ function renderHistory() {
   }
 
   // ── Timeline ──
-  // date é carimbado à MEIA-NOITE do dia da agenda, então treino e pedal do mesmo dia
-  // empatam — e no empate o sort preserva a ordem do array (gym antes de bike), fazendo o
-  // pedal cair abaixo do treino mesmo tendo vindo depois. registeredAt guarda o momento real
-  // do registro e serve de desempate.
+  // Carimbo único: `date` já carrega dia + hora real, então a ordenação é direta.
   var allItems = gymItems.map(function(x) { return { _type:'gym', _date: new Date(x._data.date), _data: x._data, _ciclo: x._ciclo }; })
     .concat(bikeItems.map(function(x) { return { _type:'bike', _date: new Date(x._data.date), _data: x._data, _ciclo: x._ciclo }; }))
-    .sort(function(a, b) {
-      var diff = b._date - a._date;
-      if (diff !== 0) return diff;
-      var ra = a._data.registeredAt ? new Date(a._data.registeredAt).getTime() : a._date.getTime();
-      var rb = b._data.registeredAt ? new Date(b._data.registeredAt).getTime() : b._date.getTime();
-      return rb - ra;
-    });
+    .sort(function(a, b) { return b._date - a._date; });
 
   if (!allItems.length) {
     list.innerHTML = filtrosHTML + infoHTML + '<div style="color:var(--muted);font-family:DM Mono,monospace;font-size:12px;padding:20px 0">Nenhum treino registrado.</div>';
@@ -2492,7 +2381,7 @@ function renderHistory() {
       var diaSemFmt = bd.toLocaleDateString('pt-BR', {weekday:'long'});
       diaSemFmt = diaSemFmt.charAt(0).toUpperCase() + diaSemFmt.slice(1);
       var meta = [b.distancia ? b.distancia+'km' : '', b.tempoMov ? b.tempoMov+' mov.' : (b.tempo||''), b.tempoTotal ? b.tempoTotal+' total' : '', b.velocidade ? b.velocidade+' méd.' : '', b.elevacao ? b.elevacao+'m elev.' : '', b.kcal ? b.kcal+'kcal' : '', b.percurso].filter(Boolean).join(' · ');
-      var regHora = b.registeredAt ? new Date(b.registeredAt).toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit'}) : '';
+      var regHora = bd.toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit'});
       var timing = b.timingReal ? ' · ' + b.timingReal + ' da musculação' : '';
       return '<div class="history-card" style="flex-direction:column;align-items:stretch;border-color:rgba(91,143,255,.35)">' +
         '<div style="display:flex;justify-content:space-between;align-items:flex-start">' +
@@ -2516,7 +2405,7 @@ function renderHistory() {
       var dataFormatada = hd.toLocaleDateString('pt-BR', {day:'2-digit',month:'2-digit',year:'2-digit'});
       var diaSemana = hd.toLocaleDateString('pt-BR', {weekday:'long'});
       var diaSemanaCapit = diaSemana.charAt(0).toUpperCase() + diaSemana.slice(1);
-      var reg = h.registeredAt ? new Date(h.registeredAt).toLocaleDateString('pt-BR', {day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : null;
+      var reg = hd.toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit'});
       var exHTML = '';
       if (h.exercises && h.exercises.length > 0) {
         var rows = h.exercises.map(function(ex) {
@@ -2542,7 +2431,7 @@ function renderHistory() {
         '<div style="font-family:DM Mono,monospace;font-size:11px;color:var(--muted)">' + diaSemanaCapit + '</div>' +
         (showCiclo ? '<div style="font-family:DM Mono,monospace;font-size:10px;color:var(--muted)">' + escHtml(entry._ciclo) + '</div>' : '') +
         '</div>' +
-        '<div class="history-date">' + escHtml(h.variant||'') + (reg ? ' · registrado ' + reg : '') + (hasEx ? ' · ver exercícios' : '') + '</div>' +
+        '<div class="history-date">' + escHtml(h.variant||'') + (reg ? ' · ' + reg : '') + (hasEx ? ' · ver exercícios' : '') + '</div>' +
         '</div>' +
         '<div style="display:flex;align-items:center;gap:10px">' +
         '<span class="history-badge">' + h.done + '/' + h.total + ' exercícios</span>' +
@@ -2790,11 +2679,9 @@ function toggleHistoryEx(id) {
   if (el) el.style.display = el.style.display === 'none' ? 'block' : 'none';
 }
 
-// Edição das datas de um registro do histórico. Os dois campos são independentes por
-// design: `date` é o DIA em que a atividade aconteceu (hora zerada, é o que ordena e o que
-// aparece como data do card) e `registeredAt` é o MOMENTO em que foi registrado (é a hora
-// que aparece no card). Registrar um pedal de madrugada, depois do fato, fazia os dois
-// divergirem sem nenhuma forma de corrigir pela interface — era preciso editar o JSON à mão.
+// Edição do carimbo de um registro do histórico. Um carimbo só: a hora do registro É a
+// hora da atividade, porque o registro é feito ao terminar. Quando isso não é possível
+// (esquecimento, app fora do ar), este ✎ corrige — foi pra isso que ele existe.
 function editHistoryDataPrompt(id, tipo) {
   var arr = tipo === 'bike' ? (state.bikeHistory || []) : (state.history || []);
   var it = arr.find(function(x) { return x.id === id; });
@@ -2802,36 +2689,28 @@ function editHistoryDataPrompt(id, tipo) {
 
   function pad(n) { return (n < 10 ? '0' : '') + n; }
   var d = it.date ? new Date(it.date) : new Date();
+  if (isNaN(d.getTime())) d = new Date();
   var dataStr = pad(d.getDate()) + '/' + pad(d.getMonth() + 1) + '/' + d.getFullYear();
-  var r = it.registeredAt ? new Date(it.registeredAt) : null;
-  var regDataStr = r ? pad(r.getDate()) + '/' + pad(r.getMonth() + 1) + '/' + r.getFullYear() : '';
-  var regHoraStr = r ? pad(r.getHours()) + ':' + pad(r.getMinutes()) : '';
+  var horaStr = pad(d.getHours()) + ':' + pad(d.getMinutes());
 
   var titulo = tipo === 'bike'
-    ? ('🚲 ' + (it.foco || 'Ride'))
+    ? ('\u{1F6B2} ' + (it.foco || 'Ride'))
     : ((it.serieLabel || '') + ' — ' + (it.serieName || ''));
 
-  document.getElementById('modal-title').textContent = 'EDITAR DATAS DO REGISTRO';
+  document.getElementById('modal-title').textContent = 'EDITAR DATA E HORA';
   document.getElementById('modal-body').innerHTML =
     '<p style="font-family:DM Sans,sans-serif;font-size:12px;color:var(--muted);margin:0 0 14px">' + escHtml(titulo) + '</p>' +
 
-    '<label style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;color:var(--muted)">DIA ' + (tipo === 'bike' ? 'DO PEDAL' : 'DO TREINO') + ' (dd/mm/aaaa)</label>' +
+    '<label style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;color:var(--muted)">DATA (dd/mm/aaaa)</label>' +
     '<div style="display:flex;gap:6px;margin:4px 0 4px">' +
     '<input id="edhist-data" type="text" inputmode="numeric" value="' + dataStr + '" style="flex:1;box-sizing:border-box;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:DM Mono,monospace">' +
     '<button type="button" onclick="toggleDatepickerInline(\'edhist\',\'edhist-dp-wrap\')" title="Abrir calendário" style="padding:0 14px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);cursor:pointer;font-size:16px">&#128197;</button>' +
     '</div>' +
     '<div id="edhist-dp-wrap" style="display:none;margin:0 0 8px">' + datepickerInlineHTML('edhist', 'edhist-data') + '</div>' +
-    '<p style="font-family:DM Sans,sans-serif;font-size:11px;color:var(--muted);margin:0 0 14px">É a data que aparece no card e que ordena o histórico.</p>' +
 
-    '<label style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;color:var(--muted)">REGISTRADO EM (dd/mm/aaaa)</label>' +
-    '<div style="display:flex;gap:6px;margin:4px 0 8px">' +
-    '<input id="edhist-regdata" type="text" inputmode="numeric" value="' + regDataStr + '" placeholder="dd/mm/aaaa" style="flex:1;box-sizing:border-box;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:DM Mono,monospace">' +
-    '<button type="button" onclick="toggleDatepickerInline(\'edhistreg\',\'edhistreg-dp-wrap\')" title="Abrir calendário" style="padding:0 14px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);cursor:pointer;font-size:16px">&#128197;</button>' +
-    '</div>' +
-    '<div id="edhistreg-dp-wrap" style="display:none;margin:0 0 8px">' + datepickerInlineHTML('edhistreg', 'edhist-regdata') + '</div>' +
-    '<label style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;color:var(--muted)">HORA DO REGISTRO (hh:mm)</label>' +
-    '<input id="edhist-reghora" type="text" inputmode="numeric" value="' + regHoraStr + '" placeholder="hh:mm" style="display:block;width:100%;box-sizing:border-box;margin:4px 0 4px;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:DM Mono,monospace">' +
-    '<p style="font-family:DM Sans,sans-serif;font-size:11px;color:var(--muted);margin:0 0 14px">É a hora exibida no card. Deixe os dois em branco para remover o carimbo de registro.</p>' +
+    '<label style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;color:var(--muted)">HORA (hh:mm)</label>' +
+    '<input id="edhist-hora" type="text" inputmode="numeric" value="' + horaStr + '" placeholder="hh:mm" style="display:block;width:100%;box-sizing:border-box;margin:4px 0 4px;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:DM Mono,monospace">' +
+    '<p style="font-family:DM Sans,sans-serif;font-size:11px;color:var(--muted);margin:0 0 14px">Quando ' + (tipo === 'bike' ? 'o pedal' : 'o treino') + ' aconteceu. É o que aparece no card e o que ordena o histórico.</p>' +
 
     '<button onclick="editHistoryDataAplicar(\'' + id + '\',\'' + tipo + '\')" style="display:block;width:100%;font-family:DM Mono,monospace;font-size:11px;padding:10px;border-radius:8px;border:none;background:var(--accent);color:#000;cursor:pointer">SALVAR</button>';
 
@@ -2845,34 +2724,20 @@ function editHistoryDataAplicar(id, tipo) {
   var it = arr.find(function(x) { return x.id === id; });
   if (!it) { toast('Registro não encontrado'); return; }
 
-  var dataStr = (document.getElementById('edhist-data').value || '').trim();
-  var dm = dataStr.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
-  if (!dm) { toast('Data do treino inválida — use dd/mm/aaaa'); return; }
+  var dm = (document.getElementById('edhist-data').value || '').trim().match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (!dm) { toast('Data inválida — use dd/mm/aaaa'); return; }
+  var hm = (document.getElementById('edhist-hora').value || '').trim().match(/^(\d{1,2}):(\d{2})$/);
+  if (!hm) { toast('Hora inválida — use hh:mm'); return; }
+  var hh = parseInt(hm[1]), mi = parseInt(hm[2]);
+  if (hh > 23 || mi > 59) { toast('Hora inválida'); return; }
 
-  var regDataStr = (document.getElementById('edhist-regdata').value || '').trim();
-  var regHoraStr = (document.getElementById('edhist-reghora').value || '').trim();
-  var novoRegisteredAt;
-  if (regDataStr === '' && regHoraStr === '') {
-    novoRegisteredAt = null;
-  } else {
-    var rdm = regDataStr.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
-    if (!rdm) { toast('Data do registro inválida — use dd/mm/aaaa'); return; }
-    var rhm = regHoraStr.match(/^(\d{1,2}):(\d{2})$/);
-    if (!rhm) { toast('Hora do registro inválida — use hh:mm'); return; }
-    var hh = parseInt(rhm[1]), mi = parseInt(rhm[2]);
-    if (hh > 23 || mi > 59) { toast('Hora do registro inválida'); return; }
-    novoRegisteredAt = new Date(parseInt(rdm[3]), parseInt(rdm[2]) - 1, parseInt(rdm[1]), hh, mi).toISOString();
-  }
-
-  pushUndo('Editar datas do registro');
-  // hora zerada: `date` representa o DIA da atividade, mantendo a convenção do resto do app
-  it.date = new Date(parseInt(dm[3]), parseInt(dm[2]) - 1, parseInt(dm[1])).toISOString();
-  if (novoRegisteredAt === null) delete it.registeredAt;
-  else it.registeredAt = novoRegisteredAt;
+  pushUndo('Editar data e hora do registro');
+  it.date = new Date(parseInt(dm[3]), parseInt(dm[2]) - 1, parseInt(dm[1]), hh, mi).toISOString();
+  delete it.registeredAt; // carimbo único — campo legado não volta
   saveState();
   closeModal();
   renderHistory();
-  toast('Datas atualizadas ✓');
+  toast('Data e hora atualizadas ✓');
 }
 
 function removeHistoryEntry(id) {
@@ -4172,28 +4037,6 @@ O app resolverá a solicitação e enviará os dados. Então responda normalment
 REGRA: solicite dados apenas quando a pergunta do usuário realmente exigir. Não solicite por precaução.`;
 }
 
-function enviarPlanoAtual() {
-  if (!state.plano || !state.plano.semanas) {
-    toast('Nenhum plano ativo');
-    return;
-  }
-  var diasStatus = state.plano.diasStatus || {};
-  var linhas = state.plano.semanas.map(function(sem) {
-    var dias = (sem.dias || sem.agenda || []).map(function(d) {
-      var key = 'sem' + sem.semana + '_' + d.dia;
-      var status = diasStatus[key] || 'pendente';
-      return '  ' + d.dia + ': ' + (d.serie || 'descanso') + (d.orientacao ? ' — ' + d.orientacao : '') + ' [' + status + ']';
-    }).join('\n');
-    return 'Semana ' + sem.semana + ' (' + (sem.foco || '') + '):\n' + dias;
-  }).join('\n');
-
-  var input = document.getElementById('plano-input');
-  if (input) {
-    input.value = 'Plano macro atual:\n\n' + linhas;
-    input.focus();
-  }
-}
-
 function reorganizarPlanoAPartirDeHoje() {
   if (!state.plano || !state.plano.semanas) {
     toast('Nenhum plano ativo.');
@@ -5455,30 +5298,6 @@ function aplicarPropostaInline(dayKey, serieLabel, btn) {
   }
 }
 
-function abrirChatDia(dayKey, diaNome, semana, serie) {
-  // For workout days with inline chat, use toggleChatInline
-  if (serie && serie !== 'descanso') {
-    toggleChatInline(dayKey, serie);
-    return;
-  }
-  // For rest/aerobic days, open the PLANO chat with context
-  var parts = dayKey.match(/^sem(\d+)_(.+)$/);
-  var semanaObj = state.plano && state.plano.semanas ? state.plano.semanas[semana-1] : null;
-  var diaObj = semanaObj ? (semanaObj.dias || semanaObj.agenda || []).find(function(d) { return d.dia === diaNome; }) : null;
-  var tipo = diaObj ? (diaObj.tipo || 'descanso') : 'descanso';
-  var orientacao = diaObj ? (diaObj.orientacao || '') : '';
-
-  var msg = 'Sobre o dia de ' + (tipo === 'aerobico' ? 'aeróbico' : 'descanso') + ' (' + diaNome + ', semana ' + semana + ')';
-  if (orientacao) msg += ' — orientação atual: ' + orientacao;
-  msg += '. Como posso otimizar este dia?';
-
-  switchTab('ia');
-  setTimeout(function() {
-    var input = document.getElementById('plano-input');
-    if (input) input.value = msg;
-  }, 200);
-}
-
 function toggleChatInline(dayKey, serieLabel) {
   var chat = document.getElementById('chat-inline-' + dayKey);
   if (!chat) return;
@@ -5912,42 +5731,6 @@ async function enviarChatInline(dayKey, serieLabel) {
     if (typing2) typing2.remove();
     addChatInlineMsg(dayKey, 'ai', 'Erro ao contatar a IA. Tente novamente.');
   }
-}
-
-function regenerarDia(dayKey, serieLabel, btn) {
-  // Extract semana and dia from dayKey
-  var match = dayKey.match(/^sem(\d+)_(.+)$/);
-  if (!match) return;
-  var semana = parseInt(match[1]);
-  var dia = match[2];
-
-  var semanaObj = state.plano && state.plano.semanas ? state.plano.semanas[semana-1] : null;
-  var diaObj = semanaObj ? (semanaObj.dias || semanaObj.agenda || []).find(function(d) { return d.dia === dia; }) : null;
-  var orientacao = diaObj ? (diaObj.orientacao || '') : '';
-  var intensidade = semanaObj ? (semanaObj.intensidade || '') : '';
-
-  var s = state.series.find(function(s) { return s.label === serieLabel; });
-  var exList = s ? s.exercises.map(function(e) {
-    return e.id + ' | ' + e.name + ' | ' + e.sets + ' | ' + e.weight;
-  }).join('\n') : '';
-
-  var msg = 'Quero revisar e regenerar o treino de ' + dia + ' (semana ' + semana + ', série ' + serieLabel + ').\n\n' +
-    'Foco da semana: ' + (semanaObj ? semanaObj.foco : '') + '\n' +
-    'Intensidade: ' + intensidade + '\n' +
-    'Orientação do dia: ' + orientacao + '\n\n' +
-    'Biblioteca da série ' + serieLabel + ':\n' + exList + '\n\n' +
-    'Por favor, explique como você montaria o treino ideal para este dia — quais exercícios escolheria, em que ordem e por quê. Depois que eu entender e aprovar, gere o JSON com o treino.';
-
-  // Switch to PLANO tab and pre-fill the chat
-  switchTab('ia');
-  setTimeout(function() {
-    var input = document.getElementById('plano-input');
-    if (input) {
-      input.value = msg;
-      input.focus();
-      autoResizePlanoInput(input);
-    }
-  }, 200);
 }
 
 function reexpandirDia(dayKey, semana, dia, serieLabel) {
@@ -6536,6 +6319,10 @@ function _dParaBikeRelocar(dayKey, diaNome, semana) {
 }
 
 function _dParaBikeSubstituir(dayKey, diaNome, semana) {
+  // pushUndo antes de qualquer mutação — o fluxo RELOCAR já entrava na pilha de desfazer
+  // (via aplicarRelocamento), este não. O botão DESFAZER D→BIKE sempre funcionou porque
+  // reconstrói o estado por conta própria, mas a ação ficava de fora do ↩ geral do app.
+  pushUndo('D→Bike (substituir): ' + diaNome);
   _dParaBikeMarcarDia(dayKey, 'D trocado por Bike — treino D substituído (não relocado).');
   if (!state.plano.diasBike) state.plano.diasBike = {};
   state.plano.diasBike[dayKey] = { status: 'pendente', substitutoD: true, relocado: false };
@@ -6597,13 +6384,15 @@ function registrarBikeHistorico(dayKey) {
   if (!bikeInfo) return;
   var bikePlano = _getBikePlano(dayKey);
   var m = dayKey.match(/^sem(\d+)_(.+)$/);
-  // date = dia real do treino na agenda; registeredAt = momento do registro
+  // Carimbo ÚNICO: o dia é o da agenda, a hora é a de agora (o registro acontece ao fim do
+  // pedal). Se não for possível registrar na hora, o ✎ do histórico corrige. Antes havia
+  // date=meia-noite + registeredAt separado, o que exibia a hora do registro como se fosse
+  // a do pedal e não tinha como ajustar.
   var dataDia = m ? _calcDataDia(parseInt(m[1]), m[2], state.plano.dataInicio) : null;
   var entry = {
     id: uid(),
     type: 'bike',
-    date: dataDia ? dataDia.toISOString() : new Date().toISOString(),
-    registeredAt: new Date().toISOString(),
+    date: _carimboNoDia(dataDia),
     dayKey: dayKey,
     semana: m ? m[1] : '?',
     dia: m ? m[2] : '?',
@@ -7196,6 +6985,165 @@ function renderBikeRolamentosHTML() {
     '</div>';
 }
 
+// ─── EXCLUSÃO DE REGISTROS ───────────────────────────────────────────────────
+// Modal de confirmação genérico, compartilhado por todas as listas de registro.
+function _bikeRegExcluirModal(titulo, descHTML, onclickAplicar) {
+  var confirmBtn = document.getElementById('modal-confirm');
+  document.getElementById('modal-title').textContent = titulo;
+  document.getElementById('modal-body').innerHTML =
+    '<p style="font-family:DM Sans,sans-serif;font-size:13px;color:var(--text);margin:0 0 4px">' + descHTML + '</p>' +
+    '<p style="font-family:DM Sans,sans-serif;font-size:11px;color:var(--muted);margin:0 0 14px">Se for engano, dá pra reverter logo em seguida pelo botão ↩ de desfazer no topo.</p>' +
+    '<button onclick="' + onclickAplicar + '" style="display:block;width:100%;font-family:DM Mono,monospace;font-size:11px;padding:10px;border-radius:8px;border:none;background:var(--perdido,#a33);color:#fff;cursor:pointer">EXCLUIR</button>';
+  if (confirmBtn) confirmBtn.style.display = 'none';
+  document.getElementById('modal').classList.add('open');
+}
+
+function _bikeRegExcluirFim(msg) {
+  saveState();
+  closeModal();
+  renderBikeTab();
+  toast(msg);
+}
+
+function _bikeCorrenteSel() {
+  var correntes = (state.bikeOdo && state.bikeOdo.correntes) || [];
+  return correntes.find(function(c) { return c.id === state._bikeCorrenteSelecionada; }) || null;
+}
+
+// Corrente — imersões, drip-wax top-offs e medições de folga (lista escolhida por `campo`).
+function bikeCorrenteRegExcluirConfirm(campo, id) {
+  var c = _bikeCorrenteSel();
+  if (!c || !c[campo]) return;
+  var r = c[campo].find(function(x) { return x.id === id; });
+  if (!r) return;
+  var nome = campo === 'imersoes' ? 'a imersão' : (campo === 'dripWaxTopoffs' ? 'o drip-wax top-off' : 'a medição de folga');
+  _bikeRegExcluirModal('EXCLUIR REGISTRO',
+    'Excluir ' + nome + ' de <b>' + new Date(r.data).toLocaleDateString('pt-BR') + '</b> (' + r.kmIndividual + 'km)?',
+    "bikeCorrenteRegExcluirAplicar('" + campo + "','" + id + "')");
+}
+
+function bikeCorrenteRegExcluirAplicar(campo, id) {
+  var c = _bikeCorrenteSel();
+  if (!c || !c[campo]) return;
+  pushUndo('Excluir registro da corrente');
+  c[campo] = c[campo].filter(function(x) { return x.id !== id; });
+  _bikeRegExcluirFim('Registro excluído ✓');
+}
+
+// Pastilha — medições de espessura.
+function bikeFreioMedicaoExcluirConfirm(pos, tipo, id) {
+  var comp = _bikeFreioComp(pos, tipo);
+  if (!comp) return;
+  var m = (comp.medicoes || []).find(function(x) { return x.id === id; });
+  if (!m) return;
+  _bikeRegExcluirModal('EXCLUIR MEDIÇÃO',
+    'Excluir a medição de <b>' + m.espessuraMm + 'mm</b> de ' + new Date(m.data).toLocaleDateString('pt-BR') + '?',
+    "bikeFreioMedicaoExcluirAplicar('" + pos + "','" + tipo + "','" + id + "')");
+}
+
+function bikeFreioMedicaoExcluirAplicar(pos, tipo, id) {
+  var comp = _bikeFreioComp(pos, tipo);
+  if (!comp) return;
+  pushUndo('Excluir medição ' + _bikeFreioLabel(tipo) + ' ' + pos);
+  comp.medicoes = (comp.medicoes || []).filter(function(x) { return x.id !== id; });
+  _bikeRegExcluirFim('Medição excluída ✓');
+}
+
+// Disco — medições de espessura.
+function bikeRodaDiscoMedicaoExcluirConfirm(pos, id) {
+  var roda = _bikeRodaAtual(pos);
+  if (!roda || !roda.disco) return;
+  var m = (roda.disco.medicoes || []).find(function(x) { return x.id === id; });
+  if (!m) return;
+  _bikeRegExcluirModal('EXCLUIR MEDIÇÃO',
+    'Excluir a medição de <b>' + m.espessuraMm + 'mm</b> de ' + new Date(m.data).toLocaleDateString('pt-BR') + '?',
+    "bikeRodaDiscoMedicaoExcluirAplicar('" + pos + "','" + id + "')");
+}
+
+function bikeRodaDiscoMedicaoExcluirAplicar(pos, id) {
+  var roda = _bikeRodaAtual(pos);
+  if (!roda || !roda.disco) return;
+  pushUndo('Excluir medição do disco ' + _bikeRodaLabel(pos));
+  roda.disco.medicoes = (roda.disco.medicoes || []).filter(function(x) { return x.id !== id; });
+  _bikeRegExcluirFim('Medição excluída ✓');
+}
+
+// Cubo — manutenções.
+function bikeRodaCuboManutExcluirConfirm(pos, id) {
+  var roda = _bikeRodaAtual(pos);
+  if (!roda || !roda.cubo) return;
+  var m = (roda.cubo.manutencoes || []).find(function(x) { return x.id === id; });
+  if (!m) return;
+  _bikeRegExcluirModal('EXCLUIR MANUTENÇÃO',
+    'Excluir a manutenção do cubo ' + _bikeRodaLabel(pos).toLowerCase() + ' de <b>' + new Date(m.data).toLocaleDateString('pt-BR') + '</b>?',
+    "bikeRodaCuboManutExcluirAplicar('" + pos + "','" + id + "')");
+}
+
+function bikeRodaCuboManutExcluirAplicar(pos, id) {
+  var roda = _bikeRodaAtual(pos);
+  if (!roda || !roda.cubo) return;
+  pushUndo('Excluir manutenção do cubo ' + _bikeRodaLabel(pos));
+  roda.cubo.manutencoes = (roda.cubo.manutencoes || []).filter(function(x) { return x.id !== id; });
+  _bikeRegExcluirFim('Manutenção excluída ✓');
+}
+
+// Freehub — manutenções (só existe na traseira).
+function bikeFreehubManutExcluirConfirm(id) {
+  var roda = _bikeRodaAtual('traseira');
+  if (!roda || !roda.freehub) return;
+  var m = (roda.freehub.manutencoes || []).find(function(x) { return x.id === id; });
+  if (!m) return;
+  _bikeRegExcluirModal('EXCLUIR MANUTENÇÃO',
+    'Excluir a manutenção do freehub de <b>' + new Date(m.data).toLocaleDateString('pt-BR') + '</b>?',
+    "bikeFreehubManutExcluirAplicar('" + id + "')");
+}
+
+function bikeFreehubManutExcluirAplicar(id) {
+  var roda = _bikeRodaAtual('traseira');
+  if (!roda || !roda.freehub) return;
+  pushUndo('Excluir manutenção do freehub');
+  roda.freehub.manutencoes = (roda.freehub.manutencoes || []).filter(function(x) { return x.id !== id; });
+  _bikeRegExcluirFim('Manutenção excluída ✓');
+}
+
+// Selante — aplicações.
+function bikeRodaSelanteExcluirConfirm(pos, id) {
+  var roda = _bikeRodaAtual(pos);
+  if (!roda || !roda.pneu || !roda.pneu.selante) return;
+  var a = (roda.pneu.selante.aplicacoes || []).find(function(x) { return x.id === id; });
+  if (!a) return;
+  _bikeRegExcluirModal('EXCLUIR APLICAÇÃO',
+    'Excluir a aplicação de <b>' + a.quantidadeMl + 'ml</b> de ' + new Date(a.data).toLocaleDateString('pt-BR') + '?',
+    "bikeRodaSelanteExcluirAplicar('" + pos + "','" + id + "')");
+}
+
+function bikeRodaSelanteExcluirAplicar(pos, id) {
+  var roda = _bikeRodaAtual(pos);
+  if (!roda || !roda.pneu || !roda.pneu.selante) return;
+  pushUndo('Excluir aplicação de selante ' + _bikeRodaLabel(pos));
+  roda.pneu.selante.aplicacoes = (roda.pneu.selante.aplicacoes || []).filter(function(x) { return x.id !== id; });
+  _bikeRegExcluirFim('Aplicação excluída ✓');
+}
+
+// Raios — verificações de tensão.
+function bikeRaiosVerifExcluirConfirm(pos, id) {
+  var roda = _bikeRodaAtual(pos);
+  if (!roda || !roda.raios) return;
+  var v = (roda.raios.verificacoes || []).find(function(x) { return x.id === id; });
+  if (!v) return;
+  _bikeRegExcluirModal('EXCLUIR VERIFICAÇÃO',
+    'Excluir a verificação de tensão dos raios ' + _bikeRodaLabel(pos).toLowerCase() + ' de <b>' + new Date(v.data).toLocaleDateString('pt-BR') + '</b>?',
+    "bikeRaiosVerifExcluirAplicar('" + pos + "','" + id + "')");
+}
+
+function bikeRaiosVerifExcluirAplicar(pos, id) {
+  var roda = _bikeRodaAtual(pos);
+  if (!roda || !roda.raios) return;
+  pushUndo('Excluir verificação dos raios ' + _bikeRodaLabel(pos));
+  roda.raios.verificacoes = (roda.raios.verificacoes || []).filter(function(x) { return x.id !== id; });
+  _bikeRegExcluirFim('Verificação excluída ✓');
+}
+
 function bikeSelimPrompt() {
   _bikeRolamentosInit();
   var atual = state.bikeOdo.selim.historico[0];
@@ -7776,7 +7724,7 @@ function renderBikeFreiosHTML() {
       var medicoesDiscoHTML = (disco.medicoes || []).slice().reverse().slice(0, 10).map(function(m) {
         var d = new Date(m.data).toLocaleDateString('pt-BR');
         var obsHTML = m.obs ? ' <span style="color:var(--muted)">— ' + escHtml(m.obs) + '</span>' : '';
-        return '<div style="padding:6px 0;border-bottom:1px solid var(--border);font-family:DM Mono,monospace;font-size:11px;color:var(--text)"><span style="color:var(--muted)">' + d + '</span> · ' + m.espessuraMm + 'mm · ' + m.kmIndividual + 'km' + obsHTML + '</div>';
+        return '<div style="padding:6px 0;border-bottom:1px solid var(--border);font-family:DM Mono,monospace;font-size:11px;color:var(--text);display:flex;justify-content:space-between;align-items:center"><span><span style="color:var(--muted)">' + d + '</span> · ' + m.espessuraMm + 'mm · ' + m.kmIndividual + 'km' + obsHTML + '</span><span onclick="bikeRodaDiscoMedicaoExcluirConfirm(\'' + posRoda + '\',\'' + m.id + '\')" style="color:var(--perdido,#a33);cursor:pointer;padding:2px 6px;flex-shrink:0" title="Excluir">✕</span></div>';
       }).join('');
       var discoAnterioresHTML = (disco.anteriores || []).slice().reverse().slice(0, 5).map(function(a) {
         var d = new Date(a.dataRemocao).toLocaleDateString('pt-BR');
@@ -7837,7 +7785,7 @@ function renderBikeFreiosHTML() {
       var medicoesHTML = comp.medicoes.slice().reverse().slice(0, 10).map(function(m) {
         var d = new Date(m.data).toLocaleDateString('pt-BR');
         var obsHTML = m.obs ? ' <span style="color:var(--muted)">— ' + escHtml(m.obs) + '</span>' : '';
-        return '<div style="padding:6px 0;border-bottom:1px solid var(--border);font-family:DM Mono,monospace;font-size:11px;color:var(--text)"><span style="color:var(--muted)">' + d + '</span> · ' + m.espessuraMm + 'mm · ' + m.kmIndividual + 'km' + obsHTML + '</div>';
+        return '<div style="padding:6px 0;border-bottom:1px solid var(--border);font-family:DM Mono,monospace;font-size:11px;color:var(--text);display:flex;justify-content:space-between;align-items:center"><span><span style="color:var(--muted)">' + d + '</span> · ' + m.espessuraMm + 'mm · ' + m.kmIndividual + 'km' + obsHTML + '</span><span onclick="bikeFreioMedicaoExcluirConfirm(\'' + pos + '\',\'' + tipo + '\',\'' + m.id + '\')" style="color:var(--perdido,#a33);cursor:pointer;padding:2px 6px;flex-shrink:0" title="Excluir">✕</span></div>';
       }).join('');
 
       var anterioresHTML = (comp.anteriores || []).slice().reverse().slice(0, 5).map(function(a) {
@@ -9103,13 +9051,13 @@ function renderBikeCorrentesHTML() {
     var d = new Date(l.data).toLocaleDateString('pt-BR');
     var tipoHTML = l.tipoImersao ? ' <span style="color:var(--muted)">(' + (l.tipoImersao === 'sujo' ? 'suja' : 'limpa') + ')</span>' : '';
     var obsHTML = l.obs ? ' <span style="color:var(--accent)">— ' + escHtml(l.obs) + '</span>' : '';
-    return '<div style="padding:6px 0;border-bottom:1px solid var(--border);font-family:DM Mono,monospace;font-size:11px;color:var(--text)"><span style="color:var(--muted)">' + d + '</span> · Imersão — ' + l.kmIndividual + 'km' + tipoHTML + obsHTML + '</div>';
+    return '<div style="padding:6px 0;border-bottom:1px solid var(--border);font-family:DM Mono,monospace;font-size:11px;color:var(--text);display:flex;justify-content:space-between;align-items:center"><span><span style="color:var(--muted)">' + d + '</span> · Imersão — ' + l.kmIndividual + 'km' + tipoHTML + obsHTML + '</span><span onclick="bikeCorrenteRegExcluirConfirm(\'imersoes\',\'' + l.id + '\')" style="color:var(--perdido,#a33);cursor:pointer;padding:2px 6px;flex-shrink:0" title="Excluir">✕</span></div>';
   }).join('');
 
   var dripWaxHTML = (sel.dripWaxTopoffs || []).slice().reverse().slice(0, 10).map(function(t) {
     var d = new Date(t.data).toLocaleDateString('pt-BR');
     var obsHTML = t.obs ? ' <span style="color:var(--muted)">— ' + escHtml(t.obs) + '</span>' : '';
-    return '<div style="padding:6px 0;border-bottom:1px solid var(--border);font-family:DM Mono,monospace;font-size:11px;color:var(--text)"><span style="color:var(--muted)">' + d + '</span> · Drip-wax Top-off — ' + t.kmIndividual + 'km (+' + t.extensaoKm + 'km)' + obsHTML + '</div>';
+    return '<div style="padding:6px 0;border-bottom:1px solid var(--border);font-family:DM Mono,monospace;font-size:11px;color:var(--text);display:flex;justify-content:space-between;align-items:center"><span><span style="color:var(--muted)">' + d + '</span> · Drip-wax Top-off — ' + t.kmIndividual + 'km (+' + t.extensaoKm + 'km)' + obsHTML + '</span><span onclick="bikeCorrenteRegExcluirConfirm(\'dripWaxTopoffs\',\'' + t.id + '\')" style="color:var(--perdido,#a33);cursor:pointer;padding:2px 6px;flex-shrink:0" title="Excluir">✕</span></div>';
   }).join('');
 
   var medicoesAnotadas = _bikeCorrenteMedicoesAnotadas(sel).slice().reverse().slice(0, 10);
@@ -9118,7 +9066,7 @@ function renderBikeCorrentesHTML() {
     var obsHTML = m.obs ? ' <span style="color:var(--muted)">— ' + escHtml(m.obs) + '</span>' : '';
     var transicaoHTML = m.isTransicao ?
       ' <span style="color:var(--accent)">⚡ transição (' + m.janela.kmInicio + '–' + m.janela.kmFim + 'km)</span>' : '';
-    return '<div style="padding:6px 0;border-bottom:1px solid var(--border);font-family:DM Mono,monospace;font-size:11px;color:var(--text)"><span style="color:var(--muted)">' + d + '</span> · Folga ' + _folgaLabel(m.degrau, m.ferramentaId) + ' — ' + m.kmIndividual + 'km' + transicaoHTML + obsHTML + '</div>';
+    return '<div style="padding:6px 0;border-bottom:1px solid var(--border);font-family:DM Mono,monospace;font-size:11px;color:var(--text);display:flex;justify-content:space-between;align-items:center"><span><span style="color:var(--muted)">' + d + '</span> · Folga ' + _folgaLabel(m.degrau, m.ferramentaId) + ' — ' + m.kmIndividual + 'km' + transicaoHTML + obsHTML + '</span><span onclick="bikeCorrenteRegExcluirConfirm(\'medicoes\',\'' + m.id + '\')" style="color:var(--perdido,#a33);cursor:pointer;padding:2px 6px;flex-shrink:0" title="Excluir">✕</span></div>';
   }).join('');
 
   var fixo = _bikeCorrenteFixo(sel);
@@ -10916,7 +10864,7 @@ function renderBikeRodasHTML() {
       var aplicacoesHTML = aplicacoes.slice(0, 10).map(function(a) {
         var d = new Date(a.data).toLocaleDateString('pt-BR');
         var obsHTML = a.obs ? ' <span style="color:var(--muted)">— ' + escHtml(a.obs) + '</span>' : '';
-        return '<div style="padding:6px 0;border-bottom:1px solid var(--border);font-family:DM Mono,monospace;font-size:11px;color:var(--text)"><span style="color:var(--muted)">' + d + '</span> · ' + a.kmTotal + 'km · ' + a.quantidadeMl + 'ml' + obsHTML + '</div>';
+        return '<div style="padding:6px 0;border-bottom:1px solid var(--border);font-family:DM Mono,monospace;font-size:11px;color:var(--text);display:flex;justify-content:space-between;align-items:center"><span><span style="color:var(--muted)">' + d + '</span> · ' + a.kmTotal + 'km · ' + a.quantidadeMl + 'ml' + obsHTML + '</span><span onclick="bikeRodaSelanteExcluirConfirm(\'' + pos + '\',\'' + a.id + '\')" style="color:var(--perdido,#a33);cursor:pointer;padding:2px 6px;flex-shrink:0" title="Excluir">✕</span></div>';
       }).join('');
       var selanteHTML =
         '<div style="border-top:1px solid var(--border);margin-top:12px;padding-top:12px">' +
@@ -10977,7 +10925,7 @@ function renderBikeCubosRaiosHTML() {
     var manutencoesHTML = (cubo.manutencoes || []).slice(0, 10).map(function(m) {
       var d = new Date(m.data).toLocaleDateString('pt-BR');
       var obsHTML = m.obs ? ' <span style="color:var(--muted)">— ' + escHtml(m.obs) + '</span>' : '';
-      return '<div style="padding:6px 0;border-bottom:1px solid var(--border);font-family:DM Mono,monospace;font-size:11px;color:var(--text)"><span style="color:var(--muted)">' + d + '</span> · ' + m.kmTotal + 'km' + obsHTML + '</div>';
+      return '<div style="padding:6px 0;border-bottom:1px solid var(--border);font-family:DM Mono,monospace;font-size:11px;color:var(--text);display:flex;justify-content:space-between;align-items:center"><span><span style="color:var(--muted)">' + d + '</span> · ' + m.kmTotal + 'km' + obsHTML + '</span><span onclick="bikeRodaCuboManutExcluirConfirm(\'' + pos + '\',\'' + m.id + '\')" style="color:var(--perdido,#a33);cursor:pointer;padding:2px 6px;flex-shrink:0" title="Excluir">✕</span></div>';
     }).join('');
     var cuboCorpoHTML;
     if (cubo.dataInstalacao === null) {
@@ -11015,7 +10963,7 @@ function renderBikeCubosRaiosHTML() {
       var manutFreehubHTML = (freehub.manutencoes || []).slice(0, 10).map(function(m) {
         var d = new Date(m.data).toLocaleDateString('pt-BR');
         var obsHTML = m.obs ? ' <span style="color:var(--muted)">— ' + escHtml(m.obs) + '</span>' : '';
-        return '<div style="padding:6px 0;border-bottom:1px solid var(--border);font-family:DM Mono,monospace;font-size:11px;color:var(--text)"><span style="color:var(--muted)">' + d + '</span> · ' + m.kmTotal + 'km' + obsHTML + '</div>';
+        return '<div style="padding:6px 0;border-bottom:1px solid var(--border);font-family:DM Mono,monospace;font-size:11px;color:var(--text);display:flex;justify-content:space-between;align-items:center"><span><span style="color:var(--muted)">' + d + '</span> · ' + m.kmTotal + 'km' + obsHTML + '</span><span onclick="bikeFreehubManutExcluirConfirm(\'' + m.id + '\')" style="color:var(--perdido,#a33);cursor:pointer;padding:2px 6px;flex-shrink:0" title="Excluir">✕</span></div>';
       }).join('');
       var freehubCorpoHTML;
       if (cubo.dataInstalacao === null) {
@@ -11038,7 +10986,7 @@ function renderBikeCubosRaiosHTML() {
     var verifRaiosHTML = (raios.verificacoes || []).slice(0, 10).map(function(v) {
       var d = new Date(v.data).toLocaleDateString('pt-BR');
       var obsHTML = v.obs ? ' <span style="color:var(--muted)">— ' + escHtml(v.obs) + '</span>' : '';
-      return '<div style="padding:6px 0;border-bottom:1px solid var(--border);font-family:DM Mono,monospace;font-size:11px;color:var(--text)"><span style="color:var(--muted)">' + d + '</span> · ' + v.kmTotal + 'km' + obsHTML + '</div>';
+      return '<div style="padding:6px 0;border-bottom:1px solid var(--border);font-family:DM Mono,monospace;font-size:11px;color:var(--text);display:flex;justify-content:space-between;align-items:center"><span><span style="color:var(--muted)">' + d + '</span> · ' + v.kmTotal + 'km' + obsHTML + '</span><span onclick="bikeRaiosVerifExcluirConfirm(\'' + pos + '\',\'' + v.id + '\')" style="color:var(--perdido,#a33);cursor:pointer;padding:2px 6px;flex-shrink:0" title="Excluir">✕</span></div>';
     }).join('');
     var proximaRaios = _bikeRodaRaiosProximaVerificacao(pos);
     var raiosBlocoHTML =
@@ -12534,64 +12482,6 @@ function bikeRaiosIntervaloAplicar() {
   toast('Intervalo atualizado: ' + v + 'km ✓');
 }
 
-function corrigirDiaComoBike(dayKey, serieLabel, bikeData) {
-  // 1. Desfaz conclusao — remove status e entrada do historico
-  if (state.plano.diasStatus) delete state.plano.diasStatus[dayKey];
-  var ordemDias = ['Segunda','Terça','Quarta','Quinta','Sexta','Sábado','Domingo'];
-  var inicio = state.plano.dataInicio ? new Date(state.plano.dataInicio) : null;
-  var parts = dayKey.match(/^sem(\d+)_(.+)$/);
-  if (parts && inicio) {
-    inicio.setHours(0,0,0,0);
-    var semNum = parseInt(parts[1]);
-    var diaNome = parts[2];
-    var diaIdx = ordemDias.indexOf(diaNome);
-    if (diaIdx !== -1) {
-      var diaDate = new Date(inicio);
-      diaDate.setDate(inicio.getDate() + (semNum - 1) * 7 + diaIdx);
-      var dateStr = diaDate.toISOString().slice(0, 10);
-      var idx = state.history.findIndex(function(h) {
-        return h.serieLabel === serieLabel && h.date && h.date.slice(0, 10) === dateStr;
-      });
-      if (idx !== -1) state.history.splice(idx, 1);
-    }
-  }
-  // 2. Marca dia como perdido sem relocamento
-  state.plano.diasStatus[dayKey] = 'perdido';
-  // Remove expanded workout if any
-  if (state.plano.diasExpandidos) delete state.plano.diasExpandidos[dayKey];
-  // 3. Cria entrada de bike no historico
-  if (!state.bikeHistory) state.bikeHistory = [];
-  var bikePlano = _getBikePlano(dayKey);
-  var entry = {
-    id: uid(),
-    type: 'bike',
-    date: bikeData.date || new Date().toISOString(),
-    dayKey: dayKey,
-    semana: parts ? parts[1] : '?',
-    dia: parts ? parts[2] : '?',
-    foco: (bikePlano && bikePlano.foco) || bikeData.foco || 'Ride',
-    duracao: bikeData.duracao || '',
-    distancia: bikeData.distancia || '',
-    tempo: bikeData.tempo || '',
-    velocidade: bikeData.velocidade || '',
-    elevacao: bikeData.elevacao || '',
-    percurso: bikeData.percurso || '',
-    timingReal: bikeData.timingReal || '',
-    retroativo: true
-  };
-  state.bikeHistory.unshift(entry);
-  // 4. Marca diasBike
-  if (!state.plano.diasBike) state.plano.diasBike = {};
-  state.plano.diasBike[dayKey] = { status: 'feito', registrado: true,
-    distancia: bikeData.distancia || '', tempo: bikeData.tempo || '',
-    velocidade: bikeData.velocidade || '', elevacao: bikeData.elevacao || '',
-    percurso: bikeData.percurso || '' };
-  saveState();
-  renderAgendaLinear();
-  renderHistory();
-  toast('Dia corrigido: bike registrado retroativamente ✓');
-}
-
 function removeBikeHistoryEntry(id) {
   if (!state.bikeHistory) return;
   state.bikeHistory = state.bikeHistory.filter(function(b) { return b.id !== id; });
@@ -12922,9 +12812,9 @@ function renderAgendaLinear() {
               var diaDateFallback = new Date(inicioFallback);
               var _mon4 = getMondayOf(inicioFallback);
               diaDateFallback.setDate(_mon4.getDate() + (semana.semana - 1) * 7 + diaIdxFallback);
-              var diaStr = diaDateFallback.toISOString().slice(0, 10);
+              var diaStr = _diaLocal(diaDateFallback);
               hEntry = state.history.find(function(h) {
-                return h.serieLabel === d.serie && h.date && h.date.slice(0, 10) === diaStr;
+                return h.serieLabel === d.serie && h.date && _diaLocal(h.date) === diaStr;
               });
             }
           }
@@ -13138,29 +13028,6 @@ function toggleSemana(semKey) {
   state.plano.semanaOpen[semKey] = !isOpen;
   saveState();
   renderAgendaLinear();
-}
-
-function _restoreChatInline(dayKey) {
-  var chat = document.getElementById('chat-inline-' + dayKey);
-  if (!chat) return;
-  chat.style.display = 'block';
-  // Update state to reflect chat is open
-  if (!state._agendaOpenCards) state._agendaOpenCards = {};
-  if (!state._agendaOpenCards[dayKey]) state._agendaOpenCards[dayKey] = { open: true };
-  state._agendaOpenCards[dayKey].chatOpen = true;
-  state._agendaOpenCards[dayKey].open = true;
-  saveState();
-  var msgs = document.getElementById('chat-inline-msgs-' + dayKey);
-  if (msgs && msgs.children.length === 0) {
-    var history = getChatInlineHistory(dayKey);
-    history.forEach(function(m) {
-      var c = m.content || '';
-      if (m.role !== 'user') c = c.replace(/\{[\s\S]*\}$/m,'').replace(/^\{[\s\S]*\}/m,'').trim();
-      if (c) addChatInlineMsg(dayKey, m.role === 'user' ? 'user' : 'ai', c);
-    });
-  }
-  var input = document.getElementById('chat-inline-input-' + dayKey);
-  if (input && _chatInlineDrafts[dayKey]) input.value = _chatInlineDrafts[dayKey];
 }
 
 function toggleAgendaDia(dayKey) {
@@ -13607,13 +13474,12 @@ function finishSerieFromAgenda(dayKey, serieId) {
       });
       return map;
     })();
-    if (dataMap[dayKey]) workoutDate = dataMap[dayKey].toISOString();
+    if (dataMap[dayKey]) workoutDate = _carimboNoDia(dataMap[dayKey]);
   }
 
   state.history.unshift({
     id: uid(),
     date: workoutDate,
-    registeredAt: new Date().toISOString(),
     serieId: s.id,
     serieLabel: s.label,
     serieName: s.name,
@@ -13653,9 +13519,9 @@ function desfazerConclusao(dayKey, serieLabel) {
     if (diaIdx !== -1) {
       var diaDate = new Date(inicio);
       diaDate.setDate(inicio.getDate() + (semNum - 1) * 7 + diaIdx);
-      var dateStr = diaDate.toISOString().slice(0, 10);
+      var dateStr = _diaLocal(diaDate);
       var idx = state.history.findIndex(function(h) {
-        return h.serieLabel === serieLabel && h.date && h.date.slice(0, 10) === dateStr;
+        return h.serieLabel === serieLabel && h.date && _diaLocal(h.date) === dateStr;
       });
       if (idx !== -1) state.history.splice(idx, 1);
     }
@@ -13722,7 +13588,7 @@ function sincronizarNomesAgenda() {
   var historicoMap = {};
   state.history.forEach(function(h) {
     if (!h.serieLabel || !h.date || !h.exercises) return;
-    var dateStr = h.date.slice(0, 10);
+    var dateStr = _diaLocal(h.date);
     var key = h.serieLabel + '|' + dateStr;
     historicoMap[key] = h.exercises.map(function(ex) { return ex.name; });
   });
@@ -13741,7 +13607,7 @@ function sincronizarNomesAgenda() {
     if (diaIdx === -1) return;
     var diaDate = new Date(inicio);
     diaDate.setDate(inicio.getDate() + (semNum - 1) * 7 + diaIdx);
-    var dateStr = diaDate.toISOString().slice(0, 10);
+    var dateStr = _diaLocal(diaDate);
 
     var hKey = dia.serie + '|' + dateStr;
     var hNames = historicoMap[hKey];
@@ -14324,24 +14190,6 @@ function getMondayOf(date) {
   return d;
 }
 
-function setPlanoInicio(dateStr) {
-  if (!state.plano) return;
-  if (!dateStr) return;
-  // Parse as local date (avoid UTC midnight offset issue)
-  var parts = dateStr.split('-');
-  var localDate = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]), 12, 0, 0);
-  state.plano.dataInicio = localDate.toISOString();
-
-  // Update pt-BR display label
-  var label = document.getElementById('plano-inicio-label');
-  if (label) label.textContent = localDate.toLocaleDateString('pt-BR', {day:'2-digit', month:'2-digit', year:'numeric'});
-
-  saveState();
-  renderAgendaLinear();
-  renderPlanoMacro(state.plano);
-  toast('Data de início definida ✓');
-}
-
 function marcarAusente(dayKey, diaNome, semana) {
   aplicarRelocamento(dayKey, diaNome, semana, 'ausente');
 }
@@ -14789,42 +14637,6 @@ function marcarSabadoDisponivel(dayKey, diaNome, semana) {
   renderAgendaLinear();
   toast('Treino ' + serieTrazida + ' antecipado para ' + diaNome + ' ✓');
 }
-
-function solicitarReplanejamento(dayKey, diaNome, semana, tipo) {
-  // Build current plan summary for AI context
-  var diasStatus = state.plano.diasStatus || {};
-  var planoDias = [];
-  state.plano.semanas.forEach(function(sem) {
-    (sem.dias || sem.agenda || []).forEach(function(d) {
-      var key = 'sem' + sem.semana + '_' + d.dia;
-      var status = diasStatus[key] || 'pendente';
-      var statusLabel = status === 'disponivel' ? 'disponivel para treino' : status;
-      planoDias.push('Sem' + sem.semana + ' ' + d.dia + ': ' + (d.serie || 'descanso') + ' [' + statusLabel + ']');
-    });
-  });
-
-  var tipoTexto = tipo === 'ausente' ? 'Nao poderei treinar' : 'Perdi o treino';
-  var regrasBloco = '';
-  var msg = tipoTexto + ' de ' + diaNome + ' (semana ' + semana + ').\n\n' +
-    'Plano atual:\n' + planoDias.join('\n') +
-    regrasBloco + '\n\n' +
-    'Proponha o replanejamento correto para os dias seguintes. ' +
-    'Retorne as modificacoes no formato JSON de modificacoes.';
-
-  switchTab('ia');
-  setTimeout(function() {
-    var input = document.getElementById('plano-input');
-    if (input) {
-      input.value = msg;
-      autoResizePlanoInput(input);
-      enviarMensagemPlano();
-    }
-  }, 300);
-
-  toast('Consultando IA para replanejamento...');
-}
-
-
 
 function renderPlanoAgenda() {
   if (!state.plano) return;
@@ -15399,9 +15211,17 @@ async function supabaseLoad() {
       var parsed = typeof data[0].state === 'string' ? JSON.parse(data[0].state) : data[0].state;
       state = Object.assign(loadState(), parsed);
       saveState(true); // fromCloud — don't re-upload
+      _supabaseLoadComplete = true;
+      return;
     }
-    // Local is newer OR same: do nothing — upload only happens when user modifies data
     _supabaseLoadComplete = true;
+    // Local ESTRITAMENTE mais novo: empurra pra nuvem.
+    // Antes aqui não acontecia nada — o upload só saía pelo debounce de 2s após uma edição.
+    // Se esse envio se perdesse (app pro fundo dentro da janela, falha de rede engolida no
+    // catch), o aparelho ficava com o dado bom preso: tinha a versão mais nova, a nuvem tinha
+    // a antiga, e nada nunca corrigia. Só o botão manual resolvia. Agora todo boot / retorno
+    // ao foco reconcilia nos dois sentidos.
+    if (localUpdatedAt > cloudUpdatedAt) supabaseSave();
   } catch(e) {
     console.warn('Supabase load exception:', e);
     _supabaseLoadComplete = true;
@@ -15883,6 +15703,29 @@ loadPersistedState(function() {
   if (!state.perfil) state.perfil = DEFAULT_PERFIL;
   // Migração: planMode removido — zerar em todas as séries
   state.series.forEach(function(s) { if (s.planMode) { s.planMode = false; } });
+
+  // Migração: carimbo único. Os registros antigos guardavam date=meia-noite + registeredAt
+  // separado. Aqui os dois viram um só: mantém o DIA de `date` (que é o dia correto da
+  // atividade) e adota a HORA de `registeredAt`. O dia nunca muda — se o registro foi feito
+  // de madrugada do dia seguinte, a entrada continua no dia certo e a hora fica ajustável
+  // pelo ✎ do histórico.
+  if (!state._migracaoCarimboUnicoV1) {
+    var _fundir = function(it) {
+      if (!it || !it.date) return;
+      if (it.registeredAt) {
+        var d = new Date(it.date), r = new Date(it.registeredAt);
+        if (!isNaN(d.getTime()) && !isNaN(r.getTime())) {
+          it.date = new Date(d.getFullYear(), d.getMonth(), d.getDate(),
+                             r.getHours(), r.getMinutes(), r.getSeconds()).toISOString();
+        }
+        delete it.registeredAt;
+      }
+    };
+    (state.history || []).forEach(_fundir);
+    (state.bikeHistory || []).forEach(_fundir);
+    state._migracaoCarimboUnicoV1 = true;
+  }
+
   render();
   renderUndoBtn();
   if (state.plano) {

@@ -768,7 +768,7 @@
   "history": [
     {
       "id": "xkw1g361",
-      "date": "2026-07-28T03:00:00.000Z",
+      "date": "2026-07-28T22:47:17.000Z",
       "done": 7,
       "total": 7,
       "serieId": "s1",
@@ -839,12 +839,11 @@
         }
       ],
       "serieName": "OMBROS",
-      "serieLabel": "A",
-      "registeredAt": "2026-07-28T22:47:17.762Z"
+      "serieLabel": "A"
     },
     {
       "id": "xjq8fp58",
-      "date": "2026-07-20T03:00:00.000Z",
+      "date": "2026-07-20T23:02:02.000Z",
       "done": 6,
       "total": 9,
       "serieId": "s4",
@@ -933,12 +932,11 @@
         }
       ],
       "serieName": "PERNAS",
-      "serieLabel": "D",
-      "registeredAt": "2026-07-20T23:02:02.246Z"
+      "serieLabel": "D"
     },
     {
       "id": "xsae7v7z",
-      "date": "2026-07-16T03:00:00.000Z",
+      "date": "2026-07-17T00:20:00.000Z",
       "done": 6,
       "total": 8,
       "serieId": "s3",
@@ -1018,12 +1016,11 @@
         }
       ],
       "serieName": "PEITO / TRÍCEPS",
-      "serieLabel": "C",
-      "registeredAt": "2026-07-17T00:20:00.000Z"
+      "serieLabel": "C"
     },
     {
       "id": "x7le8ama",
-      "date": "2026-07-03T03:00:00.000Z",
+      "date": "2026-07-04T00:21:12.000Z",
       "done": 4,
       "total": 8,
       "serieId": "s2",
@@ -1103,12 +1100,11 @@
         }
       ],
       "serieName": "COSTAS / BÍCEPS",
-      "serieLabel": "B",
-      "registeredAt": "2026-07-04T00:21:12.022Z"
+      "serieLabel": "B"
     },
     {
       "id": "x6ezwjzk",
-      "date": "2026-07-02T03:00:00.000Z",
+      "date": "2026-07-03T00:41:50.000Z",
       "done": 7,
       "total": 9,
       "serieId": "s4",
@@ -1197,12 +1193,11 @@
         }
       ],
       "serieName": "PERNAS",
-      "serieLabel": "D",
-      "registeredAt": "2026-07-03T00:41:50.825Z"
+      "serieLabel": "D"
     },
     {
       "id": "xuz32j53",
-      "date": "2026-07-01T03:00:00.000Z",
+      "date": "2026-07-02T01:59:53.000Z",
       "done": 7,
       "total": 7,
       "serieId": "s1",
@@ -1273,12 +1268,11 @@
         }
       ],
       "serieName": "OMBROS",
-      "serieLabel": "A",
-      "registeredAt": "2026-07-02T01:59:53.811Z"
+      "serieLabel": "A"
     },
     {
       "id": "x6xxjk29",
-      "date": "2026-06-30T03:00:00.000Z",
+      "date": "2026-07-01T00:13:17.000Z",
       "done": 7,
       "total": 7,
       "serieId": "s3",
@@ -1349,12 +1343,11 @@
         }
       ],
       "serieName": "PEITO / TRÍCEPS",
-      "serieLabel": "C",
-      "registeredAt": "2026-07-01T00:13:17.308Z"
+      "serieLabel": "C"
     },
     {
       "id": "x1xzkx6t",
-      "date": "2026-06-29T03:00:00.000Z",
+      "date": "2026-06-30T01:27:55.000Z",
       "done": 10,
       "total": 10,
       "serieId": "s4",
@@ -1452,12 +1445,11 @@
         }
       ],
       "serieName": "PERNAS",
-      "serieLabel": "D",
-      "registeredAt": "2026-06-30T01:27:55.443Z"
+      "serieLabel": "D"
     },
     {
       "id": "xbergzcn",
-      "date": "2026-06-18T03:00:00.000Z",
+      "date": "2026-06-18T23:17:04.000Z",
       "done": 7,
       "total": 8,
       "serieId": "s2",
@@ -1537,12 +1529,11 @@
         }
       ],
       "serieName": "COSTAS / BÍCEPS",
-      "serieLabel": "B",
-      "registeredAt": "2026-06-18T23:17:04.397Z"
+      "serieLabel": "B"
     },
     {
       "id": "x8wj8c7t",
-      "date": "2026-06-15T03:00:00.000Z",
+      "date": "2026-06-15T23:09:58.000Z",
       "done": 7,
       "total": 7,
       "serieId": "s1",
@@ -1613,12 +1604,11 @@
         }
       ],
       "serieName": "OMBROS",
-      "serieLabel": "A",
-      "registeredAt": "2026-06-15T23:09:58.282Z"
+      "serieLabel": "A"
     },
     {
       "id": "x3fhwipz",
-      "date": "2026-06-11T03:00:00.000Z",
+      "date": "2026-06-12T01:39:51.000Z",
       "done": 8,
       "total": 8,
       "serieId": "s4",
@@ -1698,12 +1688,11 @@
         }
       ],
       "serieName": "PERNAS",
-      "serieLabel": "D",
-      "registeredAt": "2026-06-12T01:39:51.829Z"
+      "serieLabel": "D"
     },
     {
       "id": "x4oc91tn",
-      "date": "2026-06-08T03:00:00.000Z",
+      "date": "2026-06-09T01:39:24.000Z",
       "done": 7,
       "total": 8,
       "serieId": "s3",
@@ -1767,12 +1756,11 @@
         }
       ],
       "serieName": "PEITO / TRÍCEPS",
-      "serieLabel": "C",
-      "registeredAt": "2026-06-09T01:39:24.336Z"
+      "serieLabel": "C"
     },
     {
       "id": "xhsjoxh6",
-      "date": "2026-06-05T03:00:00.000Z",
+      "date": "2026-06-06T01:30:00.000Z",
       "done": 6,
       "total": 8,
       "serieId": "s2",
@@ -1836,8 +1824,7 @@
         }
       ],
       "serieName": "COSTAS / BÍCEPS",
-      "serieLabel": "B",
-      "registeredAt": "2026-06-06T01:30:00.000Z"
+      "serieLabel": "B"
     }
   ],
   "plano": {
@@ -28466,9 +28453,9 @@
           "medicoes": [],
           "anteriores": [],
           "espessuraNova": null,
-          "dataInstalacao": null,
+          "dataInstalacao": "2026-07-13T03:00:00.000Z",
           "espessuraMinima": 1,
-          "kmInstalacaoTotal": null
+          "kmInstalacaoTotal": 0
         }
       },
       "dianteiro": {
@@ -28477,9 +28464,9 @@
           "medicoes": [],
           "anteriores": [],
           "espessuraNova": null,
-          "dataInstalacao": null,
+          "dataInstalacao": "2026-07-13T03:00:00.000Z",
           "espessuraMinima": 1,
-          "kmInstalacaoTotal": null
+          "kmInstalacaoTotal": 0
         }
       }
     },
@@ -28636,7 +28623,7 @@
         "intervaloManutencaoKm": 3000
       }
     },
-    "_subTabBike": "rolamentos",
+    "_subTabBike": "freios",
     "usoAnterior": {
       "modo": "fixo",
       "fixoKm": 3000,
@@ -28849,10 +28836,11 @@
     "_migracaoCuboManutencaoEstimativaV1": true,
     "selim": {
       "historico": []
-    }
+    },
+    "_migracaoPastilhaKmCombinadoV1": true
   },
   "planoDia": 0,
-  "_updatedAt": "2026-07-29T04:57:14.750Z",
+  "_updatedAt": "2026-07-29T14:26:14.203Z",
   "lastBibTab": "workout-s4",
   "_migrations": {
     "bikeFocoCleared": true
@@ -28861,8 +28849,7 @@
     {
       "id": "xax9gjj1",
       "type": "bike",
-      "date": "2026-07-28T03:00:00.000Z",
-      "registeredAt": "2026-07-29T00:28:00.000Z",
+      "date": "2026-07-29T00:28:00.000Z",
       "dayKey": "sem9_Terça",
       "semana": "9",
       "dia": "Terça",
@@ -28880,7 +28867,7 @@
     {
       "id": "x9r7e21j",
       "dia": "Segunda",
-      "date": "2026-07-27T03:00:00.000Z",
+      "date": "2026-07-27T23:45:10.000Z",
       "foco": "",
       "kcal": "1072",
       "type": "bike",
@@ -28893,13 +28880,12 @@
       "distancia": "34.64",
       "tempoTotal": "02:36:29",
       "timingReal": "",
-      "velocidade": "22.6",
-      "registeredAt": "2026-07-27T23:45:10.202Z"
+      "velocidade": "22.6"
     },
     {
       "id": "xph3wua4",
       "dia": "Sábado",
-      "date": "2026-07-25T03:00:00.000Z",
+      "date": "2026-07-25T21:36:00.000Z",
       "foco": "",
       "kcal": "718",
       "type": "bike",
@@ -28912,13 +28898,12 @@
       "distancia": "23.89",
       "tempoTotal": "01:26:43",
       "timingReal": "",
-      "velocidade": "21.2",
-      "registeredAt": "2026-07-25T21:36:00.000Z"
+      "velocidade": "21.2"
     },
     {
       "id": "x2eirjhj",
       "dia": "Terça",
-      "date": "2026-07-21T03:00:00.000Z",
+      "date": "2026-07-21T22:14:00.000Z",
       "foco": "",
       "kcal": "646",
       "type": "bike",
@@ -28931,13 +28916,12 @@
       "distancia": "20.77",
       "tempoTotal": "01:08:26",
       "timingReal": "",
-      "velocidade": "22.0",
-      "registeredAt": "2026-07-21T22:14:00.000Z"
+      "velocidade": "22.0"
     },
     {
       "id": "x3g9lt7z",
       "dia": "Sábado",
-      "date": "2026-07-18T03:00:00.000Z",
+      "date": "2026-07-18T21:02:00.000Z",
       "foco": "",
       "kcal": "754",
       "type": "bike",
@@ -28950,8 +28934,7 @@
       "distancia": "25.39",
       "tempoTotal": "01:29:44",
       "timingReal": "",
-      "velocidade": "20.3",
-      "registeredAt": "2026-07-18T21:02:00.000Z"
+      "velocidade": "20.3"
     },
     {
       "id": "xfvsurm7",
@@ -29411,5 +29394,6 @@
   ],
   "_pendingPrimeiroTreino": null,
   "_pendingCicloDataInicio": null,
-  "_bikeCorrenteSelecionada": "x9152731"
+  "_bikeCorrenteSelecionada": "x9152731",
+  "_migracaoCarimboUnicoV1": true
 }
