@@ -1,4 +1,4 @@
-const CACHE_NAME = 'agenda-v0601';
+const CACHE_NAME = 'treino-v508';
 
 self.addEventListener('message', function(event) {
   if (event.data && event.data.type === 'SKIP_WAITING') {
@@ -10,35 +10,13 @@ const STATIC_ASSETS = [
   './manifest.json',
   './icons/icon-192.png',
   './icons/icon-512.png',
-  'https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;600&display=swap'
+  'https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow+Condensed:wght@600;700&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;600&display=swap'
 ];
-
-// Bibliotecas externas: ficam em cache para o app nunca depender da rede
-// no momento em que abre. Sem isso, uma abertura sem rede sobe o app sem
-// Supabase e ele roda offline sem avisar.
-const CDN_ASSETS = [
-  'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js',
-  'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js',
-  'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js'
-];
-
-function isCdnAsset(url) {
-  for (var i = 0; i < CDN_ASSETS.length; i++) {
-    if (url === CDN_ASSETS[i]) return true;
-  }
-  return false;
-}
 
 self.addEventListener('install', function(event) {
   event.waitUntil(
     caches.open(CACHE_NAME).then(function(cache) {
-      var local = cache.addAll(STATIC_ASSETS.filter(function(url) { return !url.startsWith('http'); }));
-      var cdn = Promise.all(CDN_ASSETS.map(function(url) {
-        return fetch(url, { mode: 'cors' }).then(function(res) {
-          if (res && res.ok) return cache.put(url, res);
-        }).catch(function() {});
-      }));
-      return Promise.all([local, cdn]);
+      return cache.addAll(STATIC_ASSETS);
     })
   );
   self.skipWaiting();
@@ -57,42 +35,22 @@ self.addEventListener('activate', function(event) {
 });
 
 self.addEventListener('fetch', function(event) {
-  var url = event.request.url;
+  if (event.request.url.includes('api.anthropic.com')) return;
+  if (event.request.url.includes('supabase.co')) return;
+  if (event.request.url.includes('fonts.gstatic.com')) return;
+  if (event.request.url.includes('unpkg.com')) return;
+  if (event.request.url.includes('jsdelivr.net')) return;
 
-  // Bibliotecas: cache primeiro, rede depois (atualiza em segundo plano)
-  if (isCdnAsset(url)) {
+  // index.html always from network — never cached.
+  // ATENÇÃO: fetch(event.request) puro ainda passa pelo CACHE HTTP do navegador (camada
+  // separada do cache do Service Worker). O GitHub Pages manda header de cache no HTML, então
+  // o PWA ficava preso numa versão antiga: no desktop o Ctrl+Shift+R ignora esse cache, mas no
+  // Android não existe hard reload e fechar o app não o limpa. cache:'no-store' força ida real
+  // à rede. Passamos a URL (string) em vez do Request porque construir um Request novo a partir
+  // de um request com mode:'navigate' lança TypeError.
+  if (event.request.mode === 'navigate' || event.request.url.endsWith('index.html')) {
     event.respondWith(
-      caches.match(event.request).then(function(cached) {
-        if (cached) {
-          fetch(event.request).then(function(res) {
-            if (res && res.ok) {
-              return caches.open(CACHE_NAME).then(function(c) { return c.put(event.request, res); });
-            }
-          }).catch(function() {});
-          return cached;
-        }
-        return fetch(event.request).then(function(res) {
-          if (res && res.ok) {
-            var copy = res.clone();
-            caches.open(CACHE_NAME).then(function(c) { c.put(event.request, copy); }).catch(function() {});
-          }
-          return res;
-        });
-      })
-    );
-    return;
-  }
-
-  if (url.includes('api.anthropic.com')) return;
-  if (url.includes('supabase.co')) return;
-  if (url.includes('fonts.gstatic.com')) return;
-  if (url.includes('unpkg.com')) return;
-  if (url.includes('jsdelivr.net')) return;
-  if (url.includes('accounts.google.com')) return;
-
-  if (event.request.mode === 'navigate' || url.endsWith('index.html')) {
-    event.respondWith(
-      fetch(event.request).catch(function() {
+      fetch(event.request.url, { cache: 'no-store', credentials: 'same-origin' }).catch(function() {
         return new Response('<h1>Offline</h1><p>Conecte-se para usar o app.</p>', {
           headers: { 'Content-Type': 'text/html' }
         });
@@ -101,6 +59,7 @@ self.addEventListener('fetch', function(event) {
     return;
   }
 
+  // Static assets from cache
   event.respondWith(
     caches.match(event.request).then(function(cached) {
       return cached || fetch(event.request);
