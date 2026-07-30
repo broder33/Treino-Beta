@@ -1410,7 +1410,7 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
     <button id="undo-btn" onclick="undoAction()" title="Nada para desfazer" disabled style="font-family:'DM Mono',monospace;font-size:11px;background:none;border:1px solid var(--border);color:var(--muted);border-radius:4px;padding:3px 10px;cursor:default;opacity:0.3;transition:opacity .2s">↩</button>
     <button class="btn btn-header-only" onclick="exportData()">EXPORTAR</button>
     <button class="btn btn-header-only" onclick="importData()">IMPORTAR</button>
-    <span style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted);margin-left:4px">v0.9.1.36</span>
+    <span style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted);margin-left:4px">v0.9.1.37</span>
     <div id="auth-status" style="display:flex;align-items:center;margin-left:4px"></div>
 
     <div class="mobile-menu-wrap" id="mobile-menu-wrap">
@@ -15150,16 +15150,50 @@ async function supabaseWithTimeout(fn, timeoutMs) {
   ]);
 }
 
+// ─────────────── ANCORA DE SINCRONIZACAO (v0.9.1.37) ───────────────
+// state._syncBase guarda o `updated_at` que a NUVEM tinha na ultima vez que ESTE aparelho
+// leu ou escreveu com sucesso — o "ancestral comum" entre local e nuvem.
+//
+// Por que existe: comparar so cloudUpdatedAt vs localUpdatedAt nao distingue
+//   (a) o outro aparelho editou depois de mim e eu nao mexi em nada  -> baixar e correto
+//   (b) os dois editaram em paralelo desde o ultimo encontro         -> CONFLITO
+// Nos DOIS casos a nuvem aparece mais nova. Sem a ancora, (b) e tratado como (a) e a edicao
+// local some sem aviso nenhum. Com a ancora os tres casos ficam separaveis:
+//   cloud === base                 -> a nuvem nao mudou desde que eu a vi -> subir e seguro
+//   cloud >  base, local === base  -> so o outro lado mudou               -> baixar e seguro
+//   cloud >  base, local >  base   -> DIVERGENCIA REAL
+//
+// E metadado DE APARELHO: nunca sobe para a nuvem (removido antes de todo upsert) e e sempre
+// reescrito explicitamente apos um download, porque loadState() devolve o DEFAULT (sem a
+// chave) e o Object.assign apagaria o valor local.
+//
+// Gravar a ancora NUNCA pode avancar state._updatedAt nem disparar upload — dai saveState(true),
+// que e o caminho "fromCloud". Caso contrario o proprio ato de ancorar criaria uma edicao nova.
+//
+// v0.9.1.37 e puramente instrumental: a ancora e gravada e exibida, mas nada ainda decide
+// nada com base nela. O uso vem nas sub-versoes seguintes.
+function _setSyncBase(iso) {
+  if (!iso) return;                      // updated_at nulo na nuvem: nao ha o que ancorar
+  if (state._syncBase === iso) return;   // evita gravacao redundante a cada foco
+  state._syncBase = iso;
+  saveState(true);
+}
+
 async function supabaseSave() {
   if (!_supabaseUser) return;
   try {
     const dbu = getSbClient(); if (!dbu) return;
     var stateObj = JSON.parse(JSON.stringify(state));
+    delete stateObj._syncBase;   // metadado de aparelho — nao viaja para a nuvem
+    // Carimbo calculado UMA vez. Antes cada upsert chamava new Date() por conta propria: se
+    // _updatedAt estivesse ausente, a tentativa e a retentativa gravavam horas diferentes e a
+    // ancora nao teria como saber qual delas ficou na nuvem.
+    var carimbo = stateObj._updatedAt || new Date().toISOString();
     var result = await supabaseWithTimeout(() =>
       dbu.from('user_data').upsert({
         id: _supabaseUser.id,
         state: stateObj,
-        updated_at: stateObj._updatedAt || new Date().toISOString()
+        updated_at: carimbo
       }), 8000);
     if (result.error) {
       console.warn('Supabase save error:', result.error.message);
@@ -15167,12 +15201,17 @@ async function supabaseSave() {
       var reconnected = await supabaseReconnect();
       if (reconnected) {
         var dbu2 = getSbClient();
-        if (dbu2) await dbu2.from('user_data').upsert({
-          id: _supabaseUser.id,
-          state: stateObj,
-          updated_at: stateObj._updatedAt || new Date().toISOString()
-        });
+        if (dbu2) {
+          var retry = await dbu2.from('user_data').upsert({
+            id: _supabaseUser.id,
+            state: stateObj,
+            updated_at: carimbo
+          });
+          if (!retry.error) _setSyncBase(carimbo);
+        }
       }
+    } else {
+      _setSyncBase(carimbo);   // a nuvem esta nesta versao e eu sei disso
     }
   } catch(e) {
     console.warn('Supabase save exception:', e.message);
@@ -15210,6 +15249,9 @@ async function supabaseLoad() {
     if (cloudUpdatedAt > localUpdatedAt || (!data[0].updated_at && data[0].state)) {
       var parsed = typeof data[0].state === 'string' ? JSON.parse(data[0].state) : data[0].state;
       state = Object.assign(loadState(), parsed);
+      // Ancora DEPOIS do Object.assign: loadState() e o default (sem a chave) e o assign
+      // zeraria qualquer valor anterior. Acabei de ver a nuvem exatamente nesta versao.
+      if (data[0].updated_at) state._syncBase = data[0].updated_at;
       saveState(true); // fromCloud — don't re-upload
       _supabaseLoadComplete = true;
       return;
@@ -15221,7 +15263,9 @@ async function supabaseLoad() {
     // catch), o aparelho ficava com o dado bom preso: tinha a versão mais nova, a nuvem tinha
     // a antiga, e nada nunca corrigia. Só o botão manual resolvia. Agora todo boot / retorno
     // ao foco reconcilia nos dois sentidos.
-    if (localUpdatedAt > cloudUpdatedAt) supabaseSave();
+    if (localUpdatedAt > cloudUpdatedAt) { supabaseSave(); return; }
+    // Carimbos iguais: local e nuvem representam o mesmo dado. Este e o ancestral comum.
+    _setSyncBase(data[0].updated_at);
   } catch(e) {
     console.warn('Supabase load exception:', e);
     _supabaseLoadComplete = true;
@@ -15318,6 +15362,10 @@ async function pushToCloud() {
           '<span style="color:var(--muted)">☁ Nuvem (será substituída)</span>' +
           '<span style="color:var(--muted)">' + formatTS(cloudUpdatedAt) + '</span>' +
         '</div>' +
+        '<div style="display:flex;justify-content:space-between;font-family:DM Mono,monospace;font-size:11px;background:var(--surface2);border-radius:8px;padding:8px 14px">' +
+          '<span style="color:var(--muted)">Base comum</span>' +
+          '<span style="color:var(--muted)">' + formatTS(state._syncBase) + '</span>' +
+        '</div>' +
         '<div style="font-size:12px;color:' + (localNewer ? 'var(--accent3)' : 'var(--partial)') + ';line-height:1.5;padding:4px 2px">' + aviso + '</div>' +
       '</div>';
 
@@ -15328,13 +15376,16 @@ async function pushToCloud() {
       state._updatedAt = new Date().toISOString();
       try {
         var dbp2 = getSbClient();
+        var payload = JSON.parse(JSON.stringify(state));
+        delete payload._syncBase;   // metadado de aparelho — nao viaja para a nuvem
         var up = await supabaseWithTimeout(() =>
           dbp2.from('user_data').upsert({
             id: _supabaseUser.id,
-            state: JSON.parse(JSON.stringify(state)),
+            state: payload,
             updated_at: state._updatedAt
           }), 15000);
         if (up.error) throw up.error;
+        state._syncBase = state._updatedAt;   // a nuvem esta nesta versao
         saveState(true);
         toast('Enviado para a nuvem ✓');
       } catch(err) {
@@ -15408,6 +15459,10 @@ async function syncFromCloud() {
           '<span style="color:var(--muted)">Local</span>' +
           '<span style="color:' + (cloudNewer ? 'var(--muted)' : 'var(--accent)') + '">' + localStr + '</span>' +
         '</div>' +
+        '<div style="display:flex;justify-content:space-between;font-family:DM Mono,monospace;font-size:11px;background:var(--surface2);border-radius:8px;padding:8px 14px">' +
+          '<span style="color:var(--muted)">Base comum</span>' +
+          '<span style="color:var(--muted)">' + formatTS(state._syncBase) + '</span>' +
+        '</div>' +
         '<div style="font-size:12px;color:' + (cloudNewer ? 'var(--accent3)' : 'var(--partial)') + ';line-height:1.5;padding:4px 2px">' + aviso + '</div>' +
       '</div>';
 
@@ -15416,6 +15471,8 @@ async function syncFromCloud() {
         ? JSON.parse(result.data[0].state)
         : result.data[0].state;
       state = Object.assign(loadState(), parsed);
+      // Ancora DEPOIS do assign, pelo mesmo motivo do supabaseLoad.
+      if (cloudUpdatedAt) state._syncBase = cloudUpdatedAt;
       saveState(true); // fromCloud — don't re-upload
       render();
       if (state.planoChatHistory) planoChatHistory = state.planoChatHistory;
