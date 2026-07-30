@@ -1410,7 +1410,7 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
     <button id="undo-btn" onclick="undoAction()" title="Nada para desfazer" disabled style="font-family:'DM Mono',monospace;font-size:11px;background:none;border:1px solid var(--border);color:var(--muted);border-radius:4px;padding:3px 10px;cursor:default;opacity:0.3;transition:opacity .2s">↩</button>
     <button class="btn btn-header-only" onclick="exportData()">EXPORTAR</button>
     <button class="btn btn-header-only" onclick="importData()">IMPORTAR</button>
-    <span style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted);margin-left:4px">v0.9.1.37</span>
+    <span style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted);margin-left:4px">v0.9.1.38</span>
     <div id="auth-status" style="display:flex;align-items:center;margin-left:4px"></div>
 
     <div class="mobile-menu-wrap" id="mobile-menu-wrap">
@@ -1420,8 +1420,7 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
         <button class="mobile-menu-item mobile-only" onclick="exportData();closeMobileMenu()">EXPORTAR</button>
         <button class="mobile-menu-item mobile-only" onclick="importData();closeMobileMenu()">IMPORTAR</button>
         <div style="height:1px;background:var(--border);margin:4px 0"></div>
-        <button class="mobile-menu-item" onclick="syncFromCloud();closeMobileMenu()">SINCRONIZAR COM A NUVEM</button>
-        <button class="mobile-menu-item" onclick="pushToCloud();closeMobileMenu()">ENVIAR PARA A NUVEM</button>
+        <button class="mobile-menu-item" onclick="abrirSincronizacao();closeMobileMenu()">SINCRONIZAÇÃO</button>
         <div style="height:1px;background:var(--border);margin:4px 0"></div>
         <button class="mobile-menu-item" onclick="limparChatInlineDiasPassados(false);closeMobileMenu()">LIMPAR CHAT — DIAS PASSADOS</button>
         <button class="mobile-menu-item" onclick="limparChatInlineDiasPassados(true);closeMobileMenu()">LIMPAR CHAT — SEMANAS ANTERIORES</button>
@@ -15324,81 +15323,174 @@ function formatTS(iso) {
     d.toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit',second:'2-digit'});
 }
 
-// Espelho do syncFromCloud: força o LOCAL a subir pra nuvem. Existe porque supabaseLoad()
-// não empurra nada quando o local é mais novo — só baixa. Se um upload se perdeu (app
-// fechado dentro do debounce de 2s, falha de rede engolida no catch), o aparelho ficava
-// com o dado bom preso, sem nenhuma forma de mandá-lo pra cima.
-async function pushToCloud() {
-  if (!_supabaseUser) { toast('Faça login para sincronizar'); return; }
+// ---------------- SINCRONIZACAO MANUAL (v0.9.1.38) ----------------
+// Antes eram DOIS itens de menu: "SINCRONIZAR COM A NUVEM" (baixava) e "ENVIAR PARA A NUVEM"
+// (subia). Os nomes descreviam o efeito, nao a direcao, e nao dava para saber qual era qual sem
+// abrir os dois. Pior: cada um refazia por conta propria a mesma leitura da nuvem e montava seu
+// proprio painel de carimbos, com codigo praticamente identico e ja divergindo entre si.
+//
+// Agora existe UM item ("SINCRONIZACAO") que le a nuvem UMA vez, mostra os tres carimbos
+// (nuvem / este aparelho / base comum) e oferece as duas direcoes lado a lado, nomeadas pela
+// DIRECAO: BAIXAR DA NUVEM e SUBIR PARA A NUVEM.
+//
+// Por que botoes manuais ainda existem, agora que a v0.9.1.34 fez a reconciliacao automatica
+// funcionar nos dois sentidos: a automatica obedece SEMPRE "o mais novo vence". Estes sao o
+// unico jeito de contrariar o carimbo de proposito, quando o dado mais novo e o ruim. Dai o
+// painel de confirmacao destacar em amarelo quando a direcao escolhida vai sobrescrever o lado
+// mais RECENTE pelo mais antigo.
+var _syncNuvem = null;   // ultima leitura da nuvem, preenchida por abrirSincronizacao()
+
+function _syncLinha(rotulo, valor, cor, tam) {
+  return '<div style="display:flex;justify-content:space-between;font-family:DM Mono,monospace;' +
+    'font-size:' + (tam || 12) + 'px;background:var(--surface2);border-radius:8px;padding:10px 14px;gap:10px">' +
+      '<span style="color:var(--muted);flex-shrink:0">' + rotulo + '</span>' +
+      '<span style="color:' + (cor || 'var(--muted)') + ';word-break:break-all;text-align:right">' + valor + '</span>' +
+    '</div>';
+}
+
+// Os dois carimbos comparaveis num lugar so, para o painel e a confirmacao nunca discordarem.
+function _syncEstado() {
+  var temNuvem = !!(_syncNuvem && _syncNuvem.state);
+  var cloudISO = temNuvem ? _syncNuvem.updated_at : null;
+  var localISO = state._updatedAt || null;
+  return {
+    temNuvem: temNuvem,
+    cloudISO: cloudISO,
+    localISO: localISO,
+    c: cloudISO ? new Date(cloudISO).getTime() : 0,
+    l: localISO ? new Date(localISO).getTime() : 0
+  };
+}
+
+async function abrirSincronizacao() {
+  if (!_supabaseUser) { toast('Fa\u00e7a login para sincronizar'); return; }
   try {
-    var dbp = getSbClient(); if (!dbp) throw new Error('sem cliente Supabase');
-    var res = await supabaseWithTimeout(() =>
-      dbp.from('user_data').select('updated_at').eq('id', _supabaseUser.id).limit(1),
-      8000);
+    var dbs = getSbClient(); if (!dbs) throw new Error('sem cliente Supabase');
+    var res = await supabaseWithTimeout(function() {
+      return dbs.from('user_data').select('state, updated_at').eq('id', _supabaseUser.id).limit(1);
+    }, 8000);
     if (res.error) throw res.error;
-
-    var cloudUpdatedAt = (res.data && res.data.length) ? res.data[0].updated_at : null;
-    var localUpdatedAt = state._updatedAt || null;
-    var localNewer = cloudUpdatedAt && localUpdatedAt
-      ? new Date(localUpdatedAt) > new Date(cloudUpdatedAt)
-      : true;
-
-    var aviso = localNewer
-      ? '⬆ Seus dados locais são mais recentes. A nuvem será substituída por esta versão.'
-      : '⚠️ A nuvem é MAIS RECENTE que este aparelho. Enviar vai substituir a versão da nuvem por esta, que é mais antiga.';
-
-    document.getElementById('modal-title').textContent = 'ENVIAR PARA A NUVEM';
-    document.getElementById('modal-body').innerHTML =
-      '<div style="display:flex;flex-direction:column;gap:10px">' +
-        '<div style="display:flex;justify-content:space-between;font-family:DM Mono,monospace;font-size:11px;background:var(--surface2);border-radius:8px;padding:10px 14px;gap:10px">' +
-          '<span style="color:var(--muted);flex-shrink:0">Conta</span>' +
-          '<span style="color:var(--muted);word-break:break-all;text-align:right">' + escHtml(_supabaseUser.email || _supabaseUser.id) + '</span>' +
-        '</div>' +
-        '<div style="display:flex;justify-content:space-between;font-family:DM Mono,monospace;font-size:12px;background:var(--surface2);border-radius:8px;padding:10px 14px">' +
-          '<span style="color:var(--muted)">Local (será enviado)</span>' +
-          '<span style="color:' + (localNewer ? 'var(--accent)' : 'var(--partial)') + '">' + formatTS(localUpdatedAt) + '</span>' +
-        '</div>' +
-        '<div style="display:flex;justify-content:space-between;font-family:DM Mono,monospace;font-size:12px;background:var(--surface2);border-radius:8px;padding:10px 14px">' +
-          '<span style="color:var(--muted)">☁ Nuvem (será substituída)</span>' +
-          '<span style="color:var(--muted)">' + formatTS(cloudUpdatedAt) + '</span>' +
-        '</div>' +
-        '<div style="display:flex;justify-content:space-between;font-family:DM Mono,monospace;font-size:11px;background:var(--surface2);border-radius:8px;padding:8px 14px">' +
-          '<span style="color:var(--muted)">Base comum</span>' +
-          '<span style="color:var(--muted)">' + formatTS(state._syncBase) + '</span>' +
-        '</div>' +
-        '<div style="font-size:12px;color:' + (localNewer ? 'var(--accent3)' : 'var(--partial)') + ';line-height:1.5;padding:4px 2px">' + aviso + '</div>' +
-      '</div>';
-
-    modalCallback = async function() {
-      closeModal();
-      toast('Enviando…');
-      // carimba como edição atual pra garantir que a nuvem fique estritamente mais nova
-      state._updatedAt = new Date().toISOString();
-      try {
-        var dbp2 = getSbClient();
-        var payload = JSON.parse(JSON.stringify(state));
-        delete payload._syncBase;   // metadado de aparelho — nao viaja para a nuvem
-        var up = await supabaseWithTimeout(() =>
-          dbp2.from('user_data').upsert({
-            id: _supabaseUser.id,
-            state: payload,
-            updated_at: state._updatedAt
-          }), 15000);
-        if (up.error) throw up.error;
-        state._syncBase = state._updatedAt;   // a nuvem esta nesta versao
-        saveState(true);
-        toast('Enviado para a nuvem ✓');
-      } catch(err) {
-        console.warn('pushToCloud error:', err);
-        toast('FALHOU: ' + (err.message || err));
-      }
-    };
-    document.getElementById('modal-confirm').onclick = modalCallback;
+    _syncNuvem = (res.data && res.data.length) ? res.data[0] : null;
+    _syncPainel();
     document.getElementById('modal').classList.add('open');
-
   } catch(e) {
-    console.warn('pushToCloud error:', e);
+    console.warn('abrirSincronizacao error:', e);
     toast('Erro: ' + (e.message || e));
+  }
+}
+
+// Painel 1: estado. O CONFIRMAR generico do modal fica escondido aqui — as duas acoes sao
+// botoes proprios dentro do corpo, porque sao DUAS e o modal generico so tem um.
+function _syncPainel() {
+  var e = _syncEstado();
+  var diag, diagCor;
+  if (!e.temNuvem)     { diag = 'Nuvem vazia \u2014 n\u00e3o h\u00e1 o que baixar.'; diagCor = 'var(--partial)'; }
+  else if (e.c > e.l)  { diag = '\u2601 A nuvem est\u00e1 mais recente.'; diagCor = 'var(--accent3)'; }
+  else if (e.l > e.c)  { diag = '\ud83d\udcf1 Este aparelho est\u00e1 mais recente.'; diagCor = 'var(--accent)'; }
+  else                 { diag = '\u2713 Local e nuvem est\u00e3o iguais.'; diagCor = 'var(--muted)'; }
+
+  document.getElementById('modal-title').textContent = 'SINCRONIZA\u00c7\u00c3O';
+  document.getElementById('modal-body').innerHTML =
+    '<div style="display:flex;flex-direction:column;gap:10px">' +
+      _syncLinha('Conta', escHtml(_supabaseUser.email || _supabaseUser.id), 'var(--muted)', 11) +
+      _syncLinha('\u2601 Nuvem', formatTS(e.cloudISO), e.c >= e.l ? 'var(--accent3)' : 'var(--muted)') +
+      _syncLinha('\ud83d\udcf1 Este aparelho', formatTS(e.localISO), e.l >= e.c ? 'var(--accent)' : 'var(--muted)') +
+      _syncLinha('Base comum', formatTS(state._syncBase), 'var(--muted)', 11) +
+      '<div style="font-size:12px;color:' + diagCor + ';line-height:1.5;padding:4px 2px">' + diag + '</div>' +
+      '<div style="display:flex;gap:8px;margin-top:2px">' +
+        '<button class="modal-btn" style="flex:1" onclick="_syncConfirmar(\'baixar\')">\u2b07 BAIXAR DA NUVEM</button>' +
+        '<button class="modal-btn" style="flex:1" onclick="_syncConfirmar(\'subir\')">\u2b06 SUBIR PARA A NUVEM</button>' +
+      '</div>' +
+    '</div>';
+  var cb = document.getElementById('modal-confirm');
+  if (cb) cb.style.display = 'none';
+  modalCallback = null;
+}
+
+// Painel 2: confirmacao da direcao escolhida.
+function _syncConfirmar(dir) {
+  var e = _syncEstado();
+  if (dir === 'baixar' && !e.temNuvem) { toast('Nuvem vazia'); return; }
+
+  var titulo, rotulo, aviso, cor;
+  if (dir === 'baixar') {
+    titulo = 'BAIXAR DA NUVEM'; rotulo = 'BAIXAR';
+    if (e.l > e.c) {
+      aviso = '\u26a0\ufe0f Este aparelho est\u00e1 MAIS RECENTE que a nuvem. Baixar vai substituir os dados deste aparelho por uma vers\u00e3o mais antiga.';
+      cor = 'var(--partial)';
+    } else {
+      aviso = 'Os dados deste aparelho ser\u00e3o substitu\u00eddos pela vers\u00e3o da nuvem.';
+      cor = 'var(--accent3)';
+    }
+  } else {
+    titulo = 'SUBIR PARA A NUVEM'; rotulo = 'SUBIR';
+    if (e.c > e.l) {
+      aviso = '\u26a0\ufe0f A nuvem est\u00e1 MAIS RECENTE que este aparelho. Subir vai substituir a vers\u00e3o da nuvem por uma mais antiga.';
+      cor = 'var(--partial)';
+    } else {
+      aviso = 'A vers\u00e3o da nuvem ser\u00e1 substitu\u00edda pelos dados deste aparelho.';
+      cor = 'var(--accent)';
+    }
+  }
+
+  document.getElementById('modal-title').textContent = titulo;
+  document.getElementById('modal-body').innerHTML =
+    '<div style="display:flex;flex-direction:column;gap:10px">' +
+      _syncLinha('\u2601 Nuvem', formatTS(e.cloudISO), 'var(--muted)') +
+      _syncLinha('\ud83d\udcf1 Este aparelho', formatTS(e.localISO), 'var(--muted)') +
+      '<div style="font-size:12px;color:' + cor + ';line-height:1.5;padding:4px 2px">' + aviso + '</div>' +
+      '<div style="padding:2px"><a href="javascript:void(0)" onclick="_syncPainel()" ' +
+        'style="font-family:DM Mono,monospace;font-size:11px;color:var(--muted);text-decoration:none">\u2190 voltar</a></div>' +
+    '</div>';
+
+  modalCallback = function() {
+    if (dir === 'baixar') _syncAplicarBaixar(); else _syncAplicarSubir();
+  };
+  var cb = document.getElementById('modal-confirm');
+  if (cb) { cb.style.display = ''; cb.textContent = rotulo; cb.onclick = modalCallback; }
+}
+
+function _syncAplicarBaixar() {
+  closeModal();
+  var parsed = typeof _syncNuvem.state === 'string' ? JSON.parse(_syncNuvem.state) : _syncNuvem.state;
+  state = Object.assign(loadState(), parsed);
+  // Ancora DEPOIS do assign: loadState() e o default (sem a chave) e o assign zeraria o valor.
+  if (_syncNuvem.updated_at) state._syncBase = _syncNuvem.updated_at;
+  saveState(true); // fromCloud - nao reenviar
+  render();
+  if (state.planoChatHistory) planoChatHistory = state.planoChatHistory;
+  if (state.planoChatMessages && state.planoChatMessages.length) renderPlanoChatMessages();
+  if (state.planoRascunho || state.plano) renderPlanoMacro(state.planoRascunho || state.plano);
+  renderAgendaLinear();
+  if (typeof renderBikeTab === 'function') renderBikeTab();
+  toast('Baixado da nuvem \u2713');
+}
+
+async function _syncAplicarSubir() {
+  closeModal();
+  toast('Enviando\u2026');
+  // Carimba como edicao de agora para a nuvem ficar estritamente mais nova. Sem isso, subir uma
+  // versao mais antiga de proposito seria desfeito na proxima reconciliacao automatica, que
+  // baixaria de volta o lado com carimbo maior.
+  state._updatedAt = new Date().toISOString();
+  try {
+    var dbp2 = getSbClient(); if (!dbp2) throw new Error('sem cliente Supabase');
+    var payload = JSON.parse(JSON.stringify(state));
+    delete payload._syncBase;   // metadado de aparelho - nao viaja para a nuvem
+    var up = await supabaseWithTimeout(function() {
+      return dbp2.from('user_data').upsert({
+        id: _supabaseUser.id,
+        state: payload,
+        updated_at: state._updatedAt
+      });
+    }, 15000);
+    if (up.error) throw up.error;
+    state._syncBase = state._updatedAt;   // a nuvem esta nesta versao
+    saveState(true);
+    toast('Enviado para a nuvem \u2713');
+  } catch(err) {
+    console.warn('_syncAplicarSubir error:', err);
+    toast('FALHOU: ' + (err.message || err));
   }
 }
 
@@ -15414,83 +15506,6 @@ window.addEventListener('pagehide', flushSyncPendente);
 document.addEventListener('visibilitychange', function() {
   if (document.hidden) flushSyncPendente();
 });
-
-async function syncFromCloud() {
-  if (!_supabaseUser) { toast('Faça login para sincronizar'); return; }
-
-  try {
-    var dbl = getSbClient(); if (!dbl) throw new Error('no client');
-    var result = await supabaseWithTimeout(() =>
-      dbl.from('user_data').select('state, updated_at').eq('id', _supabaseUser.id).limit(1),
-      8000);
-    if (result.error) throw result.error;
-
-    if (!result.data || result.data.length === 0 || !result.data[0].state) {
-      toast('Nuvem vazia — nada para sincronizar');
-      return;
-    }
-
-    var cloudUpdatedAt = result.data[0].updated_at;
-    var localUpdatedAt = state._updatedAt || null;
-    var cloudNewer = cloudUpdatedAt && localUpdatedAt
-      ? new Date(cloudUpdatedAt) > new Date(localUpdatedAt)
-      : true;
-
-    var cloudStr = formatTS(cloudUpdatedAt);
-    var localStr = formatTS(localUpdatedAt);
-    var aviso = cloudNewer
-      ? '☁ A nuvem é mais recente. Os dados locais serão substituídos.'
-      : '⚠️ Seus dados locais são mais recentes que a nuvem. Confirmar vai substituir o local pela versão da nuvem.';
-
-    var modalOverlay = document.getElementById('modal');
-    document.getElementById('modal-title').textContent = 'SINCRONIZAR COM A NUVEM';
-    var body = document.getElementById('modal-body');
-    body.innerHTML =
-      '<div style="display:flex;flex-direction:column;gap:10px">' +
-        '<div style="display:flex;justify-content:space-between;font-family:DM Mono,monospace;font-size:11px;background:var(--surface2);border-radius:8px;padding:10px 14px;gap:10px">' +
-          '<span style="color:var(--muted);flex-shrink:0">Conta</span>' +
-          '<span style="color:var(--muted);word-break:break-all;text-align:right">' + escHtml(_supabaseUser.email || _supabaseUser.id) + '</span>' +
-        '</div>' +
-        '<div style="display:flex;justify-content:space-between;font-family:DM Mono,monospace;font-size:12px;background:var(--surface2);border-radius:8px;padding:10px 14px">' +
-          '<span style="color:var(--muted)">☁ Nuvem</span>' +
-          '<span style="color:var(--accent3)">' + cloudStr + '</span>' +
-        '</div>' +
-        '<div style="display:flex;justify-content:space-between;font-family:DM Mono,monospace;font-size:12px;background:var(--surface2);border-radius:8px;padding:10px 14px">' +
-          '<span style="color:var(--muted)">Local</span>' +
-          '<span style="color:' + (cloudNewer ? 'var(--muted)' : 'var(--accent)') + '">' + localStr + '</span>' +
-        '</div>' +
-        '<div style="display:flex;justify-content:space-between;font-family:DM Mono,monospace;font-size:11px;background:var(--surface2);border-radius:8px;padding:8px 14px">' +
-          '<span style="color:var(--muted)">Base comum</span>' +
-          '<span style="color:var(--muted)">' + formatTS(state._syncBase) + '</span>' +
-        '</div>' +
-        '<div style="font-size:12px;color:' + (cloudNewer ? 'var(--accent3)' : 'var(--partial)') + ';line-height:1.5;padding:4px 2px">' + aviso + '</div>' +
-      '</div>';
-
-    modalCallback = function() {
-      var parsed = typeof result.data[0].state === 'string'
-        ? JSON.parse(result.data[0].state)
-        : result.data[0].state;
-      state = Object.assign(loadState(), parsed);
-      // Ancora DEPOIS do assign, pelo mesmo motivo do supabaseLoad.
-      if (cloudUpdatedAt) state._syncBase = cloudUpdatedAt;
-      saveState(true); // fromCloud — don't re-upload
-      render();
-      if (state.planoChatHistory) planoChatHistory = state.planoChatHistory;
-      if (state.planoChatMessages && state.planoChatMessages.length) renderPlanoChatMessages();
-      if (state.planoRascunho || state.plano) renderPlanoMacro(state.planoRascunho || state.plano);
-      renderAgendaLinear();
-      if (typeof renderBikeTab === 'function') renderBikeTab();
-      closeModal();
-      toast('Sincronizado ✓');
-    };
-    document.getElementById('modal-confirm').onclick = modalCallback;
-    modalOverlay.classList.add('open');
-
-  } catch(e) {
-    console.warn('syncFromCloud error:', e);
-    toast('Erro ao sincronizar: ' + (e.message || e));
-  }
-}
 
 function toggleMobileMenu() {
   var d = document.getElementById('mobile-menu-dropdown');
