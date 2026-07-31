@@ -1,4 +1,5 @@
-const CACHE_NAME = 'treino-v508';
+const CACHE_NAME = 'treino-v515';
+const INDEX_CACHE_KEY = './index.html';
 
 self.addEventListener('message', function(event) {
   if (event.data && event.data.type === 'SKIP_WAITING') {
@@ -48,13 +49,34 @@ self.addEventListener('fetch', function(event) {
   // Android não existe hard reload e fechar o app não o limpa. cache:'no-store' força ida real
   // à rede. Passamos a URL (string) em vez do Request porque construir um Request novo a partir
   // de um request com mode:'navigate' lança TypeError.
+  // NETWORK-FIRST com queda para a ultima copia boa (v0.9.1.45).
+  // Antes o catch devolvia uma pagina fixa de "Conecte-se", entao o app simplesmente NAO ABRIA
+  // sem rede. A propriedade que motivou o desenho original — nunca servir HTML velho quando ha
+  // rede — continua intacta: online a resposta vem sempre do fetch com cache:'no-store'. O que
+  // muda e so o que acontece quando o fetch falha: em vez de tela morta, a ultima versao que
+  // carregou com sucesso. Rodar uma versao antiga offline e muito melhor que nao abrir.
+  // A chave do cache e fixa: requisicoes de navegacao variam (query string, hash) e cada
+  // variante viraria uma entrada diferente.
   if (event.request.mode === 'navigate' || event.request.url.endsWith('index.html')) {
     event.respondWith(
-      fetch(event.request.url, { cache: 'no-store', credentials: 'same-origin' }).catch(function() {
-        return new Response('<h1>Offline</h1><p>Conecte-se para usar o app.</p>', {
-          headers: { 'Content-Type': 'text/html' }
-        });
-      })
+      fetch(event.request.url, { cache: 'no-store', credentials: 'same-origin' })
+        .then(function(resp) {
+          if (resp && resp.ok && resp.type === 'basic') {
+            var copia = resp.clone();
+            // waitUntil para o SO nao matar a gravacao depois de a resposta seguir adiante.
+            event.waitUntil(caches.open(CACHE_NAME).then(function(c) {
+              return c.put(INDEX_CACHE_KEY, copia);
+            }).catch(function() {}));
+          }
+          return resp;
+        })
+        .catch(function() {
+          return caches.match(INDEX_CACHE_KEY).then(function(cached) {
+            return cached || new Response('<h1>Offline</h1><p>Conecte-se para usar o app.</p>', {
+              headers: { 'Content-Type': 'text/html' }
+            });
+          });
+        })
     );
     return;
   }

@@ -64,6 +64,11 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
     color: var(--accent);
   }
   .header-actions { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+  /* Versao e carimbo ficam do lado do logo, e nao dentro de .header-actions: no mobile aquele
+     bloco e nowrap e ja disputa espaco com undo, auth e o menu. A esquerda sobra folga. */
+  .header-brand { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
+  .header-version { font-family: 'DM Mono', monospace; font-size: 9px; color: var(--muted); }
+  #dbStamp { font-family: 'DM Mono', monospace; font-size: 9px; color: var(--muted); white-space: nowrap; }
   .mobile-menu-wrap { position: relative; display: inline-block; flex-shrink: 0; }
   .btn-desktop-only { display: none !important; }
   .mobile-only { display: none !important; }
@@ -1385,6 +1390,7 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
     /* Header compacto — logo + ações numa linha só */
     header { padding: 8px 12px; gap: 6px; flex-wrap: nowrap; align-items: center; }
     .logo { font-size: 22px; letter-spacing: 2px; flex-shrink: 0; }
+    .header-brand { gap: 6px; flex-shrink: 0; }
     .header-actions { flex-wrap: nowrap; gap: 4px; overflow-x: visible; justify-content: flex-end; flex: 1; min-width: 0; }
     .header-actions .btn { font-size: 9px; padding: 3px 7px; letter-spacing: 0.5px; white-space: nowrap; }
     #auth-status button { font-size: 9px !important; padding: 3px 8px !important; }
@@ -1405,12 +1411,15 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
 
 <div id="sticky-nav" style="position:sticky;top:0;z-index:200;background:var(--bg)">
 <header>
-  <div class="logo">TREINO</div>
+  <div class="header-brand">
+    <div class="logo">TREINO</div>
+    <span class="header-version">v0.9.1.46</span>
+    <span id="dbStamp" title="Última atualização dos dados">⟳ —</span>
+  </div>
   <div class="header-actions">
     <button id="undo-btn" onclick="undoAction()" title="Nada para desfazer" disabled style="font-family:'DM Mono',monospace;font-size:11px;background:none;border:1px solid var(--border);color:var(--muted);border-radius:4px;padding:3px 10px;cursor:default;opacity:0.3;transition:opacity .2s">↩</button>
     <button class="btn btn-header-only" onclick="exportData()">EXPORTAR</button>
     <button class="btn btn-header-only" onclick="importData()">IMPORTAR</button>
-    <span style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted);margin-left:4px">v0.9.1.38</span>
     <div id="auth-status" style="display:flex;align-items:center;margin-left:4px"></div>
 
     <div class="mobile-menu-wrap" id="mobile-menu-wrap">
@@ -15018,6 +15027,29 @@ function getSbClient() {
 var _supabaseUser = null;
 var _syncTimeout = null;
 var _supabaseLoadComplete = false; // blocks uploads until initial cloud load finishes
+
+// _cloudLoaded NAO e sinonimo de _supabaseLoadComplete. Elas respondem perguntas diferentes e
+// e por isso que sao duas:
+//
+//   _supabaseLoadComplete = "a rotina de boot terminou, o app pode operar"
+//        Precisa virar true MESMO NA FALHA, senao o app trava esperando algo que nao vem.
+//   _cloudLoaded          = "eu realmente li a nuvem nesta sessao"
+//        Precisa continuar FALSE na falha. E o que autoriza escrever.
+//
+// O bug que isto conserta: ate a v0.9.1.39 o unico sinal era o _supabaseLoadComplete, marcado
+// true tambem no caminho de erro — o comentario no fonte dizia "on error, unblock saves".
+// Consequencia real: se a leitura da nuvem falhasse (timeout de 8s, wifi ruim, Supabase fora),
+// o aparelho ficava com estado velho e AUTORIZADO A SUBIR. O primeiro clique agendava upload,
+// o upsert cego sobrescrevia a nuvem com a copia velha, e essa copia saia com carimbo NOVO —
+// entao os outros aparelhos baixavam a versao velha por cima da boa deles. Perda silenciosa,
+// e o carimbo mentindo a favor do dado errado.
+//
+// Nao confundir com "nuvem vazia": conta nova cuja consulta respondeu ZERO linhas E uma leitura
+// bem-sucedida, e marca true. O que nao marca e a consulta que nao respondeu.
+//
+// So bloqueia o caminho AUTOMATICO (tudo que passa por supabaseSave). O SUBIR manual do modal
+// de SINCRONIZACAO tem upsert proprio e continua livre: ali a escrita e ordem explicita sua.
+var _cloudLoaded = false;
 var _suppressNextSync = false; // prevents re-upload after downloading from cloud
 var _authListenerRegistered = false;
 var _initCompleted = false; // prevents onAuthStateChange from firing during supabaseInit
@@ -15069,6 +15101,7 @@ async function supabaseInit() {
           _supabaseUser = session.user;
         } else if (event === 'SIGNED_OUT') {
           _supabaseUser = null;
+          _cloudLoaded = false;   // a proxima sessao tem de ler a nuvem antes de escrever nela
           renderAuthUI();
           toast('Logout realizado');
         }
@@ -15122,6 +15155,7 @@ function supabaseLogout() {
     var dbs = getSbClient();
     if (dbs) dbs.auth.signOut().catch(function() {});
     _supabaseUser = null;
+    _cloudLoaded = false;   // a proxima sessao tem de ler a nuvem antes de escrever nela
     renderAuthUI();
     toast('Logout realizado \u2713');
   });
@@ -15180,20 +15214,86 @@ function _setSyncBase(iso) {
 
 async function supabaseSave() {
   if (!_supabaseUser) return;
+  // Nao se escreve na nuvem sem ter lido a nuvem nesta sessao. Ver o bloco de _cloudLoaded.
+  if (!_cloudLoaded) { console.warn('supabaseSave: bloqueado, nuvem nao lida nesta sessao'); return; }
+  if (_conflitoNuvem) { console.warn('supabaseSave: bloqueado, conflito pendente'); return; }
   try {
     const dbu = getSbClient(); if (!dbu) return;
-    var stateObj = JSON.parse(JSON.stringify(state));
-    delete stateObj._syncBase;   // metadado de aparelho — nao viaja para a nuvem
+    var stateObj = buildCloudPayload();   // sem campos de tela, sem _syncBase, sem _updatedAt
+    var sigEnvio = JSON.stringify(stateObj);
+    if (sigEnvio === _lastCloudSig) return;   // a nuvem ja tem exatamente isto
+    stateObj._updatedAt = state._updatedAt;   // recolocado so agora, fora da assinatura
     // Carimbo calculado UMA vez. Antes cada upsert chamava new Date() por conta propria: se
     // _updatedAt estivesse ausente, a tentativa e a retentativa gravavam horas diferentes e a
     // ancora nao teria como saber qual delas ficou na nuvem.
     var carimbo = stateObj._updatedAt || new Date().toISOString();
-    var result = await supabaseWithTimeout(() =>
-      dbu.from('user_data').upsert({
-        id: _supabaseUser.id,
-        state: stateObj,
-        updated_at: carimbo
-      }), 8000);
+    // Conta nova nunca editada nao tem _updatedAt. Antes o carimbo era inventado aqui, subia
+    // para a nuvem e NAO era gravado localmente: a nuvem ficava com updated_at=X e o local com
+    // undefined. Na leitura seguinte o local valia 0, a nuvem valia X, e o app baixava de volta
+    // exatamente o que ele mesmo acabara de enviar. Adotar o carimbo localmente faz os dois
+    // lados contarem a mesma historia. Persistido logo abaixo pelo _setSyncBase.
+    if (!state._updatedAt) { state._updatedAt = carimbo; stateObj._updatedAt = carimbo; }
+    // ---- TRAVAMENTO OTIMISTA (v0.9.1.46) ----
+    // O upsert cego escrevia por cima de qualquer coisa que estivesse na nuvem. Aqui a escrita
+    // so acontece se a linha ainda estiver na versao que este aparelho viu por ultimo
+    // (updated_at === _syncBase). Zero linhas afetadas significa que alguem escreveu no meio.
+    //
+    // Sem ancora nao da para travar: e o primeiro envio de uma conta nova, quando nao existe
+    // versao anterior para casar. Cai no upsert de sempre, que nesse caso e o correto.
+    var result;
+    if (state._syncBase) {
+      var upd = await supabaseWithTimeout(() =>
+        dbu.from('user_data')
+          .update({ state: stateObj, updated_at: carimbo })
+          .eq('id', _supabaseUser.id)
+          .eq('updated_at', state._syncBase)
+          .select('updated_at'), 8000);
+
+      if (!upd.error && (!upd.data || upd.data.length === 0)) {
+        // Zero linhas tem DUAS causas possiveis e elas exigem respostas opostas, entao a
+        // suspeita e conferida antes de virar acusacao: le o updated_at atual e compara como
+        // INSTANTE, nao como texto. Postgres pode devolver o carimbo num formato diferente do
+        // que o JS mandou (offset +00:00 vs Z, microssegundos) e um falso conflito a cada
+        // gravacao seria pior que o problema original.
+        var chk = await supabaseWithTimeout(() =>
+          dbu.from('user_data').select('updated_at').eq('id', _supabaseUser.id).limit(1), 8000);
+        var atual = (!chk.error && chk.data && chk.data[0]) ? chk.data[0].updated_at : null;
+
+        if (!atual) {
+          // A linha nao existe mais: nao ha o que travar, grava do zero.
+          result = await supabaseWithTimeout(() =>
+            dbu.from('user_data').upsert({ id: _supabaseUser.id, state: stateObj, updated_at: carimbo }), 8000);
+        } else if (new Date(atual).getTime() === new Date(state._syncBase).getTime()) {
+          // Mesmo instante, texto diferente: falso negativo. Reancora no formato que o banco
+          // devolve e repete uma vez — a partir daqui o .eq passa a casar.
+          console.warn('travamento: carimbo equivalente em formato diferente, reancorando');
+          state._syncBase = atual;
+          result = await supabaseWithTimeout(() =>
+            dbu.from('user_data')
+              .update({ state: stateObj, updated_at: carimbo })
+              .eq('id', _supabaseUser.id)
+              .eq('updated_at', atual)
+              .select('updated_at'), 8000);
+          if (!result.error && (!result.data || result.data.length === 0)) {
+            _registrarConflito(atual);
+            return;
+          }
+        } else {
+          // CONFLITO REAL: a nuvem esta numa versao que este aparelho nunca viu.
+          _registrarConflito(atual);
+          return;
+        }
+      } else {
+        result = upd;
+      }
+    } else {
+      result = await supabaseWithTimeout(() =>
+        dbu.from('user_data').upsert({
+          id: _supabaseUser.id,
+          state: stateObj,
+          updated_at: carimbo
+        }), 8000);
+    }
     if (result.error) {
       console.warn('Supabase save error:', result.error.message);
       // Try reconnecting and saving again
@@ -15206,11 +15306,17 @@ async function supabaseSave() {
             state: stateObj,
             updated_at: carimbo
           });
-          if (!retry.error) _setSyncBase(carimbo);
+          if (!retry.error) { _lastCloudSig = sigEnvio; _setSyncBase(carimbo); }
         }
       }
     } else {
-      _setSyncBase(carimbo);   // a nuvem esta nesta versao e eu sei disso
+      _lastCloudSig = sigEnvio;
+      // Ancora no carimbo COMO O BANCO O DEVOLVE, nao como o JS o mandou. Se os formatos
+      // textuais diferirem (offset +00:00 vs Z), ancorar no formato local faria o .eq da
+      // proxima gravacao falhar de novo — e cada envio pagaria duas consultas extras para se
+      // recuperar sempre do mesmo falso negativo.
+      var carimboBanco = (result.data && result.data[0] && result.data[0].updated_at) || carimbo;
+      _setSyncBase(carimboBanco);
     }
   } catch(e) {
     console.warn('Supabase save exception:', e.message);
@@ -15232,26 +15338,44 @@ async function supabaseLoad() {
       8000);
     var data = loadResult.data, error = loadResult.error;
     if (error) {
+      // A consulta NAO respondeu. _cloudLoaded fica false: o app opera, mas nao sobe nada.
       console.warn('Supabase load error:', error.message);
       _supabaseLoadComplete = true;
       return;
     }
-    // No data in cloud: first login — upload local state to cloud
+    // Zero linhas e uma leitura BEM-SUCEDIDA (conta nova), nao uma falha — marca _cloudLoaded
+    // antes do supabaseSave, senao o proprio guard barraria o primeiro envio.
     if (!data || data.length === 0 || !data[0].state) {
       _supabaseLoadComplete = true;
+      _cloudLoaded = true;
       supabaseSave();
       return;
     }
+    _cloudLoaded = true;   // daqui para baixo a nuvem respondeu com dado
+    updateDbStamp();
+    // Com conflito pendente o download automatico e tao destrutivo quanto o envio: apagaria a
+    // edicao local que ainda nao subiu. Congela ate voce escolher um lado.
+    if (_conflitoNuvem) return;
     var cloudUpdatedAt = data[0].updated_at ? new Date(data[0].updated_at).getTime() : 0;
     var localUpdatedAt = state._updatedAt ? new Date(state._updatedAt).getTime() : 0;
     // Cloud is newer OR updated_at is null (can't compare — prefer cloud): load from cloud
     if (cloudUpdatedAt > localUpdatedAt || (!data[0].updated_at && data[0].state)) {
       var parsed = typeof data[0].state === 'string' ? JSON.parse(data[0].state) : data[0].state;
-      state = Object.assign(loadState(), parsed);
+      var uiLocal = capturarUIFields();   // a tela e deste aparelho e nao vem da nuvem
+      state = Object.assign(loadState(), stripUIFields(parsed));
+      restaurarUIFields(uiLocal);
       // Ancora DEPOIS do Object.assign: loadState() e o default (sem a chave) e o assign
       // zeraria qualquer valor anterior. Acabei de ver a nuvem exatamente nesta versao.
       if (data[0].updated_at) state._syncBase = data[0].updated_at;
+      // Blob antigo pode nao trazer _updatedAt dentro do state. Sem isto o local ficaria
+      // undefined enquanto a ancora aponta para o carimbo da linha — os dois lados contando
+      // historias diferentes, e a leitura seguinte baixaria tudo de novo.
+      if (!state._updatedAt && data[0].updated_at) state._updatedAt = data[0].updated_at;
       saveState(true); // fromCloud — don't re-upload
+      // O que esta na tela e exatamente o que a nuvem tem: as duas assinaturas partem daqui.
+      // Sem isto a gravacao seguinte compararia com uma assinatura de antes do download,
+      // concluiria "mudou" e carimbaria por cima da data que acabou de chegar.
+      _lastCloudSig = _lastDataSig = JSON.stringify(buildCloudPayload());
       _supabaseLoadComplete = true;
       return;
     }
@@ -15338,7 +15462,11 @@ function formatTS(iso) {
 // unico jeito de contrariar o carimbo de proposito, quando o dado mais novo e o ruim. Dai o
 // painel de confirmacao destacar em amarelo quando a direcao escolhida vai sobrescrever o lado
 // mais RECENTE pelo mais antigo.
-var _syncNuvem = null;   // ultima leitura da nuvem, preenchida por abrirSincronizacao()
+var _syncNuvem = null;          // ultima leitura da nuvem, preenchida por abrirSincronizacao()
+var _syncNuvemEstado = 'lendo'; // 'lendo' | 'ok' | 'falhou' - a leitura remota desta sessao do modal
+var _syncNuvemErro = '';        // mensagem do erro, quando 'falhou'
+var _syncPainelAtivo = false;   // o painel 1 esta na tela? (a leitura demora ate 8s e o
+                                // usuario pode ter ido para a confirmacao ou fechado no meio)
 
 function _syncLinha(rotulo, valor, cor, tam) {
   return '<div style="display:flex;justify-content:space-between;font-family:DM Mono,monospace;' +
@@ -15358,12 +15486,28 @@ function _syncEstado() {
     cloudISO: cloudISO,
     localISO: localISO,
     c: cloudISO ? new Date(cloudISO).getTime() : 0,
-    l: localISO ? new Date(localISO).getTime() : 0
+    l: localISO ? new Date(localISO).getTime() : 0,
+    // 'ok' e a UNICA condicao em que os carimbos da nuvem valem alguma coisa. Sem isto,
+    // 'nuvem ilegivel' e 'nuvem vazia' virariam a mesma coisa (ambos com c === 0) e o painel
+    // diria "nuvem vazia" para quem so esta sem sinal.
+    lido: _syncNuvemEstado === 'ok'
   };
 }
 
 async function abrirSincronizacao() {
   if (!_supabaseUser) { toast('Fa\u00e7a login para sincronizar'); return; }
+
+  // Abre JA, com o que e local. Na v0.9.1.38 a montagem do painel inteira vinha DEPOIS do
+  // await da leitura da nuvem: sem rede o select falhava, caia no catch, e o modal simplesmente
+  // nao abria. Era a informacao local refem da remota — sendo que das quatro linhas do painel
+  // tres (conta, este aparelho, base comum) moram no state e nao dependem de rede nenhuma.
+  // E offline e justamente quando mais interessa ver que este aparelho tem edicao nao enviada.
+  _syncNuvem = null;
+  _syncNuvemEstado = 'lendo';
+  _syncNuvemErro = '';
+  _syncPainel();
+  document.getElementById('modal').classList.add('open');
+
   try {
     var dbs = getSbClient(); if (!dbs) throw new Error('sem cliente Supabase');
     var res = await supabaseWithTimeout(function() {
@@ -15371,46 +15515,79 @@ async function abrirSincronizacao() {
     }, 8000);
     if (res.error) throw res.error;
     _syncNuvem = (res.data && res.data.length) ? res.data[0] : null;
-    _syncPainel();
-    document.getElementById('modal').classList.add('open');
+    _syncNuvemEstado = 'ok';
   } catch(e) {
     console.warn('abrirSincronizacao error:', e);
-    toast('Erro: ' + (e.message || e));
+    _syncNuvemEstado = 'falhou';
+    _syncNuvemErro = (e && e.message) ? e.message : String(e);
   }
+
+  // Repinta so se o painel 1 ainda estiver na tela. Ate 8s se passaram.
+  if (_syncPainelAtivo && document.getElementById('modal').classList.contains('open')) _syncPainel();
 }
 
 // Painel 1: estado. O CONFIRMAR generico do modal fica escondido aqui — as duas acoes sao
 // botoes proprios dentro do corpo, porque sao DUAS e o modal generico so tem um.
 function _syncPainel() {
   var e = _syncEstado();
+  var lendo = _syncNuvemEstado === 'lendo';
+  var falhou = _syncNuvemEstado === 'falhou';
+
+  // Linha da nuvem: so mostra carimbo quando a leitura deu certo.
+  var nuvemTxt, nuvemCor;
+  if (lendo)            { nuvemTxt = 'lendo\u2026';      nuvemCor = 'var(--muted)'; }
+  else if (falhou)      { nuvemTxt = 'sem conex\u00e3o'; nuvemCor = 'var(--partial)'; }
+  else if (!e.temNuvem) { nuvemTxt = '\u2014';           nuvemCor = 'var(--muted)'; }
+  else                  { nuvemTxt = formatTS(e.cloudISO); nuvemCor = e.c >= e.l ? 'var(--accent3)' : 'var(--muted)'; }
+
   var diag, diagCor;
-  if (!e.temNuvem)     { diag = 'Nuvem vazia \u2014 n\u00e3o h\u00e1 o que baixar.'; diagCor = 'var(--partial)'; }
-  else if (e.c > e.l)  { diag = '\u2601 A nuvem est\u00e1 mais recente.'; diagCor = 'var(--accent3)'; }
-  else if (e.l > e.c)  { diag = '\ud83d\udcf1 Este aparelho est\u00e1 mais recente.'; diagCor = 'var(--accent)'; }
-  else                 { diag = '\u2713 Local e nuvem est\u00e3o iguais.'; diagCor = 'var(--muted)'; }
+  if (lendo)            { diag = 'Consultando a nuvem\u2026'; diagCor = 'var(--muted)'; }
+  else if (falhou)      { diag = '\u26a0\ufe0f N\u00e3o foi poss\u00edvel ler a nuvem. Os carimbos acima s\u00e3o deste aparelho.'; diagCor = 'var(--partial)'; }
+  else if (!e.temNuvem) { diag = 'Nuvem vazia \u2014 n\u00e3o h\u00e1 o que baixar.'; diagCor = 'var(--partial)'; }
+  else if (e.c > e.l)   { diag = '\u2601 A nuvem est\u00e1 mais recente.'; diagCor = 'var(--accent3)'; }
+  else if (e.l > e.c)   { diag = '\ud83d\udcf1 Este aparelho est\u00e1 mais recente.'; diagCor = 'var(--accent)'; }
+  else                  { diag = '\u2713 Local e nuvem est\u00e3o iguais.'; diagCor = 'var(--muted)'; }
+
+  // Sem leitura confirmada, NENHUMA das duas direcoes e oferecida. Baixar nao tem de onde.
+  // Subir e o caso interessante: seria escrever na nuvem sem saber o que ha nela — exatamente
+  // o padrao que causa perda de dado. Offline o envio falharia de qualquer forma; o que se
+  // ganha desabilitando e dizer o motivo em vez de deixar tentar e errar.
+  var podeBaixar = e.lido && e.temNuvem;
+  var podeSubir  = e.lido;
+  var estiloOff  = ';opacity:.35;cursor:default';
 
   document.getElementById('modal-title').textContent = 'SINCRONIZA\u00c7\u00c3O';
   document.getElementById('modal-body').innerHTML =
     '<div style="display:flex;flex-direction:column;gap:10px">' +
       _syncLinha('Conta', escHtml(_supabaseUser.email || _supabaseUser.id), 'var(--muted)', 11) +
-      _syncLinha('\u2601 Nuvem', formatTS(e.cloudISO), e.c >= e.l ? 'var(--accent3)' : 'var(--muted)') +
-      _syncLinha('\ud83d\udcf1 Este aparelho', formatTS(e.localISO), e.l >= e.c ? 'var(--accent)' : 'var(--muted)') +
+      _syncLinha('\u2601 Nuvem', nuvemTxt, nuvemCor) +
+      _syncLinha('\ud83d\udcf1 Este aparelho', formatTS(e.localISO), (e.lido && e.l >= e.c) ? 'var(--accent)' : 'var(--muted)') +
       _syncLinha('Base comum', formatTS(state._syncBase), 'var(--muted)', 11) +
       '<div style="font-size:12px;color:' + diagCor + ';line-height:1.5;padding:4px 2px">' + diag + '</div>' +
       '<div style="display:flex;gap:8px;margin-top:2px">' +
-        '<button class="modal-btn" style="flex:1" onclick="_syncConfirmar(\'baixar\')">\u2b07 BAIXAR DA NUVEM</button>' +
-        '<button class="modal-btn" style="flex:1" onclick="_syncConfirmar(\'subir\')">\u2b06 SUBIR PARA A NUVEM</button>' +
+        '<button class="modal-btn" style="flex:1' + (podeBaixar ? '' : estiloOff) + '"' +
+          (podeBaixar ? ' onclick="_syncConfirmar(\'baixar\')"' : ' disabled') + '>\u2b07 BAIXAR DA NUVEM</button>' +
+        '<button class="modal-btn" style="flex:1' + (podeSubir ? '' : estiloOff) + '"' +
+          (podeSubir ? ' onclick="_syncConfirmar(\'subir\')"' : ' disabled') + '>\u2b06 SUBIR PARA A NUVEM</button>' +
       '</div>' +
+      (falhou
+        ? '<div style="padding:2px"><a href="javascript:void(0)" onclick="abrirSincronizacao()" ' +
+            'style="font-family:DM Mono,monospace;font-size:11px;color:var(--accent);text-decoration:none">\u21bb tentar de novo</a>' +
+            '<span style="font-family:DM Mono,monospace;font-size:10px;color:var(--muted);margin-left:8px">' + escHtml(_syncNuvemErro) + '</span></div>'
+        : '') +
     '</div>';
   var cb = document.getElementById('modal-confirm');
   if (cb) cb.style.display = 'none';
   modalCallback = null;
+  _syncPainelAtivo = true;
 }
 
 // Painel 2: confirmacao da direcao escolhida.
 function _syncConfirmar(dir) {
   var e = _syncEstado();
+  if (!e.lido) { toast('Nuvem n\u00e3o lida'); return; }
   if (dir === 'baixar' && !e.temNuvem) { toast('Nuvem vazia'); return; }
+  _syncPainelAtivo = false;   // a leitura em curso nao pode repintar por cima daqui
 
   var titulo, rotulo, aviso, cor;
   if (dir === 'baixar') {
@@ -15453,10 +15630,13 @@ function _syncConfirmar(dir) {
 function _syncAplicarBaixar() {
   closeModal();
   var parsed = typeof _syncNuvem.state === 'string' ? JSON.parse(_syncNuvem.state) : _syncNuvem.state;
-  state = Object.assign(loadState(), parsed);
+  var uiLocal = capturarUIFields();   // a tela e deste aparelho e nao vem da nuvem
+  state = Object.assign(loadState(), stripUIFields(parsed));
+  restaurarUIFields(uiLocal);
   // Ancora DEPOIS do assign: loadState() e o default (sem a chave) e o assign zeraria o valor.
   if (_syncNuvem.updated_at) state._syncBase = _syncNuvem.updated_at;
   saveState(true); // fromCloud - nao reenviar
+  _lastCloudSig = _lastDataSig = JSON.stringify(buildCloudPayload());
   render();
   if (state.planoChatHistory) planoChatHistory = state.planoChatHistory;
   if (state.planoChatMessages && state.planoChatMessages.length) renderPlanoChatMessages();
@@ -15475,8 +15655,9 @@ async function _syncAplicarSubir() {
   state._updatedAt = new Date().toISOString();
   try {
     var dbp2 = getSbClient(); if (!dbp2) throw new Error('sem cliente Supabase');
-    var payload = JSON.parse(JSON.stringify(state));
-    delete payload._syncBase;   // metadado de aparelho - nao viaja para a nuvem
+    var payload = buildCloudPayload();   // sem campos de tela, sem _syncBase
+    var sigManual = JSON.stringify(payload);
+    payload._updatedAt = state._updatedAt;   // recolocado fora da assinatura
     var up = await supabaseWithTimeout(function() {
       return dbp2.from('user_data').upsert({
         id: _supabaseUser.id,
@@ -15486,6 +15667,7 @@ async function _syncAplicarSubir() {
     }, 15000);
     if (up.error) throw up.error;
     state._syncBase = state._updatedAt;   // a nuvem esta nesta versao
+    _lastCloudSig = _lastDataSig = sigManual;
     saveState(true);
     toast('Enviado para a nuvem \u2713');
   } catch(err) {
@@ -15521,6 +15703,8 @@ document.addEventListener('click', function(e) {
 });
 
 function renderAuthUI() {
+  _cloudExpected = hasCloudAccount();
+  updateDbStamp();
   var el = document.getElementById('auth-status');
   if (!el) return;
   el.innerHTML = '';
@@ -15630,6 +15814,152 @@ function openDB(cb) {
   } catch(e) { cb(null); }
 }
 
+// ============ CAMADA 1: o que e DADO e o que e TELA (v0.9.1.42) ============
+// Preferencia de tela pertence ao APARELHO, nao ao dado. Antes tudo subia junto, com dois
+// efeitos ruins: trocar de aba num aparelho mexia na tela do outro, e — pior — fazia o carimbo
+// avancar, entao um aparelho podia "ganhar" da edicao de verdade do outro so porque alguem
+// abriu uma aba nele.
+//
+// A lista e por CAMPO, nunca por nome de funcao: o mesmo saveState() e chamado por acao de
+// tela e por acao de dado, entao so o campo diz de qual dos dois se trata.
+var UI_FIELDS = [
+  '_agendaOpenCards',          // quais cards/chats estao expandidos na agenda
+  'lastBibTab',                // ultima aba aberta da Biblioteca
+  'planoSemana',               // posicao de navegacao no plano
+  'planoDia',                  // idem
+  '_bikeCorrenteSelecionada',  // corrente selecionada na aba Bike (seletor de visualizacao)
+  '_pendingCicloDataInicio',   // fluxo pela metade: nao faz sentido impor ao outro aparelho
+  '_pendingPrimeiroTreino',
+  '_duplicatasPendentes'
+];
+
+function stripUIFields(o) {
+  if (!o) return o;
+  UI_FIELDS.forEach(function(f) { delete o[f]; });
+  delete o._syncBase;   // ancora: metadado de aparelho, nunca viaja
+  return o;
+}
+
+// O estado que efetivamente vai para a nuvem. Sem _updatedAt de proposito: ele muda a cada
+// gravacao e, dentro da assinatura, faria toda comparacao dar "mudou". Ele e recolocado no
+// payload em supabaseSave, imediatamente antes do upsert.
+function buildCloudPayload() {
+  var p = stripUIFields(JSON.parse(JSON.stringify(state)));
+  delete p._updatedAt;
+  return p;
+}
+
+// Repoe no `state` os campos de tela deste aparelho depois de uma substituicao total.
+// Necessario porque loadState() devolve o DEFAULT (nao o persistido) e o Object.assign com o
+// payload — que agora vem sem esses campos — deixaria cada um no valor de fabrica. Sem isto,
+// todo download da nuvem fecharia os cards, jogaria a Biblioteca na primeira aba e devolveria
+// a navegacao do plano para o inicio.
+function capturarUIFields() {
+  var m = {};
+  UI_FIELDS.forEach(function(f) { if (state[f] !== undefined) m[f] = state[f]; });
+  return m;
+}
+function restaurarUIFields(m) {
+  if (!m) return;
+  UI_FIELDS.forEach(function(f) { if (m[f] !== undefined) state[f] = m[f]; });
+}
+
+// ============ CAMADA 4: o carimbo visivel (v0.9.1.43) ============
+// A data mostrada e a MESMA gravada na nuvem (state._updatedAt). Serve para conferir a olho,
+// entre dois aparelhos, se os dois estao na mesma versao do dado — sem abrir modal nenhum.
+//
+// _cloudExpected responde "este navegador usa nuvem?", lendo o token de sessao que o proprio
+// Supabase guarda no localStorage. Sem ele nao daria para distinguir dois casos que parecem
+// iguais mas nao sao: quem nunca logou (a data local e a unica que existe, esta tudo certo) de
+// quem tem conta mas nao conseguiu falar com o servidor nesta sessao (a data local pode estar
+// atrasada em relacao ao que ha na nuvem). Este segundo caso e o estado DEGRADADO.
+var _cloudExpected = false;
+
+// _conflitoNuvem: preenchido quando o travamento otimista detecta que a nuvem mudou desde a
+// ultima vez que ESTE aparelho a viu. Enquanto estiver preenchido:
+//   - nenhum envio automatico acontece (escreveria por cima do que o outro aparelho fez)
+//   - nenhum download automatico acontece (apagaria a edicao local que ainda nao subiu)
+// Os dois lados ficam congelados de proposito: e o unico momento em que as duas copias tem
+// conteudo que a outra nao tem, e escolher por conta propria significa descartar uma delas.
+// { cloudUpdatedAt, base, detectadoEm }
+var _conflitoNuvem = null;
+
+function hasCloudAccount() {
+  try {
+    for (var i = 0; i < localStorage.length; i++) {
+      var k = localStorage.key(i);
+      if (k && k.indexOf('sb-') === 0 && k.indexOf('-auth-token') > 0) return true;
+    }
+  } catch(e) {}
+  return false;
+}
+
+function fmtStamp(iso) {
+  if (!iso) return '\u2014';
+  var d = new Date(iso);
+  if (isNaN(d.getTime())) return '\u2014';
+  var p = function(n) { return n < 10 ? '0' + n : '' + n; };
+  return p(d.getDate()) + '/' + p(d.getMonth() + 1) + '/' + String(d.getFullYear()).slice(2) +
+         ' ' + p(d.getHours()) + ':' + p(d.getMinutes());
+}
+
+function _registrarConflito(cloudUpdatedAt) {
+  if (_conflitoNuvem && _conflitoNuvem.cloudUpdatedAt === cloudUpdatedAt) return;
+  _conflitoNuvem = {
+    cloudUpdatedAt: cloudUpdatedAt,
+    base: state._syncBase || null,
+    detectadoEm: new Date().toISOString()
+  };
+  console.warn('CONFLITO: nuvem em ' + cloudUpdatedAt + ', este aparelho ancorado em ' + _conflitoNuvem.base);
+  updateDbStamp();
+  toast('Conflito de sincroniza\u00e7\u00e3o \u2014 abra SINCRONIZA\u00c7\u00c3O');
+}
+
+function _limparConflito() {
+  if (!_conflitoNuvem) return;
+  _conflitoNuvem = null;
+  updateDbStamp();
+}
+
+function updateDbStamp() {
+  var el = document.getElementById('dbStamp');
+  if (!el) return;
+  var comNuvem = _cloudExpected || !!_supabaseUser;
+  var degradado = comNuvem && !_cloudLoaded;
+  // Conflito vem antes de degradado: e o estado mais grave e o unico que exige acao sua.
+  var sufixo = _conflitoNuvem ? ' \u00b7 conflito' : (degradado ? ' \u00b7 local' : '');
+  el.textContent = '\u27f3 ' + fmtStamp(state._updatedAt) + sufixo;
+  el.style.color = _conflitoNuvem ? 'var(--accent2)' : (degradado ? 'var(--partial)' : 'var(--muted)');
+  if (_conflitoNuvem) {
+    el.title = 'Conflito: a nuvem foi alterada em outro aparelho (' + fmtStamp(_conflitoNuvem.cloudUpdatedAt) +
+               ') e este aparelho tem altera\u00e7\u00f5es n\u00e3o enviadas. Abra SINCRONIZA\u00c7\u00c3O para escolher.';
+    return;
+  }
+  var quando = state._updatedAt ? new Date(state._updatedAt).toLocaleString('pt-BR') : '';
+  if (!state._updatedAt) {
+    // Sem data E degradado e estado real: instalacao nova com sessao restaurada, aberta
+    // offline. As duas informacoes importam, entao o texto carrega as duas.
+    el.title = 'Sem data de atualiza\u00e7\u00e3o registrada' +
+               (degradado ? '. N\u00e3o foi poss\u00edvel confirmar com a nuvem nesta sess\u00e3o.' : '');
+  } else if (degradado) {
+    el.title = 'Data da c\u00f3pia deste aparelho (' + quando +
+               '). N\u00e3o foi poss\u00edvel confirmar com a nuvem nesta sess\u00e3o.';
+  } else if (_cloudLoaded) {
+    el.title = 'Confirmado com a nuvem: ' + quando;
+  } else {
+    el.title = 'Dados locais deste aparelho (' + quando +
+               '). Este navegador n\u00e3o est\u00e1 usando a nuvem.';
+  }
+}
+
+// ============ CAMADA 2: duas perguntas, duas assinaturas ============
+//   _lastDataSig  : o DADO mudou desde a ultima gravacao? (vale offline tambem)
+//   _lastCloudSig : a nuvem ja recebeu exatamente este payload?
+// Sao independentes. Uma gravacao pode mudar o dado sem chegar a nuvem (offline), e a nuvem
+// pode precisar receber algo que o dado nao acabou de mudar (reenvio apos falha).
+var _lastDataSig = null;
+var _lastCloudSig = null;
+
 function saveState(fromCloud, undoLabel) {
   if (!fromCloud && undoLabel !== false) {
     if (_pendingUndoLabel !== null) {
@@ -15640,7 +15970,18 @@ function saveState(fromCloud, undoLabel) {
     }
   }
   if (state.plano) sanitizePlanoTipos(state.plano);
-  if (!fromCloud) state._updatedAt = new Date().toISOString();
+
+  // O carimbo passa a responder "o dado mudou?", nao "alguem gravou?". Trocar de aba, abrir um
+  // card ou navegar no plano gera gravacao (o espelho local tem de guardar isso) mas NAO
+  // produz payload diferente — entao nao carimba e nao agenda envio.
+  var _sig = null, _mudou = false;
+  if (!fromCloud) {
+    _sig = JSON.stringify(buildCloudPayload());
+    _mudou = (_lastDataSig === null) || (_sig !== _lastDataSig);
+    _lastDataSig = _sig;
+    if (_mudou) state._updatedAt = new Date().toISOString();
+  }
+
   var json = JSON.stringify(state);
   try { localStorage.setItem(STORAGE_KEY, json); } catch(e) {}
   openDB(function(db) {
@@ -15651,7 +15992,8 @@ function saveState(fromCloud, undoLabel) {
       req.onerror = function(e) { console.warn('IDB save error:', e.target.error); };
     } catch(e) { console.warn('IDB save exception:', e); }
   });
-  if (!fromCloud) scheduleSyncToSupabase();
+  updateDbStamp();
+  if (!fromCloud && _mudou) scheduleSyncToSupabase();
 }
 
 function loadPersistedState(cb) {
@@ -15684,6 +16026,59 @@ function loadPersistedState(cb) {
   });
 }
 
+// Aplica a importacao ja decidida a data final. Separada de importData porque so roda depois
+// da confirmacao: cancelar tem de ser inteiramente inocuo, inclusive sem requisicao a nuvem.
+function _aplicarImportacao(imported, finalStamp) {
+  pushUndo('Importar backup');   // substituicao total merece desfazer; undoStack vive fora de state
+
+  // Tela e ancora sao deste APARELHO e nao vem no pacote: importar conteudo nao muda em que aba
+  // voce estava nem o que este aparelho ja viu da nuvem. O arquivo e um dump completo do state
+  // de quem exportou, entao traz os dois campos e eles precisam ser descartados.
+  var uiLocal = capturarUIFields();
+  var syncBaseLocal = state._syncBase;
+
+  state = JSON.parse(JSON.stringify(imported));
+  stripUIFields(state);   // remove campos de tela e _syncBase vindos do arquivo
+  if (!state.series) state.series = loadState().series;
+  if (!state.history) state.history = [];
+  if (!state.bikeHistory) state.bikeHistory = [];
+  restaurarUIFields(uiLocal);
+  if (syncBaseLocal) state._syncBase = syncBaseLocal;
+  state._updatedAt = finalStamp;
+
+  try { localStorage.removeItem(STORAGE_KEY); } catch(e) {}
+  planoChatHistory = state.planoChatHistory || [];
+  chatInlineHistory = {};
+
+  // Sem esta linha, saveState compararia o payload importado com a assinatura anterior,
+  // concluiria "o dado mudou" e carimbaria a hora atual POR CIMA da data escolhida acima —
+  // anulando a preservacao no caso "arquivo mais novo". Aqui a importacao ja e dada por
+  // contabilizada, e a data sobrevive.
+  _lastDataSig = JSON.stringify(buildCloudPayload());
+  saveState();
+
+  // Consequencia da linha acima: saveState viu "nada mudou" e NAO agendou envio. O adendo conta
+  // com o envio acontecendo assim mesmo, porque a decisao de enviar compara com _lastCloudSig,
+  // que e independente. No Agenda isso e automatico (o upload mora dentro do saveState); aqui o
+  // upload e agendado por _mudou, entao o agendamento tem de ser explicito. supabaseSave ainda
+  // desiste sozinho se o payload for identico ao que a nuvem ja tem.
+  scheduleSyncToSupabase();
+
+  render();
+  loadPerfil();
+  renderPlanoChatMessages();
+  if (state.planoRascunho || state.plano) {
+    renderPlanoMacro(state.planoRascunho || state.plano);
+  }
+  renderAgendaLinear();
+  if (typeof renderBikeTab === 'function') renderBikeTab();
+  switchTab('agenda');
+  setTimeout(autoResizeAll, 100);
+  toast(finalStamp && imported._updatedAt === finalStamp
+    ? 'Dados importados \u2713'
+    : 'Vers\u00e3o importada e marcada como a mais recente');
+}
+
 function importData() {
   const input = document.createElement('input');
   input.type = 'file';
@@ -15700,26 +16095,47 @@ function importData() {
             !imported.perfil && !imported.planoChatMessages) {
           throw new Error('Formato inválido');
         }
-        // Replace state entirely with imported data
-        state = JSON.parse(JSON.stringify(imported));
-        // Fill any missing fields with defaults
-        if (!state.series) state.series = loadState().series;
-        if (!state.history) state.history = [];
-        if (!state.bikeHistory) state.bikeHistory = [];
-        // Clear storage and save fresh
-        try { localStorage.removeItem(STORAGE_KEY); } catch(e) {}
-        planoChatHistory = state.planoChatHistory || [];
-        chatInlineHistory = {};
-        saveState();
-        render();
-        loadPerfil();
-        renderPlanoChatMessages();
-        if (state.planoRascunho || state.plano) {
-          renderPlanoMacro(state.planoRascunho || state.plano);
+        // ---- Regra de datas na importacao (v0.9.1.44) ----
+        // Importar e a UNICA operacao que separa "quando o conteudo foi produzido" de "quando
+        // este aparelho recebeu a ordem". Editar faz as duas coisas junto, por isso um campo de
+        // data basta. Importar um backup de duas semanas atras e conteudo velho com ordem nova.
+        //
+        //   arquivo mais NOVO   -> preserva a data do arquivo. Conteudo identico tem de exibir
+        //                          data identica, senao o carimbo nao serve para conferir se
+        //                          dois aparelhos bateram.
+        //   arquivo mais ANTIGO -> avisa e, ao confirmar, carimba a HORA ATUAL. Com a data do
+        //                          arquivo, o outro aparelho veria a propria copia como mais
+        //                          nova, aplicaria a regra correta de nao deixar nuvem velha
+        //                          apagar o que tem, e DESFARIA a importacao sem avisar.
+        //   arquivo SEM data    -> idem. Sem base de comparacao, assumir a ordem do usuario
+        //                          como a mais recente e melhor que deixar ao acaso.
+        //
+        // As duas leituras vem ANTES de qualquer merge: depois da substituicao o valor original
+        // ja se perdeu e a comparacao fica impossivel.
+        var fileStamp = imported._updatedAt || null;
+        var curStamp  = state._updatedAt || null;
+        var semData    = !fileStamp;
+        // Comparacao lexicografica de ISO: mesmo formato, mesmo fuso (UTC), largura fixa.
+        // `<` estrito de proposito — reimportar o mesmo arquivo nao deve gerar aviso.
+        var maisAntigo = !!(fileStamp && curStamp && fileStamp < curStamp);
+
+        var tituloImp = 'IMPORTAR DADOS';
+        var msgImp = 'Isso substituir\u00e1 todos os dados atuais deste aparelho. Continuar?';
+        if (semData && curStamp) {
+          tituloImp = 'IMPORTAR ARQUIVO SEM DATA';
+          msgImp = 'O arquivo n\u00e3o tem data de atualiza\u00e7\u00e3o, ent\u00e3o n\u00e3o d\u00e1 para compar\u00e1-lo com os ' +
+                   'dados atuais (' + fmtStamp(curStamp) + '). Se continuar, o conte\u00fado do arquivo passar\u00e1 ' +
+                   'a valer como o mais recente e substituir\u00e1 as c\u00f3pias dos outros aparelhos. Continuar?';
+        } else if (maisAntigo) {
+          tituloImp = 'IMPORTAR VERS\u00c3O MAIS ANTIGA';
+          msgImp = '\u26a0\ufe0f O arquivo \u00e9 MAIS ANTIGO que os dados atuais. Arquivo: ' + fmtStamp(fileStamp) +
+                   '. Atual: ' + fmtStamp(curStamp) + '. Se continuar, esta vers\u00e3o antiga passar\u00e1 a valer ' +
+                   'como a mais recente e substituir\u00e1 as c\u00f3pias dos outros aparelhos. Continuar?';
         }
-        switchTab('agenda');
-        setTimeout(autoResizeAll, 100);
-        toast('Dados importados ✓');
+
+        openModal(tituloImp, [{ label: msgImp, key: '_', type: 'hidden' }], function() {
+          _aplicarImportacao(imported, (maisAntigo || semData) ? new Date().toISOString() : fileStamp);
+        });
 
       } catch(e) {
         toast('Erro: ' + e.message);
@@ -15838,6 +16254,14 @@ loadPersistedState(function() {
   if (state.planoRascunho || state.plano) {
     renderPlanoMacro(state.planoRascunho || state.plano);
   }
+  // A assinatura de referencia parte do estado que ACABOU de ser carregado. Sem isto ela
+  // nasce null, a primeira gravacao depois do boot conta como "mudou" seja qual for, e uma
+  // troca de aba logo apos abrir o app carimbaria o dado. E a comparacao vale offline: nao
+  // depende de haver sessao nem de a nuvem ter respondido.
+  _lastDataSig = JSON.stringify(buildCloudPayload());
+  _cloudExpected = hasCloudAccount();
+  updateDbStamp();
+
   // Pre-open IndexedDB so it's ready when saveState is called
   openDB(function() {});
 
