@@ -1413,7 +1413,7 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
 <header>
   <div class="header-brand">
     <div class="logo">TREINO</div>
-    <span class="header-version">v0.9.1.50</span>
+    <span class="header-version">v0.9.1.52</span>
     <span id="dbStamp" title="Última atualização dos dados">⟳ —</span>
   </div>
   <div class="header-actions">
@@ -3775,24 +3775,7 @@ var TOOL_LABELS = {
 function executarTool(toolName, params) {
   if (toolName === 'get_historico') {
     var n = params && params.n ? parseInt(params.n) : 20;
-    if (isNaN(n) || n < 1) n = 20;
-    var hist = state.history.slice(0, n);
-    if (!hist.length) return 'Sem histórico registrado ainda.';
-    return 'HISTÓRICO DE TREINOS (' + hist.length + ' sessões):\n' +
-      hist.map(function(h) {
-        var d = new Date(h.date).toLocaleDateString('pt-BR', {weekday:'short', day:'2-digit', month:'2-digit', year:'2-digit'});
-        var linha = d + ': Série ' + h.serieLabel + ' (' + h.done + '/' + h.total + ')';
-        if (h.exercises && h.exercises.length) {
-          linha += '\n' + h.exercises.map(function(e) {
-            var p = [e.name];
-            if (e.sets) p.push(e.sets);
-            if (e.weight) p.push(e.weight);
-            if (e.status && e.status !== 'done') p.push('[' + e.status + ']');
-            return '  ' + p.join(' | ');
-          }).join('\n');
-        }
-        return linha;
-      }).join('\n');
+    return _textoHistorico(n);
   }
 
   if (toolName === 'get_plano_macro') {
@@ -4044,6 +4027,108 @@ function _setSendBtnSend(btnId) {
 }
 
 // Tools instruction block — injected into all system prompts
+// ============ CONTEXTO DE TREINO PARA A IA (v0.9.1.52) ============
+// Extraido do resolvedor de get_historico para nao existirem duas formatacoes do mesmo dado —
+// mesmo erro que o aplicador de plano macro tinha. A tool e a injecao direta usam este texto.
+function _textoHistorico(n) {
+  if (isNaN(n) || n < 1) n = 20;
+  var hist = (state.history || []).slice(0, n);
+  if (!hist.length) return 'Sem histórico registrado ainda.';
+  return 'HISTÓRICO DE TREINOS (' + hist.length + ' sessões, mais recente primeiro):\n' +
+    hist.map(function(h) {
+      var d = new Date(h.date).toLocaleDateString('pt-BR', {weekday:'short', day:'2-digit', month:'2-digit', year:'2-digit'});
+      var linha = d + ': Série ' + h.serieLabel + ' (' + h.done + '/' + h.total + ')';
+      if (h.exercises && h.exercises.length) {
+        linha += '\n' + h.exercises.map(function(e) {
+          var p = [e.name];
+          if (e.sets) p.push(e.sets);
+          if (e.weight) p.push(e.weight);
+          if (e.status && e.status !== 'done') p.push('[' + e.status + ']');
+          return '  ' + p.join(' | ');
+        }).join('\n');
+      }
+      return linha;
+    }).join('\n');
+}
+
+// Trajetoria de carga por exercicio, em ordem CRONOLOGICA (mais antigo -> mais recente).
+// O historico cru ja contem esses numeros, mas espalhados por sessao e em ordem invertida:
+// para enxergar que a puxada saiu de 60 e travou em 65 ha tres sessoes, o modelo teria de
+// reconstruir a serie temporal sozinho. Entregar pronto elimina esse trabalho — e o erro.
+function _textoProgressaoCargas(maxSessoes, maxPontos) {
+  maxSessoes = maxSessoes || 40;
+  maxPontos = maxPontos || 6;
+  var hist = (state.history || []).slice(0, maxSessoes);
+  if (!hist.length) return '';
+  var porSerie = {};
+  // slice().reverse(): history e unshift, entao indice 0 e o MAIS RECENTE. A leitura da
+  // progressao precisa da ordem oposta.
+  hist.slice().reverse().forEach(function(h) {
+    if (!h.exercises) return;
+    var chaveSerie = h.serieLabel || '?';
+    if (!porSerie[chaveSerie]) porSerie[chaveSerie] = {};
+    h.exercises.forEach(function(e) {
+      var nome = e.name || '';
+      if (!nome) return;
+      if (!porSerie[chaveSerie][nome]) porSerie[chaveSerie][nome] = [];
+      porSerie[chaveSerie][nome].push({
+        peso: e.weight || '—',
+        sets: e.sets || '',
+        pulado: e.status && e.status !== 'done'
+      });
+    });
+  });
+  var blocos = [];
+  Object.keys(porSerie).sort().forEach(function(lab) {
+    var exs = porSerie[lab];
+    var linhas = Object.keys(exs).map(function(nome) {
+      var pts = exs[nome].slice(-maxPontos);
+      var seq = pts.map(function(p) { return p.peso + (p.pulado ? '(pulado)' : ''); }).join(' → ');
+      var ult = pts[pts.length - 1];
+      return '  ' + nome + ': ' + seq + (ult && ult.sets ? '  [séries: ' + ult.sets + ']' : '');
+    });
+    if (linhas.length) blocos.push('Série ' + lab + ':\n' + linhas.join('\n'));
+  });
+  if (!blocos.length) return '';
+  return 'PROGRESSÃO DE CARGA (ordem cronológica, do mais antigo ao mais recente):\n' + blocos.join('\n');
+}
+
+// Aderencia a partir de diasStatus. Volume prescrito so faz sentido contra volume cumprido:
+// prescrever intensificacao para quem perdeu um terco dos dias e prescrever no vazio.
+function _textoAderencia() {
+  if (!state.plano || !state.plano.semanas) return '';
+  var ds = state.plano.diasStatus || {};
+  var serieDe = {};
+  state.plano.semanas.forEach(function(sem) {
+    (sem.dias || sem.agenda || []).forEach(function(d) {
+      serieDe['sem' + sem.semana + '_' + d.dia] = { serie: d.serie, semana: sem.semana, dia: d.dia };
+    });
+  });
+  var cont = { concluido: 0, perdido: 0, ausente: 0, pulado: 0, antecipado: 0 };
+  var falhas = [];
+  Object.keys(ds).forEach(function(k) {
+    var st = ds[k];
+    if (cont[st] !== undefined) cont[st]++;
+    if (st === 'perdido' || st === 'ausente') {
+      var info = serieDe[k];
+      if (info && info.serie && info.serie !== 'descanso') {
+        falhas.push('Semana ' + info.semana + ' ' + info.dia + ' (Série ' + info.serie + ') — ' + st);
+      }
+    }
+  });
+  var totalTreinos = cont.concluido + cont.perdido + cont.ausente;
+  if (!totalTreinos) return '';
+  var pct = Math.round((cont.concluido / totalTreinos) * 100);
+  var txt = 'ADERÊNCIA AO PLANO:\n' +
+    '  Concluídos: ' + cont.concluido + ' | Perdidos: ' + cont.perdido + ' | Ausentes: ' + cont.ausente +
+    (cont.antecipado ? ' | Antecipados: ' + cont.antecipado : '') +
+    '  (' + pct + '% de cumprimento)';
+  if (falhas.length) {
+    txt += '\n  Dias de treino não cumpridos:\n    ' + falhas.slice(-12).join('\n    ');
+  }
+  return txt;
+}
+
 function getToolsInstrucoes() {
   return `
 ACESSO A DADOS SOB DEMANDA:
@@ -4245,9 +4330,25 @@ function gerarOrientacoesDiasFuturos() {
     }
   });
 
+  // Historico, progressao e aderencia vao EMBUTIDOS, nao por tool. O modelo tem get_historico
+  // disponivel, mas a instrucao do sistema manda nao solicitar dados por precaucao — e a
+  // mensagem antiga nao mencionava historico nenhum. Resultado: ele periodizava sem saber
+  // quais cargas foram realmente usadas nem quais dias foram cumpridos. Injetar e
+  // deterministico, custa uma rodada de API a menos, e nao depende de o modelo decidir pedir.
+  var blocoHistorico = _textoHistorico(20);
+  var blocoProgressao = _textoProgressaoCargas(40, 6);
+  var blocoAderencia = _textoAderencia();
+
   var msg = 'Gere orientações de periodização para os seguintes dias futuros do plano:\n\n' +
     diasFuturos.join('\n') + '\n\n' +
     'Resumo das semanas:\n' + semanasSummary.join('\n') + '\n\n' +
+    blocoHistorico + '\n\n' +
+    (blocoProgressao ? blocoProgressao + '\n\n' : '') +
+    (blocoAderencia ? blocoAderencia + '\n\n' : '') +
+    'Use o histórico, a progressão de carga e a aderência acima para calibrar cada dia: ' +
+    'proponha cargas concretas a partir do que já foi levantado, identifique exercícios estagnados, ' +
+    'e ajuste o volume à aderência real (não prescreva intensificação para um período com muitos dias perdidos). ' +
+    'Os dados acima já são completos — NÃO solicite get_historico. ' +
     'Para cada dia, defina: foco do treino, intensidade, orientações específicas de execução e exercícios de core recomendados. ' +
     'Considere a progressão entre semanas e as restrições do perfil. ' +
     'CICLISMO OBRIGATÓRIO: inclua o campo "bike" em CADA dia listado acima que NÃO seja série D. ' +
@@ -4677,67 +4778,134 @@ var _pendingMod = null;
 var _pendingDiaExpandido = null;
 var _chatInlineDrafts = {}; // dayKey -> draft text
 
+// Aplica as acoes de plano macro sobre `plano` (mutando-o) e devolve quantas foram aplicadas.
+//
+// Existe porque havia DUAS implementacoes da mesma operacao:
+//   renderModificacoesProposta montava a PREVIA com uma versao completa — entendia semana+dia,
+//   {"tipo":"semana"} e o campo bike;
+//   aplicarModificacoesMacro GRAVAVA com outra, que so entendia diaNum e alterar_serie.
+//
+// gerarOrientacoesDiasFuturos pede ao modelo o formato {"tipo":"alterar","semana":N,"dia":"..."},
+// que a primeira entende e a segunda ignora. Resultado: a previa mostrava as orientacoes, o
+// APLICAR nao fazia nada, e o app ainda anunciava "Plano macro atualizado" — sucesso declarado
+// para zero trabalho. O contrato que a interface promete ("veja a previa e clique em APLICAR")
+// era exatamente o que estava quebrado.
+//
+// Com uma implementacao so, previa e resultado sao iguais por construcao, e nao por disciplina
+// de manter duas copias sincronizadas.
+var _DIA_MAP_MACRO = {
+  'Segunda-feira': 'Segunda', 'Terça-feira': 'Terça', 'Quarta-feira': 'Quarta',
+  'Quinta-feira': 'Quinta', 'Sexta-feira': 'Sexta', 'Sábado': 'Sábado', 'Domingo': 'Domingo',
+  'segunda': 'Segunda', 'terça': 'Terça', 'quarta': 'Quarta', 'quinta': 'Quinta',
+  'sexta': 'Sexta', 'sábado': 'Sábado', 'domingo': 'Domingo',
+  'Terca': 'Terça', 'Terca-feira': 'Terça', 'Sabado': 'Sábado',
+  'terca': 'Terça', 'sabado': 'Sábado'
+};
+
+function _aplicarAcoesMacro(plano, mod) {
+  if (!plano || !plano.semanas) return 0;
+  var aplicadas = 0;
+
+  function _getDiaPorNum(num) {
+    var counter = 0, result = null;
+    plano.semanas.forEach(function(sem) {
+      if (result) return;
+      (sem.dias || sem.agenda || []).forEach(function(d) {
+        if (result) return;
+        if (d.serie && d.serie !== 'descanso') { counter++; if (counter === num) result = d; }
+      });
+    });
+    return result;
+  }
+
+  function _escreverDia(d, a) {
+    if (a.serie !== undefined) {
+      d.serie = a.serie;
+      if (!a.tipo_dia) {
+        d.tipo = a.serie === 'descanso'
+          ? (a.orientacao && /aer[oó]b/i.test(a.orientacao) ? 'aerobico' : 'recuperacao')
+          : 'treino';
+      }
+    }
+    if (a.orientacao !== undefined) {
+      d.orientacao = a.orientacao;
+      if (d.serie === 'descanso' && /aer[oó]b/i.test(a.orientacao)) d.tipo = 'aerobico';
+    }
+    if (a.intensidade !== undefined) d.intensidade = a.intensidade;
+    if (a.bike !== undefined) d.bike = a.bike;
+    if (a.tipo_dia) d.tipo = a.tipo_dia;
+  }
+
+  (mod.acoes || []).forEach(function(a) {
+    // ── Por numero de dia de treino ──
+    if (a.diaNum) {
+      var diaObj = _getDiaPorNum(a.diaNum);
+      if (diaObj) { _escreverDia(diaObj, a); aplicadas++; }
+      return;
+    }
+
+    // ── Por serie, atinge todos os dias daquela serie ──
+    if (a.tipo === 'alterar_serie') {
+      plano.semanas.forEach(function(sem) {
+        (sem.dias || sem.agenda || []).forEach(function(d) {
+          if (d.serie === a.serie) { _escreverDia(d, a); aplicadas++; }
+        });
+      });
+      return;
+    }
+
+    // ── Por semana + dia ──
+    // Endereçamento legitimo aqui: sem.semana e propriedade REAL do plano ja distribuido e e o
+    // mesmo esquema usado por diasStatus ('sem' + N + '_' + dia). A regra de nao pensar em
+    // semanas vale para GERAR plano, nao para enderecar dia de plano existente.
+    // Enderecabilidade PRIMEIRO. Antes a semana era criada antes de se saber se a acao tinha
+    // sequer um dia — uma acao de formato desconhecido caia aqui, o `a.semana || 1` inventava
+    // uma semana 1 vazia no plano, e so depois o codigo desistia por falta de dia. Efeito
+    // colateral silencioso a partir de entrada que deveria ser simplesmente ignorada.
+    var diaNome = a.dia ? (_DIA_MAP_MACRO[a.dia] || a.dia) : null;
+    if (a.tipo !== 'semana' && !diaNome) return;
+
+    var semanaNum = a.semana || 1;
+    var semana = plano.semanas.find(function(x) { return x.semana === semanaNum; });
+    if (!semana) {
+      semana = { semana: semanaNum, foco: '', intensidade: '', dias: [] };
+      plano.semanas.push(semana);
+      plano.semanas.sort(function(x, y) { return x.semana - y.semana; });
+    }
+    var dias = semana.dias || semana.agenda || [];
+    if (!semana.dias) semana.dias = dias;
+
+    if (a.tipo === 'semana') {
+      if (a.foco) semana.foco = a.foco;
+      if (a.intensidade) semana.intensidade = a.intensidade;
+      if (a.progressao) semana.progressao = a.progressao;
+      aplicadas++;
+      return;
+    }
+
+    var d = dias.find(function(x) { return x.dia === diaNome; });
+    if (!d) { d = { dia: diaNome, serie: 'descanso', tipo: 'recuperacao', orientacao: '' }; dias.push(d); }
+    _escreverDia(d, a);
+    aplicadas++;
+  });
+
+  var ordemDias = ['Segunda','Terça','Quarta','Quinta','Sexta','Sábado','Domingo'];
+  plano.semanas.forEach(function(sem) {
+    var dd = sem.dias || sem.agenda || [];
+    dd.sort(function(x, y) { return ordemDias.indexOf(x.dia) - ordemDias.indexOf(y.dia); });
+  });
+
+  return aplicadas;
+}
+
 function renderModificacoesProposta(mod) {
   _pendingMod = mod;
 
   // Build a preview: apply modifications to a copy of the current plan
   var planoCopy = JSON.parse(JSON.stringify(state.plano || state.planoRascunho || { semanas: [] }));
 
-  var diaMap = {
-    'Segunda-feira': 'Segunda', 'Terça-feira': 'Terça', 'Quarta-feira': 'Quarta',
-    'Quinta-feira': 'Quinta', 'Sexta-feira': 'Sexta', 'Sábado': 'Sábado', 'Domingo': 'Domingo',
-    'segunda': 'Segunda', 'terça': 'Terça', 'quarta': 'Quarta', 'quinta': 'Quinta',
-    'sexta': 'Sexta', 'sábado': 'Sábado', 'domingo': 'Domingo',
-    'Terca': 'Terça', 'Terca-feira': 'Terça', 'Sabado': 'Sábado',
-    'terca': 'Terça', 'sabado': 'Sábado'
-  };
-
   if (mod.serieLabel === 'planoMacro' || mod.serieLabel === 'agenda') {
-    (mod.acoes || []).forEach(function(a) {
-      var semanaNum = a.semana || 1;
-      var semana = planoCopy.semanas.find(function(s) { return s.semana === semanaNum; });
-      if (!semana) {
-        semana = { semana: semanaNum, foco: '', intensidade: '', dias: [] };
-        planoCopy.semanas.push(semana);
-        planoCopy.semanas.sort(function(a, b) { return a.semana - b.semana; });
-      }
-      var dias = semana.dias || semana.agenda || [];
-      if (!semana.dias) semana.dias = dias;
-      var diaNome = a.dia ? (diaMap[a.dia] || a.dia) : null;
-      if (a.tipo === 'semana') {
-        if (a.foco) semana.foco = a.foco;
-        if (a.intensidade) semana.intensidade = a.intensidade;
-        if (a.progressao) semana.progressao = a.progressao;
-      } else if (diaNome) {
-        var d = dias.find(function(d) { return d.dia === diaNome; });
-        if (!d) { d = { dia: diaNome, serie: 'descanso', tipo: 'recuperacao', orientacao: '' }; dias.push(d); }
-        if (a.serie !== undefined) {
-          d.serie = a.serie;
-          // Infer tipo from serie if not explicitly provided
-          if (!a.tipo_dia) {
-            d.tipo = a.serie === 'descanso'
-              ? (a.orientacao && /aer[oó]b/i.test(a.orientacao) ? 'aerobico' : 'recuperacao')
-              : 'treino';
-          }
-        }
-        if (a.orientacao !== undefined) {
-          d.orientacao = a.orientacao;
-          // Re-check aerobico from orientacao
-          if (d.serie === 'descanso' && /aer[oó]b/i.test(a.orientacao)) d.tipo = 'aerobico';
-        }
-        if (a.bike !== undefined) d.bike = a.bike;
-        if (a.tipo_dia) d.tipo = a.tipo_dia;
-      }
-    });
-
-  // Sort days in correct week order
-    var ordemDias = ['Segunda','Terça','Quarta','Quinta','Sexta','Sábado','Domingo'];
-    planoCopy.semanas.forEach(function(sem) {
-      var dd = sem.dias || sem.agenda || [];
-      dd.sort(function(a, b) {
-        return ordemDias.indexOf(a.dia) - ordemDias.indexOf(b.dia);
-      });
-    });
+    _aplicarAcoesMacro(planoCopy, mod);
   }
 
   // Sanitize tipos before rendering
@@ -4906,66 +5074,25 @@ function aplicarModificacoesMacro(mod) {
     toast('Nenhum plano ativo'); return;
   }
 
-  // Helper: find day object by training day number
-  function _getDiaPorNum(num) {
-    var counter = 0;
-    var result = null;
-    state.plano.semanas.forEach(function(sem) {
-      if (result) return;
-      (sem.dias || sem.agenda || []).forEach(function(d) {
-        if (result) return;
-        if (d.serie && d.serie !== 'descanso') {
-          counter++;
-          if (counter === num) result = d;
-        }
-      });
-    });
-    return result;
+  var aplicadas = _aplicarAcoesMacro(state.plano, mod);
+
+  // Zero acoes aplicadas nao pode virar mensagem de sucesso. Era assim que o formato
+  // desconhecido passava despercebido: o laco nao casava com nada e o app anunciava
+  // "Plano macro atualizado" mesmo assim.
+  if (!aplicadas) {
+    addPlanoChatMsg('system', 'Nenhuma modificação pôde ser aplicada — o formato retornado não foi reconhecido.');
+    toast('Nada foi aplicado');
+    console.warn('aplicarModificacoesMacro: 0 acoes aplicadas', mod);
+    return;
   }
-
-  (mod.acoes || []).forEach(function(a) {
-    // ── Por número de dia de treino (preferencial) ──
-    if (a.diaNum) {
-      var diaObj = _getDiaPorNum(a.diaNum);
-      if (diaObj) {
-        if (a.serie !== undefined) { diaObj.serie = a.serie; diaObj.tipo = 'treino'; }
-        if (a.orientacao !== undefined) diaObj.orientacao = a.orientacao;
-        if (a.intensidade !== undefined) diaObj.intensidade = a.intensidade;
-        if (a.tipo_dia !== undefined) diaObj.tipo = a.tipo_dia;
-      }
-      return;
-    }
-
-    // ── Por série (universal) ──
-    if (a.tipo === 'alterar_serie') {
-      state.plano.semanas.forEach(function(sem) {
-        (sem.dias || sem.agenda || []).forEach(function(d) {
-          if (d.serie === a.serie) {
-            if (a.orientacao !== undefined) d.orientacao = a.orientacao;
-            if (a.intensidade !== undefined) d.intensidade = a.intensidade;
-            if (a.tipo_dia !== undefined) d.tipo = a.tipo_dia;
-          }
-        });
-      });
-      return;
-    }
-
-  });
-
-  // Sort days in correct week order
-  var ordemDias = ['Segunda','Terça','Quarta','Quinta','Sexta','Sábado','Domingo'];
-  state.plano.semanas.forEach(function(sem) {
-    var dd = sem.dias || sem.agenda || [];
-    dd.sort(function(a, b) { return ordemDias.indexOf(a.dia) - ordemDias.indexOf(b.dia); });
-  });
 
   saveState();
   renderAgendaLinear();
   state.planoRascunho = JSON.parse(JSON.stringify(state.plano));
   saveState();
   renderPlanoMacro(state.plano);
-  addPlanoChatMsg('system', 'Plano macro atualizado ✓');
-  toast('Plano atualizado ✓');
+  addPlanoChatMsg('system', 'Plano macro atualizado \u2713 (' + aplicadas + ' altera\u00e7\u00e3o' + (aplicadas > 1 ? 'es' : '') + ')');
+  toast('Plano atualizado \u2713');
 }
 
 function renderPlanoMacro(plano) {
