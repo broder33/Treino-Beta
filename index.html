@@ -1413,7 +1413,7 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
 <header>
   <div class="header-brand">
     <div class="logo">TREINO</div>
-    <span class="header-version">v0.9.1.48</span>
+    <span class="header-version">v0.9.1.50</span>
     <span id="dbStamp" title="Última atualização dos dados">⟳ —</span>
   </div>
   <div class="header-actions">
@@ -3571,7 +3571,20 @@ function savePerfil() {
   var bikeObjetivo = document.getElementById('pf-bike-objetivo');
   var bikeTiming = document.getElementById('pf-bike-timing');
   var bikeObs = document.getElementById('pf-bike-obs');
-  state.perfil = {
+  // Object.assign sobre o perfil EXISTENTE, nunca objeto literal novo.
+  //
+  // O literal listava so os campos deste formulario, entao qualquer coisa guardada em
+  // state.perfil por OUTRO caminho era destruida a cada tecla digitada aqui. Era o caso de
+  // configTreino (CONFIGURACAO DE RELOCAMENTO), escrito por saveConfigTreino: digitar qualquer
+  // coisa no Perfil apagava a fila de series configurada, getConfigTreino caia no default, e
+  // REORGANIZAR A PARTIR DE HOJE passava a seguir a fila padrao sem avisar nada.
+  //
+  // E a perda se consolidava sozinha: loadConfigTreino, ao renderizar a aba, gravava o default
+  // de volta em state.perfil.configTreino nos ramos de migracao — entao o estado apagado virava
+  // estado legitimo e nem o backup seguinte tinha mais a configuracao original.
+  //
+  // Com merge, qualquer campo guardado em perfil por qualquer caminho sobrevive por construcao.
+  state.perfil = Object.assign({}, state.perfil, {
     altura: document.getElementById('pf-altura').value,
     peso: document.getElementById('pf-peso').value,
     idade: document.getElementById('pf-idade').value,
@@ -3592,7 +3605,7 @@ function savePerfil() {
     lesoes: document.getElementById('pf-lesoes').value,
     obs: document.getElementById('pf-obs').value,
     diasCiclo: document.getElementById('pf-diasCiclo').value
-  };
+  });
   saveState();
 }
 
@@ -15090,11 +15103,7 @@ async function supabaseInit() {
           if (wasLoggedOut && _initCompleted) {
             // First login in this session: load cloud data
             await supabaseLoad();
-            render();
-            renderAgendaLinear();
-            if (state.planoChatHistory) planoChatHistory = state.planoChatHistory;
-            if (state.planoChatMessages && state.planoChatMessages.length) renderPlanoChatMessages();
-            if (state.planoRascunho || state.plano) renderPlanoMacro(state.planoRascunho || state.plano);
+            _reRenderAposNuvem();
             toast('Login realizado ✓');
           }
         } else if (event === 'TOKEN_REFRESHED' && session) {
@@ -15113,11 +15122,7 @@ async function supabaseInit() {
     if (session && session.user) {
       _supabaseUser = session.user;
       await supabaseLoad();
-      render();
-      renderAgendaLinear();
-      if (state.planoChatHistory) planoChatHistory = state.planoChatHistory;
-      if (state.planoChatMessages && state.planoChatMessages.length) renderPlanoChatMessages();
-      if (state.planoRascunho || state.plano) renderPlanoMacro(state.planoRascunho || state.plano);
+      _reRenderAposNuvem();
     }
     renderAuthUI();
     if (!_supabaseUser) _supabaseLoadComplete = true; // not logged in — safe to save locally
@@ -15220,7 +15225,7 @@ async function supabaseSave() {
   try {
     const dbu = getSbClient(); if (!dbu) return;
     var stateObj = buildCloudPayload();   // sem campos de tela, sem _syncBase, sem _updatedAt
-    var sigEnvio = JSON.stringify(stateObj);
+    var sigEnvio = _assinatura(stateObj);
     if (sigEnvio === _lastCloudSig) return;   // a nuvem ja tem exatamente isto
     stateObj._updatedAt = state._updatedAt;   // recolocado so agora, fora da assinatura
     // Carimbo calculado UMA vez. Antes cada upsert chamava new Date() por conta propria: se
@@ -15378,7 +15383,7 @@ async function supabaseLoad() {
       // O que esta na tela e exatamente o que a nuvem tem: as duas assinaturas partem daqui.
       // Sem isto a gravacao seguinte compararia com uma assinatura de antes do download,
       // concluiria "mudou" e carimbaria por cima da data que acabou de chegar.
-      _lastCloudSig = _lastDataSig = JSON.stringify(buildCloudPayload());
+      _lastCloudSig = _lastDataSig = _assinatura(buildCloudPayload());
       _logSync('baixado', fmtStamp(data[0].updated_at));
       _supabaseLoadComplete = true;
       return;
@@ -15415,6 +15420,35 @@ function scheduleSyncToSupabase() {
 // Usa o MESMO supabaseLoad() do boot, que só baixa se a nuvem for ESTRITAMENTE mais recente
 // que o local — nunca sobrescreve alteração local mais nova.
 var _repullEmAndamento = false;
+// Re-render completo depois de o state ter sido substituido pela nuvem.
+//
+// Existe como funcao unica porque esta sequencia estava copiada em CINCO lugares (login, sessao
+// existente no boot, repull ao voltar o foco, BAIXAR manual e resolucao de conflito) e as copias
+// ja divergiam entre si: nenhuma chamava loadPerfil e duas nao chamavam renderBikeTab.
+//
+// O estrago do loadPerfil ausente: os campos do Perfil sao preenchidos a partir do state por
+// loadPerfil, e so switchTab('perfil') o chamava. Quem estivesse PARADO na aba Perfil quando a
+// nuvem chegasse continuava vendo os valores antigos — state atualizado, tela mentindo, e o
+// modal de sincronizacao dizendo com razao que os carimbos batiam.
+//
+// E o efeito seguinte era pior que cosmetico: savePerfil le os campos do DOM. Digitar qualquer
+// coisa naquele formulario velho gravava os valores velhos por cima do que tinha acabado de
+// chegar e subia isso para a nuvem, desfazendo em silencio a edicao do outro aparelho.
+//
+// loadPerfil vem por ULTIMO de proposito: ele toca uns vinte elementos e, se falhar, o resto
+// da tela ja foi atualizado. Sem try/catch — engolir o erro esconderia exatamente a classe de
+// problema que esta funcao existe para corrigir.
+function _reRenderAposNuvem() {
+  render();
+  renderAgendaLinear();
+  if (typeof renderBikeTab === 'function') renderBikeTab();
+  if (state.planoChatHistory) planoChatHistory = state.planoChatHistory;
+  chatInlineHistory = {};
+  if (state.planoChatMessages && state.planoChatMessages.length) renderPlanoChatMessages();
+  if (state.planoRascunho || state.plano) renderPlanoMacro(state.planoRascunho || state.plano);
+  loadPerfil();   // Perfil + CONFIGURACAO DE RELOCAMENTO (loadPerfil chama loadConfigTreino)
+}
+
 async function supabaseRepullSeVisivel() {
   if (document.hidden) return;
   if (!_supabaseUser || !_supabaseLoadComplete) return;
@@ -15425,12 +15459,7 @@ async function supabaseRepullSeVisivel() {
   try {
     await supabaseLoad();
     if ((state._updatedAt || null) !== antes) {
-      render();
-      renderAgendaLinear();
-      if (typeof renderBikeTab === 'function') renderBikeTab();
-      if (state.planoChatHistory) planoChatHistory = state.planoChatHistory;
-      if (state.planoChatMessages && state.planoChatMessages.length) renderPlanoChatMessages();
-      if (state.planoRascunho || state.plano) renderPlanoMacro(state.planoRascunho || state.plano);
+      _reRenderAposNuvem();
       toast('Dados atualizados da nuvem ☁');
     }
   } catch(e) {
@@ -15615,14 +15644,9 @@ async function _resolverConflito(lado) {
     _limparConflito();
     _logSync('conflito resolvido', 'mantida a nuvem');
     saveState(true);
-    _lastCloudSig = _lastDataSig = JSON.stringify(buildCloudPayload());
+    _lastCloudSig = _lastDataSig = _assinatura(buildCloudPayload());
     planoChatHistory = state.planoChatHistory || [];
-    chatInlineHistory = {};
-    render();
-    if (state.planoChatMessages && state.planoChatMessages.length) renderPlanoChatMessages();
-    if (state.planoRascunho || state.plano) renderPlanoMacro(state.planoRascunho || state.plano);
-    renderAgendaLinear();
-    if (typeof renderBikeTab === 'function') renderBikeTab();
+    _reRenderAposNuvem();
     toast('Mantida a vers\u00e3o da nuvem \u2713');
   }
 }
@@ -15832,14 +15856,9 @@ function _syncAplicarBaixar() {
   // Ancora DEPOIS do assign: loadState() e o default (sem a chave) e o assign zeraria o valor.
   if (_syncNuvem.updated_at) state._syncBase = _syncNuvem.updated_at;
   saveState(true); // fromCloud - nao reenviar
-  _lastCloudSig = _lastDataSig = JSON.stringify(buildCloudPayload());
+  _lastCloudSig = _lastDataSig = _assinatura(buildCloudPayload());
   _logSync('descida manual');
-  render();
-  if (state.planoChatHistory) planoChatHistory = state.planoChatHistory;
-  if (state.planoChatMessages && state.planoChatMessages.length) renderPlanoChatMessages();
-  if (state.planoRascunho || state.plano) renderPlanoMacro(state.planoRascunho || state.plano);
-  renderAgendaLinear();
-  if (typeof renderBikeTab === 'function') renderBikeTab();
+  _reRenderAposNuvem();
   toast('Baixado da nuvem \u2713');
 }
 
@@ -15853,7 +15872,7 @@ async function _syncAplicarSubir() {
   try {
     var dbp2 = getSbClient(); if (!dbp2) throw new Error('sem cliente Supabase');
     var payload = buildCloudPayload();   // sem campos de tela, sem _syncBase
-    var sigManual = JSON.stringify(payload);
+    var sigManual = _assinatura(payload);
     payload._updatedAt = state._updatedAt;   // recolocado fora da assinatura
     var up = await supabaseWithTimeout(function() {
       return dbp2.from('user_data').upsert({
@@ -16042,6 +16061,34 @@ function stripUIFields(o) {
 // O estado que efetivamente vai para a nuvem. Sem _updatedAt de proposito: ele muda a cada
 // gravacao e, dentro da assinatura, faria toda comparacao dar "mudou". Ele e recolocado no
 // payload em supabaseSave, imediatamente antes do upsert.
+// Assinatura CANONICA: o mesmo DADO tem de produzir a mesma string, independentemente de
+// detalhes que nao sao dado. JSON.stringify sozinho nao garante isso, por dois motivos:
+//
+//   ORDEM DAS CHAVES — stringify respeita a ordem de insercao. Object.assign(loadState(), parsed)
+//   monta o objeto na ordem do DEFAULT, enquanto um estado que evoluiu localmente esta noutra
+//   ordem. Mesmo conteudo, string diferente.
+//
+//   NULL vs AUSENTE — stringify OMITE chave com undefined e ESCREVE chave com null. Basta uma
+//   rotina normalizar undefined para null (state.bikeOdo = null, no render da aba Bike) para o
+//   payload "mudar" sem nada ter mudado.
+//
+// Os dois produziam carimbo novo e upload sem edicao nenhuma — e, pior, faziam a Camada 2
+// mentir justamente no ponto em que ela existe para dizer a verdade. Custo medido: ~10ms num
+// estado de 294 KB, contra ~2ms do stringify simples.
+function _canon(v) {
+  if (v === null || v === undefined) return null;
+  if (Array.isArray(v)) return v.map(_canon);
+  if (typeof v !== 'object') return v;
+  var out = {};
+  Object.keys(v).sort().forEach(function(k) {
+    // ausente e null passam a ser a mesma coisa
+    if (v[k] === undefined || v[k] === null) return;
+    out[k] = _canon(v[k]);
+  });
+  return out;
+}
+function _assinatura(o) { return JSON.stringify(_canon(o)); }
+
 function buildCloudPayload() {
   var p = stripUIFields(JSON.parse(JSON.stringify(state)));
   delete p._updatedAt;
@@ -16206,7 +16253,7 @@ function saveState(fromCloud, undoLabel) {
   // produz payload diferente — entao nao carimba e nao agenda envio.
   var _sig = null, _mudou = false;
   if (!fromCloud) {
-    _sig = JSON.stringify(buildCloudPayload());
+    _sig = _assinatura(buildCloudPayload());
     _mudou = (_lastDataSig === null) || (_sig !== _lastDataSig);
     _lastDataSig = _sig;
     if (_mudou) state._updatedAt = new Date().toISOString();
@@ -16284,7 +16331,7 @@ function _aplicarImportacao(imported, finalStamp) {
   // concluiria "o dado mudou" e carimbaria a hora atual POR CIMA da data escolhida acima —
   // anulando a preservacao no caso "arquivo mais novo". Aqui a importacao ja e dada por
   // contabilizada, e a data sobrevive.
-  _lastDataSig = JSON.stringify(buildCloudPayload());
+  _lastDataSig = _assinatura(buildCloudPayload());
   saveState();
 
   // Consequencia da linha acima: saveState viu "nada mudou" e NAO agendou envio. O adendo conta
@@ -16488,7 +16535,7 @@ loadPersistedState(function() {
   // nasce null, a primeira gravacao depois do boot conta como "mudou" seja qual for, e uma
   // troca de aba logo apos abrir o app carimbaria o dado. E a comparacao vale offline: nao
   // depende de haver sessao nem de a nuvem ter respondido.
-  _lastDataSig = JSON.stringify(buildCloudPayload());
+  _lastDataSig = _assinatura(buildCloudPayload());
   _cloudExpected = hasCloudAccount();
   updateDbStamp();
 
