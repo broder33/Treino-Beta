@@ -1413,7 +1413,7 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
 <header>
   <div class="header-brand">
     <div class="logo">TREINO</div>
-    <span class="header-version">v0.9.1.46</span>
+    <span class="header-version">v0.9.1.48</span>
     <span id="dbStamp" title="Última atualização dos dados">⟳ —</span>
   </div>
   <div class="header-actions">
@@ -15215,8 +15215,8 @@ function _setSyncBase(iso) {
 async function supabaseSave() {
   if (!_supabaseUser) return;
   // Nao se escreve na nuvem sem ter lido a nuvem nesta sessao. Ver o bloco de _cloudLoaded.
-  if (!_cloudLoaded) { console.warn('supabaseSave: bloqueado, nuvem nao lida nesta sessao'); return; }
-  if (_conflitoNuvem) { console.warn('supabaseSave: bloqueado, conflito pendente'); return; }
+  if (!_cloudLoaded) { console.warn('supabaseSave: bloqueado, nuvem nao lida nesta sessao'); _logSync('bloqueado', 'nuvem n\u00e3o lida'); return; }
+  if (_conflitoNuvem) { console.warn('supabaseSave: bloqueado, conflito pendente'); _logSync('bloqueado', 'conflito pendente'); return; }
   try {
     const dbu = getSbClient(); if (!dbu) return;
     var stateObj = buildCloudPayload();   // sem campos de tela, sem _syncBase, sem _updatedAt
@@ -15267,6 +15267,7 @@ async function supabaseSave() {
           // Mesmo instante, texto diferente: falso negativo. Reancora no formato que o banco
           // devolve e repete uma vez — a partir daqui o .eq passa a casar.
           console.warn('travamento: carimbo equivalente em formato diferente, reancorando');
+          _logSync('reancorado', 'formato de carimbo');
           state._syncBase = atual;
           result = await supabaseWithTimeout(() =>
             dbu.from('user_data')
@@ -15317,6 +15318,7 @@ async function supabaseSave() {
       // recuperar sempre do mesmo falso negativo.
       var carimboBanco = (result.data && result.data[0] && result.data[0].updated_at) || carimbo;
       _setSyncBase(carimboBanco);
+      _logSync('enviado');
     }
   } catch(e) {
     console.warn('Supabase save exception:', e.message);
@@ -15340,6 +15342,7 @@ async function supabaseLoad() {
     if (error) {
       // A consulta NAO respondeu. _cloudLoaded fica false: o app opera, mas nao sobe nada.
       console.warn('Supabase load error:', error.message);
+      _logSync('falha de leitura', error.message || '');
       _supabaseLoadComplete = true;
       return;
     }
@@ -15376,6 +15379,7 @@ async function supabaseLoad() {
       // Sem isto a gravacao seguinte compararia com uma assinatura de antes do download,
       // concluiria "mudou" e carimbaria por cima da data que acabou de chegar.
       _lastCloudSig = _lastDataSig = JSON.stringify(buildCloudPayload());
+      _logSync('baixado', fmtStamp(data[0].updated_at));
       _supabaseLoadComplete = true;
       return;
     }
@@ -15468,6 +15472,194 @@ var _syncNuvemErro = '';        // mensagem do erro, quando 'falhou'
 var _syncPainelAtivo = false;   // o painel 1 esta na tela? (a leitura demora ate 8s e o
                                 // usuario pode ter ido para a confirmacao ou fechado no meio)
 
+// ============ RESOLUCAO DE CONFLITO (v0.9.1.48) ============
+// Detectar e congelar era a v0.9.1.46. Aqui entra a saida: mostrar os dois lados, deixar voce
+// escolher, e guardar o perdedor antes de aplicar. Merge automatico ficou de fora de proposito
+// — sem carimbo por item nao ha como fundir sem inventar, e inventar aqui e como perder.
+
+function _baixarJSON(obj, nome) {
+  var blob = new Blob([JSON.stringify(obj, null, 2)], { type: 'application/json' });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url; a.download = nome;
+  document.body.appendChild(a); a.click();
+  setTimeout(function() {
+    try { document.body.removeChild(a); } catch(e) {}
+    URL.revokeObjectURL(url);
+  }, 1000);
+}
+
+function _carimboArquivo(iso) {
+  var d = iso ? new Date(iso) : new Date();
+  if (isNaN(d.getTime())) d = new Date();
+  var p = function(n) { return n < 10 ? '0' + n : '' + n; };
+  return p(d.getDate()) + '-' + p(d.getMonth() + 1) + '-' + d.getFullYear() +
+         '-' + p(d.getHours()) + p(d.getMinutes());
+}
+
+// Contagens que permitem julgar qual lado tem o que. Sem isto a escolha seria entre duas datas
+// abstratas, e ninguem consegue decidir "perder o quê?" olhando so para dois carimbos.
+function _resumoEstado(st) {
+  if (!st) return {};
+  var diasMarcados = 0;
+  try {
+    var ds = (st.plano && st.plano.diasStatus) || {};
+    diasMarcados = Object.keys(ds).length;
+  } catch(e) {}
+  return {
+    'treinos no hist\u00f3rico': (st.history || []).length,
+    'registros da bike': (st.bikeHistory || []).length,
+    's\u00e9ries': (st.series || []).length,
+    'ciclos': (st.ciclos || []).length,
+    'dias marcados': diasMarcados
+  };
+}
+
+function _tabelaComparacao(local, nuvem) {
+  var r1 = _resumoEstado(local), r2 = _resumoEstado(nuvem);
+  var linhas = Object.keys(r1).map(function(k) {
+    var a = r1[k], b = r2[k];
+    var difere = a !== b;
+    var cor = function(v, maior) {
+      return difere ? (maior ? 'var(--accent)' : 'var(--muted)') : 'var(--muted)';
+    };
+    return '<tr>' +
+      '<td style="color:var(--muted);padding:2px 0">' + k + '</td>' +
+      '<td style="text-align:right;padding:2px 10px;color:' + cor(a, a > b) + '">' + a + '</td>' +
+      '<td style="text-align:right;padding:2px 0;color:' + cor(b, b > a) + '">' + b + '</td>' +
+    '</tr>';
+  }).join('');
+  return '<table style="width:100%;font-family:DM Mono,monospace;font-size:11px;border-collapse:collapse">' +
+    '<tr>' +
+      '<th></th>' +
+      '<th style="text-align:right;padding:0 10px 4px;color:var(--accent);font-weight:normal">\ud83d\udcf1 aqui</th>' +
+      '<th style="text-align:right;padding:0 0 4px;color:var(--accent3);font-weight:normal">\u2601 nuvem</th>' +
+    '</tr>' + linhas + '</table>';
+}
+
+function _syncPainelConflito() {
+  var c = _conflitoNuvem;
+  var nuvemState = (_syncNuvem && _syncNuvem.state) || null;
+  if (typeof nuvemState === 'string') { try { nuvemState = JSON.parse(nuvemState); } catch(e) { nuvemState = null; } }
+
+  document.getElementById('modal-title').textContent = 'CONFLITO';
+  document.getElementById('modal-body').innerHTML =
+    '<div style="display:flex;flex-direction:column;gap:10px">' +
+      '<div style="font-size:12px;color:var(--accent2);line-height:1.5;padding:2px">' +
+        'Os dois lados foram alterados desde a \u00faltima vez que este aparelho falou com a nuvem. ' +
+        'Nenhum dos dois \u00e9 simplesmente "mais novo" \u2014 cada um tem coisa que o outro n\u00e3o tem.' +
+      '</div>' +
+      _syncLinha('\ud83d\udcf1 Este aparelho', formatTS(state._updatedAt), 'var(--accent)') +
+      _syncLinha('\u2601 Nuvem', formatTS(c.cloudUpdatedAt), 'var(--accent3)') +
+      _syncLinha('Base comum', formatTS(c.base), 'var(--muted)', 11) +
+      (nuvemState
+        ? '<div style="background:var(--surface2);border-radius:8px;padding:10px 14px">' + _tabelaComparacao(state, nuvemState) + '</div>'
+        : '<div style="font-size:11px;color:var(--partial);padding:2px">N\u00e3o foi poss\u00edvel ler o conte\u00fado da nuvem para comparar.</div>') +
+      '<div style="font-size:11px;color:var(--muted);line-height:1.5;padding:2px">' +
+        'O lado descartado \u00e9 baixado como arquivo JSON antes de qualquer coisa ser aplicada. ' +
+        'Nada se perde sem passar pelo seu disco.' +
+      '</div>' +
+      '<div style="display:flex;gap:8px;margin-top:2px">' +
+        '<button class="modal-btn" style="flex:1" onclick="_resolverConflito(\'local\')">MANTER ESTE APARELHO</button>' +
+        '<button class="modal-btn" style="flex:1' + (nuvemState ? '' : ';opacity:.35;cursor:default') + '"' +
+          (nuvemState ? ' onclick="_resolverConflito(\'nuvem\')"' : ' disabled') + '>MANTER A NUVEM</button>' +
+      '</div>' +
+      _syncLogHTML() +
+    '</div>';
+  var cb = document.getElementById('modal-confirm');
+  if (cb) cb.style.display = 'none';
+  modalCallback = null;
+  // Precisa ficar ATIVO: a leitura da nuvem termina depois de o painel abrir, e e ela que traz
+  // o conteudo para a tabela de comparacao. Com false, o repintar nunca acontecia e a escolha
+  // ficava entre duas datas abstratas, sem dizer o que cada lado tem. O repintar chama
+  // _syncPainel, que devolve para ca enquanto houver conflito — e idempotente.
+  _syncPainelAtivo = true;
+}
+
+async function _resolverConflito(lado) {
+  var c = _conflitoNuvem;
+  if (!c) { toast('Sem conflito pendente'); return; }
+  var nuvemState = (_syncNuvem && _syncNuvem.state) || null;
+  if (typeof nuvemState === 'string') { try { nuvemState = JSON.parse(nuvemState); } catch(e) { nuvemState = null; } }
+  if (lado === 'nuvem' && !nuvemState) { toast('Conte\u00fado da nuvem indispon\u00edvel'); return; }
+
+  // O perdedor vai para o disco ANTES de qualquer mutacao. Se o download falhar, nada foi
+  // aplicado ainda e voce pode tentar de novo.
+  if (lado === 'local') {
+    _baixarJSON(nuvemState || {}, 'treino-conflito-nuvem-' + _carimboArquivo(c.cloudUpdatedAt) + '.json');
+  } else {
+    _baixarJSON(state, 'treino-conflito-aparelho-' + _carimboArquivo(state._updatedAt) + '.json');
+  }
+
+  closeModal();
+
+  if (lado === 'local') {
+    // Reancora no carimbo ATUAL da nuvem: e isso que faz o update condicional voltar a casar e
+    // a escrita passar. E a sobreposicao deliberada — a unica coisa que os botoes manuais fazem
+    // e que a reconciliacao automatica nunca faz.
+    state._syncBase = c.cloudUpdatedAt;
+    state._updatedAt = new Date().toISOString();
+    _limparConflito();
+    _logSync('conflito resolvido', 'mantido este aparelho');
+    saveState(true);          // persiste a nova ancora sem recarimbar
+    _lastCloudSig = null;     // forca o envio: o payload precisa subir mesmo sem "mudanca"
+    scheduleSyncToSupabase();
+    flushSyncPendente();
+    toast('Mantido este aparelho \u2014 enviando\u2026');
+  } else {
+    var uiLocal = capturarUIFields();
+    state = Object.assign(loadState(), stripUIFields(JSON.parse(JSON.stringify(nuvemState))));
+    restaurarUIFields(uiLocal);
+    state._syncBase = c.cloudUpdatedAt;
+    if (!state._updatedAt) state._updatedAt = c.cloudUpdatedAt;
+    _limparConflito();
+    _logSync('conflito resolvido', 'mantida a nuvem');
+    saveState(true);
+    _lastCloudSig = _lastDataSig = JSON.stringify(buildCloudPayload());
+    planoChatHistory = state.planoChatHistory || [];
+    chatInlineHistory = {};
+    render();
+    if (state.planoChatMessages && state.planoChatMessages.length) renderPlanoChatMessages();
+    if (state.planoRascunho || state.plano) renderPlanoMacro(state.planoRascunho || state.plano);
+    renderAgendaLinear();
+    if (typeof renderBikeTab === 'function') renderBikeTab();
+    toast('Mantida a vers\u00e3o da nuvem \u2713');
+  }
+}
+
+// Bloco de diario montado para o painel 1. Vazio devolve string vazia — nao ocupa espaco
+// dizendo que nao ha nada a dizer.
+function _syncLogHTML() {
+  var reg = Array.isArray(state._syncLog) ? state._syncLog : [];
+  if (!reg.length) return '';
+  var cores = {
+    'enviado': 'var(--accent)',
+    'baixado': 'var(--accent3)',
+    'descida manual': 'var(--accent3)',
+    'subida manual': 'var(--accent)',
+    'conflito': 'var(--accent2)',
+    'bloqueado': 'var(--partial)',
+    'falha de leitura': 'var(--partial)',
+    'reancorado': 'var(--muted)'
+  };
+  var linhas = reg.map(function(r) {
+    var d = new Date(r.ts);
+    var p = function(n) { return n < 10 ? '0' + n : '' + n; };
+    var hora = isNaN(d.getTime()) ? '--:--' : p(d.getHours()) + ':' + p(d.getMinutes());
+    var txt = r.tipo + (r.n > 1 ? ' \u00d7' + r.n : '') + (r.detalhe ? ' \u00b7 ' + r.detalhe : '');
+    return '<div style="display:flex;gap:8px;padding:1px 0">' +
+             '<span style="color:var(--muted);flex-shrink:0">' + hora + '</span>' +
+             '<span style="color:' + (cores[r.tipo] || 'var(--muted)') + '">' + escHtml(txt) + '</span>' +
+           '</div>';
+  }).join('');
+  return '<details style="margin-top:2px">' +
+           '<summary style="font-family:DM Mono,monospace;font-size:10px;color:var(--muted);cursor:pointer">' +
+             '\u00faltimos eventos (' + reg.length + ')</summary>' +
+           '<div style="font-family:DM Mono,monospace;font-size:10px;line-height:1.6;margin-top:6px;' +
+                'background:var(--surface2);border-radius:8px;padding:8px 12px">' + linhas + '</div>' +
+         '</details>';
+}
+
 function _syncLinha(rotulo, valor, cor, tam) {
   return '<div style="display:flex;justify-content:space-between;font-family:DM Mono,monospace;' +
     'font-size:' + (tam || 12) + 'px;background:var(--surface2);border-radius:8px;padding:10px 14px;gap:10px">' +
@@ -15529,6 +15721,9 @@ async function abrirSincronizacao() {
 // Painel 1: estado. O CONFIRMAR generico do modal fica escondido aqui — as duas acoes sao
 // botoes proprios dentro do corpo, porque sao DUAS e o modal generico so tem um.
 function _syncPainel() {
+  // Conflito tem painel proprio: as opcoes normais (subir/baixar) escondem a decisao em vez de
+  // apresenta-la, e uma delas descartaria dado sem dizer o que estava descartando.
+  if (_conflitoNuvem) { _syncPainelConflito(); return; }
   var e = _syncEstado();
   var lendo = _syncNuvemEstado === 'lendo';
   var falhou = _syncNuvemEstado === 'falhou';
@@ -15575,6 +15770,7 @@ function _syncPainel() {
             'style="font-family:DM Mono,monospace;font-size:11px;color:var(--accent);text-decoration:none">\u21bb tentar de novo</a>' +
             '<span style="font-family:DM Mono,monospace;font-size:10px;color:var(--muted);margin-left:8px">' + escHtml(_syncNuvemErro) + '</span></div>'
         : '') +
+      _syncLogHTML() +
     '</div>';
   var cb = document.getElementById('modal-confirm');
   if (cb) cb.style.display = 'none';
@@ -15637,6 +15833,7 @@ function _syncAplicarBaixar() {
   if (_syncNuvem.updated_at) state._syncBase = _syncNuvem.updated_at;
   saveState(true); // fromCloud - nao reenviar
   _lastCloudSig = _lastDataSig = JSON.stringify(buildCloudPayload());
+  _logSync('descida manual');
   render();
   if (state.planoChatHistory) planoChatHistory = state.planoChatHistory;
   if (state.planoChatMessages && state.planoChatMessages.length) renderPlanoChatMessages();
@@ -15668,6 +15865,7 @@ async function _syncAplicarSubir() {
     if (up.error) throw up.error;
     state._syncBase = state._updatedAt;   // a nuvem esta nesta versao
     _lastCloudSig = _lastDataSig = sigManual;
+    _logSync('subida manual');
     saveState(true);
     toast('Enviado para a nuvem \u2713');
   } catch(err) {
@@ -15830,7 +16028,8 @@ var UI_FIELDS = [
   '_bikeCorrenteSelecionada',  // corrente selecionada na aba Bike (seletor de visualizacao)
   '_pendingCicloDataInicio',   // fluxo pela metade: nao faz sentido impor ao outro aparelho
   '_pendingPrimeiroTreino',
-  '_duplicatasPendentes'
+  '_duplicatasPendentes',
+  '_syncLog'                   // diario de sincronizacao: e DESTE aparelho, nao do dado
 ];
 
 function stripUIFields(o) {
@@ -15903,6 +16102,36 @@ function fmtStamp(iso) {
          ' ' + p(d.getHours()) + ':' + p(d.getMinutes());
 }
 
+// Diario de sincronizacao. Existe porque o console nao serve no celular — no Android nao ha
+// como abri-lo sem cabo USB e um desktop — e o celular e justamente onde o conflito nasce, ja
+// que ele vem de usar dois aparelhos em paralelo. Um instrumento que so funciona no aparelho
+// onde o problema e menos provavel nao e instrumento nenhum.
+//
+// Mora em state._syncLog e esta em UI_FIELDS: sobrevive a recarregamento, nunca sobe para a
+// nuvem e nunca entra na assinatura. Se entrasse, cada linha registrada contaria como alteracao
+// de dado e o carimbo avancaria sozinho — o proprio ato de observar mudaria o observado.
+//
+// NAO chama saveState: seria recursao, ja que os pontos de log ficam dentro do saveState e do
+// supabaseSave. Fica persistido na proxima gravacao natural, que e suficiente para diagnostico.
+var SYNC_LOG_MAX = 12;
+
+function _logSync(tipo, detalhe) {
+  try {
+    if (typeof state !== 'object' || !state) return;
+    if (!Array.isArray(state._syncLog)) state._syncLog = [];
+    var ultimo = state._syncLog[0];
+    // Colapsa repeticao imediata: sem isto, uma falha de rede persistente enche as 12 linhas
+    // com a mesma mensagem e enterra o historico que interessa.
+    if (ultimo && ultimo.tipo === tipo && ultimo.detalhe === (detalhe || '')) {
+      ultimo.ts = new Date().toISOString();
+      ultimo.n = (ultimo.n || 1) + 1;
+      return;
+    }
+    state._syncLog.unshift({ ts: new Date().toISOString(), tipo: tipo, detalhe: detalhe || '', n: 1 });
+    if (state._syncLog.length > SYNC_LOG_MAX) state._syncLog.length = SYNC_LOG_MAX;
+  } catch(e) {}
+}
+
 function _registrarConflito(cloudUpdatedAt) {
   if (_conflitoNuvem && _conflitoNuvem.cloudUpdatedAt === cloudUpdatedAt) return;
   _conflitoNuvem = {
@@ -15911,6 +16140,7 @@ function _registrarConflito(cloudUpdatedAt) {
     detectadoEm: new Date().toISOString()
   };
   console.warn('CONFLITO: nuvem em ' + cloudUpdatedAt + ', este aparelho ancorado em ' + _conflitoNuvem.base);
+  _logSync('conflito', 'nuvem em ' + fmtStamp(cloudUpdatedAt));
   updateDbStamp();
   toast('Conflito de sincroniza\u00e7\u00e3o \u2014 abra SINCRONIZA\u00c7\u00c3O');
 }
