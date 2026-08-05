@@ -67,6 +67,8 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
   /* Versao e carimbo ficam do lado do logo, e nao dentro de .header-actions: no mobile aquele
      bloco e nowrap e ja disputa espaco com undo, auth e o menu. A esquerda sobra folga. */
   .header-brand { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
+  /* No desktop continua tudo na mesma linha: o agrupador é transparente. */
+  .header-meta { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
   .header-version { font-family: 'DM Mono', monospace; font-size: 9px; color: var(--muted); }
   #dbStamp { font-family: 'DM Mono', monospace; font-size: 9px; color: var(--muted); white-space: nowrap; }
   .mobile-menu-wrap { position: relative; display: inline-block; flex-shrink: 0; }
@@ -1398,7 +1400,12 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
     /* Header compacto — logo + ações numa linha só */
     header { padding: 8px 12px; gap: 6px; flex-wrap: nowrap; align-items: center; }
     .logo { font-size: 22px; letter-spacing: 2px; flex-shrink: 0; }
-    .header-brand { gap: 6px; flex-shrink: 0; }
+    /* No celular a marca vira duas linhas: TREINO em cima, versão e carimbo embaixo.
+       Numa linha só, os três competiam com os botões pela largura e o carimbo era o primeiro
+       a ser espremido — pendência aberta desde a v0.9.1.43. Empilhar devolve a largura sem
+       diminuir fonte nem esconder informação. */
+    .header-brand { flex-direction: column; align-items: flex-start; gap: 1px; flex-shrink: 0; }
+    .header-meta { gap: 6px; }
     .header-actions { flex-wrap: nowrap; gap: 4px; overflow-x: visible; justify-content: flex-end; flex: 1; min-width: 0; }
     .header-actions .btn { font-size: 9px; padding: 3px 7px; letter-spacing: 0.5px; white-space: nowrap; }
     #auth-status button { font-size: 9px !important; padding: 3px 8px !important; }
@@ -1419,8 +1426,10 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
 <header>
   <div class="header-brand">
     <div class="logo">TREINO</div>
-    <span class="header-version">v0.9.2.06</span>
-    <span id="dbStamp" title="Última atualização dos dados">⟳ —</span>
+    <div class="header-meta">
+      <span class="header-version">v0.9.2.07</span>
+      <span id="dbStamp" title="Última atualização dos dados">⟳ —</span>
+    </div>
   </div>
   <div class="header-actions">
     <button id="undo-btn" onclick="undoAction()" title="Nada para desfazer" disabled style="font-family:'DM Mono',monospace;font-size:11px;background:none;border:1px solid var(--border);color:var(--muted);border-radius:4px;padding:3px 10px;cursor:default;opacity:0.3;transition:opacity .2s">↩</button>
