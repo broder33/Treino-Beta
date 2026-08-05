@@ -1,4 +1,4 @@
-const CACHE_NAME = 'treino-v521';
+const CACHE_NAME = 'treino-v573';
 const INDEX_CACHE_KEY = './index.html';
 
 self.addEventListener('message', function(event) {

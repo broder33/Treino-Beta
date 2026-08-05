@@ -863,6 +863,15 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
     border-right: 1px solid var(--border);
     min-height: 0;
   }
+  /* O chat movido para a AGENDA (v0.9.1.78) perde o grid de altura fixa do .plano-layout.
+     Sem limite o .plano-chat cresceria com a conversa e empurraria o campo de digitar para
+     fora da tela — na agenda quem rola e a pagina, entao o chat ganha teto proprio. */
+  .plano-main.na-agenda {
+    border-right: none;
+    border-top: 1px solid var(--border);
+    margin-top: 18px;
+  }
+  .plano-main.na-agenda .plano-chat { max-height: 55vh; }
   .plano-chat {
     flex: 1;
     overflow-y: auto;
@@ -998,7 +1007,6 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
   .bib-tab:hover { color: var(--text); }
   .bib-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
 
-  .history-clear-wrap { display:flex; justify-content:flex-end; margin-bottom:12px; padding:0 24px; }
 
   /* ── PERFIL ── */
   .perfil-wrap { padding: 20px 0 80px; overflow-x: hidden; box-sizing: border-box; width: 100%; }
@@ -1402,8 +1410,6 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
     .tab { flex: 1; font-size: 13px; letter-spacing: 0; padding: 8px 4px; text-align: center; }
     .serie-header, .serie-meta, .variant-row, .serie-actions, .exercise-list { padding-left: 16px; padding-right: 16px; }
     .history-list, .ai-view { padding-left: 16px; padding-right: 16px; }
-    .history-clear-wrap { justify-content:flex-start; padding:0 16px; }
-    .history-clear-wrap .btn { font-size:9px; padding:3px 8px; }
   }
 </style>
 </head>
@@ -1413,7 +1419,7 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
 <header>
   <div class="header-brand">
     <div class="logo">TREINO</div>
-    <span class="header-version">v0.9.1.52</span>
+    <span class="header-version">v0.9.2.06</span>
     <span id="dbStamp" title="Última atualização dos dados">⟳ —</span>
   </div>
   <div class="header-actions">
@@ -1430,9 +1436,10 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
         <button class="mobile-menu-item mobile-only" onclick="importData();closeMobileMenu()">IMPORTAR</button>
         <div style="height:1px;background:var(--border);margin:4px 0"></div>
         <button class="mobile-menu-item" onclick="abrirSincronizacao();closeMobileMenu()">SINCRONIZAÇÃO</button>
+        <button class="mobile-menu-item" id="mm-migracao" onclick="abrirMigracaoContinuo();closeMobileMenu()">HISTÓRICO CONTÍNUO</button>
         <div style="height:1px;background:var(--border);margin:4px 0"></div>
-        <button class="mobile-menu-item" onclick="limparChatInlineDiasPassados(false);closeMobileMenu()">LIMPAR CHAT — DIAS PASSADOS</button>
-        <button class="mobile-menu-item" onclick="limparChatInlineDiasPassados(true);closeMobileMenu()">LIMPAR CHAT — SEMANAS ANTERIORES</button>
+        <button class="mobile-menu-item" id="mm-limpar-passados" onclick="limparChatInlineDiasPassados(false);closeMobileMenu()">LIMPAR CHAT — DIAS PASSADOS</button>
+        <button class="mobile-menu-item" id="mm-limpar-semanas" onclick="limparChatInlineDiasPassados(true);closeMobileMenu()">LIMPAR CHAT — SEMANAS ANTERIORES</button>
       </div>
     </div>
   </div>
@@ -1451,8 +1458,9 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
 
 <!-- AGENDA -->
 <div class="view" id="view-agenda">
+  <div id="proximo-treino"></div>
   <div class="agenda-linear" id="agenda-linear-list">
-    <div style="color:var(--muted);font-family:DM Mono,monospace;font-size:12px;padding:20px 0">Nenhum plano ativo. Gere um plano na aba PLANO.</div>
+    <div style="color:var(--muted);font-family:DM Mono,monospace;font-size:12px;padding:20px 0">Carregando…</div>
   </div>
 </div>
 
@@ -1639,7 +1647,7 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
   <div class="plano-layout">
 
     <!-- LEFT: agenda + chat -->
-    <div class="plano-main">
+    <div class="plano-main" id="plano-main">
       <div id="agenda-hoje"></div>
 
       <!-- Chat messages -->
@@ -1651,9 +1659,9 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
 
       <!-- Quick actions -->
       <div style="display:flex;gap:6px;padding:8px 16px 0;flex-wrap:wrap" id="plano-quick-actions">
-        <button onclick="iniciarNovoCiclo()" style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;padding:5px 14px;border-radius:8px;border:1px solid var(--accent);color:var(--accent);background:rgba(232,255,60,.07);cursor:pointer" title="Inicia um novo ciclo de treinamento. Se houver ciclo anterior, usa-o como referência para progressão.">✦ INICIAR NOVO CICLO</button>
-        <button onclick="reorganizarPlanoAPartirDeHoje()" style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;padding:5px 14px;border-radius:8px;border:1px solid var(--done);color:var(--done);background:transparent;cursor:pointer" title="Redistribui os dias futuros seguindo a fila estática de séries, sem alterar treinos já concluídos ou passados.">↺ REORGANIZAR A PARTIR DE HOJE</button>
-        <button onclick="gerarOrientacoesDiasFuturos()" style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;padding:5px 14px;border-radius:8px;border:1px solid var(--accent);color:var(--accent);background:transparent;cursor:pointer" title="Pede à IA para gerar orientações de periodização para todos os dias futuros do plano reorganizado. Use após reorganizar.">✦ GERAR ORIENTAÇÕES</button>
+        <button id="qa-novo-ciclo" onclick="iniciarNovoCiclo()" style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;padding:5px 14px;border-radius:8px;border:1px solid var(--accent);color:var(--accent);background:rgba(232,255,60,.07);cursor:pointer" title="Inicia um novo ciclo de treinamento. Se houver ciclo anterior, usa-o como referência para progressão.">✦ INICIAR NOVO CICLO</button>
+        <button id="qa-reorganizar" onclick="reorganizarPlanoAPartirDeHoje()" style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;padding:5px 14px;border-radius:8px;border:1px solid var(--done);color:var(--done);background:transparent;cursor:pointer" title="Redistribui os dias futuros seguindo a fila estática de séries, sem alterar treinos já concluídos ou passados.">↺ REORGANIZAR A PARTIR DE HOJE</button>
+        <button id="qa-orientacoes" onclick="gerarOrientacoesDiasFuturos()" style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;padding:5px 14px;border-radius:8px;border:1px solid var(--accent);color:var(--accent);background:transparent;cursor:pointer" title="Pede à IA para gerar orientações de periodização para todos os dias futuros do plano reorganizado. Use após reorganizar.">✦ GERAR ORIENTAÇÕES</button>
         <button onclick="limparChatPlano()" style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;padding:5px 14px;border-radius:8px;border:1px solid var(--border);color:var(--muted);background:transparent;cursor:pointer" title="Limpa o histórico do chat com a IA. Use quando o chat estiver longo ou com erros de contexto.">↺ NOVA CONVERSA</button>
       </div>
 
@@ -1826,10 +1834,19 @@ function autoResizeAll() {
 
 
 // ─────────────────────────── RENDER ───────────────────────────
+// render() se chama "render" mas so redesenhava abas, biblioteca e historico — a AGENDA ficava
+// de fora. Enquanto ela era sempre alcancada por um switchTab isso nao aparecia. Na migracao
+// aparece: ela roda com a tela ja montada e, se voce ja estava na AGENDA, nenhuma troca de aba
+// acontece e o layout antigo permanece na tela sobre dados que ja mudaram de modelo (v0.9.1.81).
+//
+// A correcao e a funcao passar a fazer o que o nome promete, em vez de cada chamador lembrar de
+// completar o desenho por fora. renderAgendaLinear ja escolhe sozinha entre o feed continuo e a
+// visao de semanas, e ja chama renderProximoTreino.
 function render() {
   renderTabs();
   renderWorkoutViews();
   renderHistory();
+  renderAgendaLinear();
 }
 
 function renderTabs() {
@@ -1852,11 +1869,16 @@ function renderTabs() {
   tlib.onclick = () => switchTab('biblioteca');
   tabs.appendChild(tlib);
 
-  const th = document.createElement('button');
-  th.className = 'tab' + (currentTab === 'history' ? ' active' : '');
-  th.textContent = 'HISTÓRICO';
-  th.onclick = () => switchTab('history');
-  tabs.appendChild(th);
+  // A aba HISTORICO so existe no modelo de ciclos. Depois da migracao ela nao tem mais nada
+  // proprio: os filtros de ciclo somem, e o feed da AGENDA absorveu expansao, ✎ e ✕. Duas telas
+  // mostrando a mesma lista e convite a divergirem. Fica no caminho pre-migracao, intacta.
+  if (!state._migracaoContinuoV1) {
+    const th = document.createElement('button');
+    th.className = 'tab' + (currentTab === 'history' ? ' active' : '');
+    th.textContent = 'HISTÓRICO';
+    th.onclick = () => switchTab('history');
+    tabs.appendChild(th);
+  }
 
   const tp = document.createElement('button');
   tp.className = 'tab' + (currentTab === 'perfil' ? ' active' : '');
@@ -1864,11 +1886,16 @@ function renderTabs() {
   tp.onclick = () => switchTab('perfil');
   tabs.appendChild(tp);
 
-  const tai = document.createElement('button');
-  tai.className = 'tab' + (currentTab === 'ia' ? ' active' : '');
-  tai.textContent = '⬡ PLANO';
-  tai.onclick = () => switchTab('ia');
-  tabs.appendChild(tai);
+  // A aba PLANO so existe no modelo de ciclos. Depois da migracao o que restava nela era o chat,
+  // que passou a viver dentro da AGENDA — e uma aba chamada PLANO sem plano nenhum e so um
+  // lugar a mais para procurar.
+  if (!state._migracaoContinuoV1) {
+    const tai = document.createElement('button');
+    tai.className = 'tab' + (currentTab === 'ia' ? ' active' : '');
+    tai.textContent = '⬡ PLANO';
+    tai.onclick = () => switchTab('ia');
+    tabs.appendChild(tai);
+  }
 
   const tbike = document.createElement('button');
   tbike.className = 'tab' + (currentTab === 'bike' ? ' active' : '');
@@ -1886,6 +1913,15 @@ function switchTab(id) {
       else delete _chatInlineDrafts[dayKey];
     });
   }
+  // A aba deixou de ser renderizada depois da migracao, mas o id ainda pode chegar aqui: o boot
+  // termina numa aba, e a migracao acontece 800ms depois de carregar. Sem este desvio o app
+  // ficaria numa view sem aba correspondente.
+  if (id === 'history' && state._migracaoContinuoV1) id = 'agenda';
+  // Varios caminhos fazem switchTab('ia') so para pousar no campo do chat (orientacao, chat
+  // inline, tools). Depois da migracao o chat esta na AGENDA, entao o destino muda junto —
+  // senao esses botoes abririam uma view sem aba.
+  if (id === 'ia' && state._migracaoContinuoV1) id = 'agenda';
+
   currentTab = id;
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
   if (id === 'history') document.getElementById('view-history').classList.add('active');
@@ -2308,13 +2344,31 @@ function renderHistory() {
   var ciclos = state.ciclos || [];
 
   // ── Filtros ──
-  var filtrosHTML = '<div style="padding:12px 0 10px;display:flex;gap:6px;flex-wrap:wrap;border-bottom:1px solid var(--border);margin-bottom:12px">';
-  filtrosHTML += _histBtn('atual', 'CICLO ATUAL', _historyViewMode === 'atual');
-  filtrosHTML += _histBtn('todos', 'TODOS', _historyViewMode === 'todos');
-  ciclos.forEach(function(c, i) {
-    filtrosHTML += _histBtn('ciclo-' + i, escHtml(c.nome), _historyViewMode === 'ciclo-' + i);
-  });
-  filtrosHTML += '</div>';
+  // Depois da migracao para historico continuo NAO EXISTE mais filtro por ciclo. Os botoes
+  // continuariam ali, mas mentindo: "CICLO ATUAL" mostraria TUDO (o array principal absorveu
+  // os arquivados) e cada "Ciclo N" apareceria VAZIO (a copia dentro deles foi esvaziada).
+  // Mudar o formato do dado e deixar a tela lendo o formato antigo e o mesmo erro que o
+  // loadPerfil cometia: a tela mente enquanto o dado esta certo.
+  var continuo = !!state._migracaoContinuoV1;
+  var filtrosHTML = '';
+  if (!continuo) {
+    filtrosHTML = '<div style="padding:12px 0 10px;display:flex;gap:6px;flex-wrap:wrap;border-bottom:1px solid var(--border);margin-bottom:12px">';
+    filtrosHTML += _histBtn('atual', 'CICLO ATUAL', _historyViewMode === 'atual');
+    filtrosHTML += _histBtn('todos', 'TODOS', _historyViewMode === 'todos');
+    ciclos.forEach(function(c, i) {
+      filtrosHTML += _histBtn('ciclo-' + i, escHtml(c.nome), _historyViewMode === 'ciclo-' + i);
+    });
+    filtrosHTML += '</div>';
+  } else {
+    // Modo continuo: o unico modo possivel. Forcado aqui para que as acoes que hoje dependem
+    // de `_historyViewMode === 'atual'` (remover, por exemplo) continuem habilitadas.
+    _historyViewMode = 'atual';
+    var tot = (state.history || []).length + (state.bikeHistory || []).length;
+    filtrosHTML = '<div style="padding:12px 0 10px;border-bottom:1px solid var(--border);margin-bottom:12px;' +
+      'font-family:DM Mono,monospace;font-size:10px;color:var(--muted);letter-spacing:.5px">' +
+      'HIST\u00d3RICO CONT\u00cdNUO \u00b7 ' + tot + ' REGISTROS' +
+      '</div>';
+  }
 
   // ── Dados a exibir ──
   var gymItems = [], bikeItems = [];
@@ -2323,7 +2377,7 @@ function renderHistory() {
   if (_historyViewMode === 'atual') {
     gymItems = state.history.map(function(h) { return { _data: h }; });
     bikeItems = (state.bikeHistory || []).map(function(b) { return { _data: b }; });
-    cicloNome = 'Ciclo atual';
+    cicloNome = state._migracaoContinuoV1 ? '' : 'Ciclo atual';
   } else if (_historyViewMode === 'todos') {
     // Archived cycles oldest first, then current
     var ciclosOrdenados = ciclos.slice().reverse();
@@ -2376,19 +2430,20 @@ function renderHistory() {
     return;
   }
 
-  var clearBtn = _historyViewMode === 'atual'
-    ? '<div class="history-clear-wrap"><button class="btn danger" onclick="clearHistory()" title="Apaga o histórico do ciclo atual.">↺ LIMPAR HISTÓRICO ATUAL</button></div>'
-    : '';
-
-  list.innerHTML = filtrosHTML + infoHTML + clearBtn + allItems.map(function(entry) {
-    var showCiclo = _historyViewMode === 'todos' && entry._ciclo;
+  // O botao LIMPAR HISTORICO ATUAL foi eliminado na v0.9.1.75. Ele dizia "ciclo atual" e o
+  // clearHistory() fazia state.history = [] — apagava TUDO, inclusive os registros vindos dos
+  // ciclos migrados. Num historico continuo "ciclo atual" nao significa nada, entao nao havia
+  // rotulo honesto a dar. O ✕ por registro cobre a remocao pontual, que e o caso real.
+  list.innerHTML = filtrosHTML + infoHTML + allItems.map(function(entry) {
+    // Modo continuo nao tem rotulo de ciclo em lugar nenhum.
+    var showCiclo = !state._migracaoContinuoV1 && _historyViewMode === 'todos' && entry._ciclo;
     if (entry._type === 'bike') {
       var b = entry._data;
       var bd = entry._date;
       var dataFmt = bd.toLocaleDateString('pt-BR', {day:'2-digit',month:'2-digit',year:'2-digit'});
       var diaSemFmt = bd.toLocaleDateString('pt-BR', {weekday:'long'});
       diaSemFmt = diaSemFmt.charAt(0).toUpperCase() + diaSemFmt.slice(1);
-      var meta = [b.distancia ? b.distancia+'km' : '', b.tempoMov ? b.tempoMov+' mov.' : (b.tempo||''), b.tempoTotal ? b.tempoTotal+' total' : '', b.velocidade ? b.velocidade+' méd.' : '', b.elevacao ? b.elevacao+'m elev.' : '', b.kcal ? b.kcal+'kcal' : '', b.percurso].filter(Boolean).join(' · ');
+      var meta = [b.distancia ? b.distancia+'km' : '', b.tempoMov ? b.tempoMov+' mov.' : (b.tempo||''), b.tempoTotal ? b.tempoTotal+' total' : '', b.velocidade ? b.velocidade+' méd.' : '', b.elevacao ? b.elevacao+'m elev.' : '', b.kcal ? b.kcal+'kcal' : '', b.bpmMedio ? b.bpmMedio+'bpm' : '', b.percurso].filter(Boolean).join(' · ');
       var regHora = bd.toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit'});
       var timing = b.timingReal ? ' · ' + b.timingReal + ' da musculação' : '';
       return '<div class="history-card" style="flex-direction:column;align-items:stretch;border-color:rgba(91,143,255,.35)">' +
@@ -2402,10 +2457,15 @@ function renderHistory() {
         '</div>' +
         '<div class="history-date">' + escHtml(meta) + timing + (regHora ? ' · ' + regHora : '') + '</div>' +
         '</div>' +
-        (_historyViewMode === 'atual' ? '<div style="display:flex;gap:4px;flex-shrink:0;margin-left:8px">' +
-          '<button class="ex-action-btn" onclick="editHistoryDataPrompt(\'' + b.id + '\',\'bike\')" title="Editar datas">&#9998;</button>' +
-          '<button class="ex-action-btn" onclick="removeBikeHistoryEntry(\'' + b.id + '\')" title="Remover">✕</button>' +
-          '</div>' : '') +
+        // Editar vale em QUALQUER modo — inclusive ciclo arquivado. Foi o que impediu de
+        // preencher o BPM em rides antigos: o registro aparecia na tela e nao havia como
+        // corrigi-lo. Remover continua so no ciclo atual: editar corrige, remover destroi.
+        '<div style="display:flex;gap:4px;flex-shrink:0;margin-left:8px">' +
+          '<button class="ex-action-btn" onclick="editHistoryDataPrompt(\'' + b.id + '\',\'bike\')" title="Editar ride">&#9998;</button>' +
+          (_historyViewMode === 'atual'
+            ? '<button class="ex-action-btn" onclick="removeBikeHistoryEntry(\'' + b.id + '\')" title="Remover">✕</button>'
+            : '') +
+        '</div>' +
         '</div></div>';
     } else {
       var h = entry._data;
@@ -2443,7 +2503,7 @@ function renderHistory() {
         '</div>' +
         '<div style="display:flex;align-items:center;gap:10px">' +
         '<span class="history-badge">' + h.done + '/' + h.total + ' exercícios</span>' +
-        (_historyViewMode === 'atual' ? '<button class="ex-action-btn" onclick="editHistoryDataPrompt(\'' + h.id + '\',\'gym\')" title="Editar datas" style="flex-shrink:0">&#9998;</button>' : '') +
+        '<button class="ex-action-btn" onclick="editHistoryDataPrompt(\'' + h.id + '\',\'gym\')" title="Editar datas" style="flex-shrink:0">&#9998;</button>' +
         (_historyViewMode === 'atual' ? '<button class="ex-action-btn" onclick="removeHistoryEntry(\'' + h.id + '\')" title="Remover" style="flex-shrink:0">✕</button>' : '') +
         '</div></div>' +
         exHTML + '</div>';
@@ -2459,6 +2519,15 @@ function _histBtn(mode, label, active) {
 // ─────────────────────────── CICLOS ───────────────────────────
 
 function encerrarCiclo() {
+  // Depois da migração o modelo de ciclos não existe mais. Deixar este fluxo vivo permitiria
+  // RECRIAR state.ciclos e re-arquivar o histórico — desfazendo a migração por acidente,
+  // silenciosamente, com o dado voltando a se partir em pedaços.
+  if (state._migracaoContinuoV1) {
+    openModal('CICLOS FORAM ELIMINADOS', [{ label:
+      'O app usa histórico contínuo: não há mais ciclos para encerrar. O histórico segue ' +
+      'acumulando sem cortes.', key:'_', type:'hidden' }], null);
+    return;
+  }
   if (!state.plano) { toast('Nenhum plano ativo.'); return; }
 
   openModal('ENCERRAR CICLO', [
@@ -2542,7 +2611,9 @@ function renderCiclos() {
   var html = '<div style="padding:20px 24px 12px;display:flex;align-items:center;justify-content:space-between">';
   html += '<div style="font-family:Bebas Neue,sans-serif;font-size:22px;letter-spacing:1px">CICLOS</div>';
   if (state.plano) {
-    html += '<button class="btn" onclick="encerrarCiclo()" style="font-size:11px">⊠ ENCERRAR CICLO ATUAL</button>';
+    if (!state._migracaoContinuoV1) {
+      html += '<button class="btn" onclick="encerrarCiclo()" style="font-size:11px">⊠ ENCERRAR CICLO ATUAL</button>';
+    }
   }
   html += '</div>';
 
@@ -2612,7 +2683,7 @@ function renderCiclos() {
         var dataFmt = bd.toLocaleDateString('pt-BR', {day:'2-digit',month:'2-digit',year:'2-digit'});
         var diaSem = bd.toLocaleDateString('pt-BR', {weekday:'long'});
         diaSem = diaSem.charAt(0).toUpperCase() + diaSem.slice(1);
-        var meta = [b.distancia ? b.distancia+'km' : '', b.tempoMov ? b.tempoMov+' mov.' : '', b.velocidade ? b.velocidade+' méd.' : '', b.elevacao ? b.elevacao+'m elev.' : '', b.kcal ? b.kcal+'kcal' : ''].filter(Boolean).join(' · ');
+        var meta = [b.distancia ? b.distancia+'km' : '', b.tempoMov ? b.tempoMov+' mov.' : '', b.velocidade ? b.velocidade+' méd.' : '', b.elevacao ? b.elevacao+'m elev.' : '', b.kcal ? b.kcal+'kcal' : '', b.bpmMedio ? b.bpmMedio+'bpm' : ''].filter(Boolean).join(' · ');
         html += '<div class="history-card" style="flex-direction:column;align-items:stretch;border-color:rgba(91,143,255,.35);margin-bottom:8px">';
         html += '<div style="display:flex;align-items:baseline;gap:10px;margin-bottom:2px">';
         html += '<div class="history-serie" style="color:var(--bike-chuva)">&#128690; ' + escHtml(b.foco||'Ride') + '</div>';
@@ -2690,10 +2761,30 @@ function toggleHistoryEx(id) {
 // Edição do carimbo de um registro do histórico. Um carimbo só: a hora do registro É a
 // hora da atividade, porque o registro é feito ao terminar. Quando isso não é possível
 // (esquecimento, app fora do ar), este ✎ corrige — foi pra isso que ele existe.
+// Localiza um registro por id, inclusive dentro de ciclos ARQUIVADOS, devolvendo a REFERÊNCIA
+// ao objeto real — nunca uma cópia, senão a edição não persistiria onde o dado mora.
+// (Diferente de _historicoCompleto, que copia de propósito porque só monta texto para a IA.)
+//
+// Existe porque o lápis do histórico só procurava em state.history/state.bikeHistory: um pedal
+// de ciclo anterior ficava impossível de corrigir, mesmo aparecendo na tela. E foi justamente
+// o caso ao adotar o monitor cardíaco — rides antigos que precisam receber o BPM.
+function _localizarRegistro(id, tipo) {
+  var campo = tipo === 'bike' ? 'bikeHistory' : 'history';
+  var atual = (state[campo] || []).find(function(x) { return x.id === id; });
+  if (atual) return { item: atual, ciclo: null };
+  var achado = null;
+  (state.ciclos || []).forEach(function(c) {
+    if (achado) return;
+    var it = (c[campo] || []).find(function(x) { return x.id === id; });
+    if (it) achado = { item: it, ciclo: c };
+  });
+  return achado;
+}
+
 function editHistoryDataPrompt(id, tipo) {
-  var arr = tipo === 'bike' ? (state.bikeHistory || []) : (state.history || []);
-  var it = arr.find(function(x) { return x.id === id; });
-  if (!it) { toast('Registro não encontrado'); return; }
+  var achado = _localizarRegistro(id, tipo);
+  if (!achado) { toast('Registro não encontrado'); return; }
+  var it = achado.item;
 
   function pad(n) { return (n < 10 ? '0' : '') + n; }
   var d = it.date ? new Date(it.date) : new Date();
@@ -2705,7 +2796,43 @@ function editHistoryDataPrompt(id, tipo) {
     ? ('\u{1F6B2} ' + (it.foco || 'Ride'))
     : ((it.serieLabel || '') + ' — ' + (it.serieName || ''));
 
-  document.getElementById('modal-title').textContent = 'EDITAR DATA E HORA';
+  // Para ride o lapis edita o registro INTEIRO, nao so o carimbo. Antes so dava para corrigir
+  // data e hora: as metricas de um pedal registrado ficavam congeladas para sempre, e nao havia
+  // como preencher um dado NOVO (BPM) em pedais ja gravados.
+  var camposBike = '';
+  if (tipo === 'bike') {
+    var _cb = function(rot, campo, ph, modo) {
+      return '<div style="flex:1;min-width:88px">' +
+        '<label style="font-family:DM Mono,monospace;font-size:9px;letter-spacing:.5px;color:var(--muted)">' + rot + '</label>' +
+        '<input id="edbike-' + campo + '"' + (modo ? ' inputmode="' + modo + '"' : '') +
+          ((campo === 'tempoMov' || campo === 'tempoTotal') ? ' oninput="_mascaraDuracao(this)"' : '') +
+          ' value="' + escHtml(it[campo] || '') + '" placeholder="' + ph + '"' +
+          ' style="display:block;width:100%;box-sizing:border-box;margin-top:3px;padding:8px;border-radius:8px;' +
+          'border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:DM Mono,monospace;font-size:13px">' +
+      '</div>';
+    };
+    camposBike =
+      '<div style="border-top:1px solid var(--border);margin:6px 0 12px"></div>' +
+      '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">' +
+        _cb('KM', 'distancia', 'km', 'decimal') +
+        _cb('T. MOVIMENTO', 'tempoMov', 'h:mm:ss', 'numeric') +
+        _cb('T. TOTAL', 'tempoTotal', 'h:mm:ss', 'numeric') +
+      '</div>' +
+      '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">' +
+        _cb('VEL. MÉD.', 'velocidade', 'km/h', 'decimal') +
+        _cb('ELEV. (m)', 'elevacao', 'm', 'numeric') +
+        _cb('KCAL', 'kcal', 'kcal', 'numeric') +
+        _cb('BPM MÉD.', 'bpmMedio', 'bpm', 'numeric') +
+      '</div>' +
+      '<div style="margin-bottom:12px">' +
+        '<label style="font-family:DM Mono,monospace;font-size:9px;letter-spacing:.5px;color:var(--muted)">PERCURSO</label>' +
+        '<input id="edbike-percurso" value="' + escHtml(it.percurso || '') + '" placeholder="percurso"' +
+        ' style="display:block;width:100%;box-sizing:border-box;margin-top:3px;padding:8px;border-radius:8px;' +
+        'border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:DM Mono,monospace;font-size:13px">' +
+      '</div>';
+  }
+
+  document.getElementById('modal-title').textContent = tipo === 'bike' ? 'EDITAR RIDE' : 'EDITAR DATA E HORA';
   document.getElementById('modal-body').innerHTML =
     '<p style="font-family:DM Sans,sans-serif;font-size:12px;color:var(--muted);margin:0 0 14px">' + escHtml(titulo) + '</p>' +
 
@@ -2717,8 +2844,9 @@ function editHistoryDataPrompt(id, tipo) {
     '<div id="edhist-dp-wrap" style="display:none;margin:0 0 8px">' + datepickerInlineHTML('edhist', 'edhist-data') + '</div>' +
 
     '<label style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;color:var(--muted)">HORA (hh:mm)</label>' +
-    '<input id="edhist-hora" type="text" inputmode="numeric" value="' + horaStr + '" placeholder="hh:mm" style="display:block;width:100%;box-sizing:border-box;margin:4px 0 4px;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:DM Mono,monospace">' +
+    '<input id="edhist-hora" type="text" inputmode="numeric" oninput="_mascaraTempo(this)" value="' + horaStr + '" placeholder="hh:mm" style="display:block;width:100%;box-sizing:border-box;margin:4px 0 4px;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:DM Mono,monospace">' +
     '<p style="font-family:DM Sans,sans-serif;font-size:11px;color:var(--muted);margin:0 0 14px">Quando ' + (tipo === 'bike' ? 'o pedal' : 'o treino') + ' aconteceu. É o que aparece no card e o que ordena o histórico.</p>' +
+    camposBike +
 
     '<button onclick="editHistoryDataAplicar(\'' + id + '\',\'' + tipo + '\')" style="display:block;width:100%;font-family:DM Mono,monospace;font-size:11px;padding:10px;border-radius:8px;border:none;background:var(--accent);color:#000;cursor:pointer">SALVAR</button>';
 
@@ -2728,9 +2856,9 @@ function editHistoryDataPrompt(id, tipo) {
 }
 
 function editHistoryDataAplicar(id, tipo) {
-  var arr = tipo === 'bike' ? (state.bikeHistory || []) : (state.history || []);
-  var it = arr.find(function(x) { return x.id === id; });
-  if (!it) { toast('Registro não encontrado'); return; }
+  var achado = _localizarRegistro(id, tipo);
+  if (!achado) { toast('Registro não encontrado'); return; }
+  var it = achado.item;
 
   var dm = (document.getElementById('edhist-data').value || '').trim().match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
   if (!dm) { toast('Data inválida — use dd/mm/aaaa'); return; }
@@ -2739,32 +2867,53 @@ function editHistoryDataAplicar(id, tipo) {
   var hh = parseInt(hm[1]), mi = parseInt(hm[2]);
   if (hh > 23 || mi > 59) { toast('Hora inválida'); return; }
 
-  pushUndo('Editar data e hora do registro');
+  pushUndo(tipo === 'bike' ? 'Editar ride' : 'Editar data e hora do registro');
   it.date = new Date(parseInt(dm[3]), parseInt(dm[2]) - 1, parseInt(dm[1]), hh, mi).toISOString();
   delete it.registeredAt; // carimbo único — campo legado não volta
+  if (tipo === 'bike') {
+    // Sanitiza a unidade digitada, igual ao updateBikeField: quem digita "120 bpm" ou "18,5 km"
+    // nao deve ver a unidade duplicada na exibicao.
+    var _lim = function(v, re) { return (v || '').trim().replace(re, ''); };
+    var camposEd = {
+      distancia: /\s*km\s*$/i, tempoMov: 'duracao', tempoTotal: 'duracao',
+      velocidade: /\s*km\/?h\s*$/i, elevacao: /\s*m\s*$/i,
+      kcal: /\s*kcal\s*$/i, bpmMedio: /\s*bpm\s*$/i, percurso: null
+    };
+    Object.keys(camposEd).forEach(function(c) {
+      var el = document.getElementById('edbike-' + c);
+      if (!el) return;
+      it[c] = camposEd[c] === 'duracao' ? _normalizaDuracao(el.value)
+            : camposEd[c] ? _lim(el.value, camposEd[c])
+            : (el.value || '').trim();
+    });
+    // O registro do historico e uma COPIA do que estava em diasBike. Editar so o historico
+    // deixaria o card da agenda mostrando os valores antigos, entao o dia de origem tambem e
+    // atualizado quando ainda existe (ride de ciclo anterior nao tem diasBike vivo).
+    // O plano de origem e o do CICLO a que o registro pertence. Usar state.plano sempre
+    // significaria, ao editar um ride arquivado, escrever num dia do ciclo ATUAL que por acaso
+    // tivesse a mesma chave (sem1_Segunda existe em todo ciclo) — corrompendo dado alheio.
+    var planoOrigem = achado.ciclo ? achado.ciclo.plano : state.plano;
+    if (it.dayKey && planoOrigem && planoOrigem.diasBike && planoOrigem.diasBike[it.dayKey]) {
+      var orig = planoOrigem.diasBike[it.dayKey];
+      Object.keys(camposEd).forEach(function(c) { orig[c] = it[c]; });
+    }
+  }
+
   saveState();
   closeModal();
   renderHistory();
-  toast('Data e hora atualizadas ✓');
+  renderAgendaLinear();
+  toast(tipo === 'bike' ? 'Ride atualizado ✓' : 'Data e hora atualizadas ✓');
 }
 
 function removeHistoryEntry(id) {
   state.history = state.history.filter(h => h.id !== id);
   saveState();
   renderHistory();
+  renderAgendaLinear();
   toast('Entrada removida');
 }
 
-function clearHistory() {
-  openModal('LIMPAR HISTÓRICO', [
-    { label: 'Tem certeza? Todo o histórico será removido permanentemente.', key: '_', type: 'hidden', placeholder: '' }
-  ], function() {
-    state.history = [];
-    saveState();
-    renderHistory();
-    toast('Histórico limpo');
-  });
-}
 
 
 
@@ -3617,8 +3766,12 @@ function salvarPerfil() {
 
 function buildPerfilTexto() {
   var p = state.perfil || DEFAULT_PERFIL;
+  // `diasBike` e contagem de rides POR DIA DO PLANO. Depois da migracao ela congela no estado em
+  // que estava e continua sendo injetada em todo prompt como "Bike neste ciclo: N rides feitos",
+  // afirmando um numero velho sobre um conceito que nao existe mais. Quem conta ride no modelo
+  // continuo e _textoCadencia ("Pedais no mesmo periodo") a partir do bikeHistory real.
   var bikeCtx = '';
-  if (state.plano && state.plano.diasBike) {
+  if (!state._migracaoContinuoV1 && state.plano && state.plano.diasBike) {
     var feitos = 0, chuvas = 0, imprevistos = 0;
     Object.values(state.plano.diasBike).forEach(function(b) {
       if (b.status === 'feito') feitos++;
@@ -3648,8 +3801,9 @@ function buildPerfilTexto() {
     '- REGRAS ABSOLUTAS: bike NUNCA em dia D (pernas). Sábado e Domingo são elegíveis para bike. Tendão patelar direito: sem sprints, cadência alta.\n' +
     '- Bike antes da musculação: reduza intensidade da musculação. Bike após A/B/C: Z2 apenas, nunca Z4.\n' +
     '- "D trocado por bike": usuário troca o dia D por bike — pode SUBSTITUIR (D descartado, sem relocação) ou RELOCAR (D vai para outro dia). Pode combinar com A/B/C no mesmo dia.\n' +
-    (p.bikeObs ? '- Obs ciclismo: ' + p.bikeObs + '\n' : '') +
-    bikeCtx;
+    (p.bikeObs ? '- Obs ciclismo: ' + p.bikeObs + '\n' : '');
+    // bikeCtx aparecia AQUI tambem, alem de logo acima do bloco CICLISMO: o mesmo paragrafo
+    // entrava duas vezes em todo prompt. Bug do modelo de ciclos, nao da migracao.
 }
 
 
@@ -3678,7 +3832,7 @@ function getPLANO_SYSTEM() {
   var hojeContexto = 'HOJE: ' + hojeStr;
 
   // Find today's position in plan by training day number
-  if (temPlano && state.plano.dataInicio) {
+  if (temPlano && !state._migracaoContinuoV1 && state.plano.dataInicio) {
     var ordemSemana = ['Segunda','Terça','Quarta','Quinta','Sexta','Sábado','Domingo'];
     var inicio = new Date(state.plano.dataInicio);
     inicio.setHours(0,0,0,0);
@@ -3697,15 +3851,42 @@ function getPLANO_SYSTEM() {
     hojeContexto += ' — ' + diaNome + (diaNumHoje > 0 ? ', Dia ' + diaNumHoje + ' do ciclo' : ', antes do primeiro treino');
   }
 
+  var continuo = !!state._migracaoContinuoV1;
+  var blocoRotacao = _textoRotacao();
+  blocoRotacao = blocoRotacao ? '\n' + blocoRotacao + '\n' : '';
+
+  // A cadencia entra no system prompt, e nao so na geracao de orientacoes: ela responde
+  // "com que frequencia ele treina de verdade", que muda a resposta de QUALQUER pergunta sobre
+  // volume e progressao. Bloco curto de proposito — isto viaja em toda mensagem.
+  var blocoCadencia = _textoCadencia(90);
+  blocoCadencia = blocoCadencia ? '\n' + blocoCadencia + '\n' : '';
+
   return `Você é um personal trainer especializado em periodização, integrado a um app de treino.
 
 ${hojeContexto}
 
 ${buildPerfilTexto()}
-
+${blocoRotacao}${blocoCadencia}
 SÉRIES DISPONÍVEIS: A — Ombros, B — Costas/Bíceps, C — Peito/Tríceps, D — Pernas
 
-IMPORTANTE — ESTRUTURA DO PLANO:
+${continuo ? `IMPORTANTE — NÃO EXISTE PLANO:
+Não há plano de N dias, nem semanas, nem dias numerados. Existe uma FILA de séries e um histórico. O próximo treino é o que vier depois do último registrado, e ele não tem data — acontece quando acontecer. Periodização se expressa em relação ao histórico ("nas últimas 6 sessões de A a carga não subiu"), nunca em "Dia 12" ou "Semana 3".
+
+CAPACIDADES:
+
+1. ORIENTAR O PRÓXIMO TREINO
+Responda em TEXTO: foco, intensidade alvo, cargas concretas por exercício e o que observar na execução. NÃO retorne JSON de plano — não existe onde gravá-lo.
+
+2. MODIFICAR EXERCÍCIOS DE UMA SÉRIE (Biblioteca)
+{"modificacoes":{"serieLabel":"A","acoes":[{"tipo":"substituir","de":"nome","por":"novo","sets":"3x8","weight":"20kg"},{"tipo":"alterar","nome":"nome","sets":"4x6","weight":"25kg"},{"tipo":"remover","nome":"nome"},{"tipo":"adicionar","nome":"novo","sets":"3x10","weight":"15kg","posicao":2}]}}
+
+3. CICLISMO
+Oriente o ride em texto — zona, duração, o que evitar. Zonas: Z2=confortável (frases completas), Z3=moderado (frases curtas), Z4=forte (palavras isoladas). Meta ~4 rides/semana: Z2 (3x) + Z4 (1x em dia leve). Tendão patelar direito: sem sprints, cadência alta. NÃO prescreva ride "para o dia X do plano": não há dias de plano, e a decisão de pedalar é do usuário conforme o tempo e o clima.
+
+4. CONVERSA NORMAL — responda em português, direto e técnico.
+
+REGRA DE FORMATO: quando retornar JSON, retorne APENAS o JSON — sem texto antes, sem texto depois, sem markdown. Se precisar explicar, faça em mensagem separada antes do JSON.
+` : `IMPORTANTE — ESTRUTURA DO PLANO:
 O plano é organizado por DIAS DE TREINO numerados (Dia 1, Dia 2... Dia N). Cada dia tem suas próprias propriedades independentes. A visualização em semanas calendário é apenas para o usuário — o modelo trabalha SEMPRE com números de dia. Periodização, progressão e ajustes são expressos em dias, nunca em semanas. Ex: "Dias 1-8: acumulação 70-76%, Dias 9-16: intensificação 78-82%, Dias 17-20: deload 62-65%."
 
 CAPACIDADES:
@@ -3753,10 +3934,11 @@ Inclua o campo "bike" em todo dia que NÃO seja D. Sábado e Domingo são elegí
 Zonas: Z2=confortável (frases completas), Z3=moderado (frases curtas), Z4=forte (palavras isoladas).
 Regras: nunca bike em dia D. Tendão patelar direito: sem sprints longos. Timing "antes": reduza intensidade da musculação. Timing "após": Z2 apenas. Meta ~4 rides/semana: Z2 (3x) + Z4 (1x em dia leve).
 
-6. CONVERSA NORMAL — responda em português, direto e técnico.
+`}
+${continuo ? '' : `6. CONVERSA NORMAL — responda em português, direto e técnico.
 
 REGRA DE FORMATO: quando retornar JSON, retorne APENAS o JSON — sem texto antes, sem texto depois, sem markdown, sem explicações. Se precisar explicar algo, faça em uma mensagem separada antes do JSON.
-
+`}
 ${getToolsInstrucoes()}`;
 }
 
@@ -3814,7 +3996,12 @@ function executarTool(toolName, params) {
 
   if (toolName === 'get_bike') {
     var linhas = [];
-    if (state.plano && state.plano.diasBike) {
+    // `diasBike` e `semanas[].bike` sao rides POR DIA DO PLANO — no modelo continuo congelaram
+    // no estado da migracao. Sem esta guarda o modelo recebia "RIDES NESTE CICLO: Sem3 Quinta:
+    // feito — 32km" e "BIKE PLANEJADO", dado velho indexado por um calendario que nao existe.
+    // O ride real vive em `bikeHistory` e sai por _textoBike/_textoCadencia. Mesma classe do
+    // bug de buildPerfilTexto (v0.9.1.83).
+    if (!state._migracaoContinuoV1 && state.plano && state.plano.diasBike) {
       var bikeFeitos = Object.keys(state.plano.diasBike).map(function(dk) {
         var b = state.plano.diasBike[dk];
         if (!b || b.status === 'pendente') return null;
@@ -3823,15 +4010,18 @@ function executarTool(toolName, params) {
         var l = 'Sem' + parts[1] + ' ' + parts[2] + ': ' + b.status;
         if (b.status === 'feito') {
           if (b.distancia) l += ' — ' + b.distancia + 'km';
-          if (b.tempo) l += ', ' + b.tempo;
+          // b.tempo NUNCA existiu: os campos gravados sao tempoMov e tempoTotal. A duracao
+          // simplesmente nao aparecia neste texto desde sempre.
+          if (b.tempoMov) l += ', ' + b.tempoMov + ' mov.';
           if (b.velocidade) l += ', ' + b.velocidade + ' med.';
+          if (b.bpmMedio) l += ', ' + b.bpmMedio + 'bpm';
           if (b.timingReal) l += ' (timing: ' + b.timingReal + ')';
         }
         return l;
       }).filter(Boolean);
       if (bikeFeitos.length) linhas.push('RIDES NESTE CICLO:\n' + bikeFeitos.join('\n'));
     }
-    if (state.plano && state.plano.semanas) {
+    if (!state._migracaoContinuoV1 && state.plano && state.plano.semanas) {
       var planejados = [];
       state.plano.semanas.forEach(function(sem) {
         (sem.dias || sem.agenda || []).forEach(function(d) {
@@ -3839,6 +4029,12 @@ function executarTool(toolName, params) {
         });
       });
       if (planejados.length) linhas.push('BIKE PLANEJADO:\n' + planejados.join('\n'));
+    }
+    // Sem os blocos de plano, get_bike ficaria vazio no modelo continuo — e ela E oferecida la.
+    // Responde com o historico real de rides, que e a unica fonte verdadeira depois da migracao.
+    if (state._migracaoContinuoV1) {
+      var real = _textoBike(120, 12);
+      return real || 'Sem rides registrados.';
     }
     return linhas.length ? linhas.join('\n\n') : 'Sem dados de ciclismo registrados.';
   }
@@ -4027,17 +4223,1269 @@ function _setSendBtnSend(btnId) {
 }
 
 // Tools instruction block — injected into all system prompts
+// Core NAO pertence a nenhuma serie: ele e transversal a A/B/C/D. A deteccao estava enterrada
+// dentro de adicionarNovosExerciciosNaBiblioteca; foi extraida para que a Biblioteca e o
+// contexto da IA usem o MESMO criterio — duas heuristicas divergentes classificariam o mesmo
+// exercicio de formas diferentes em lugares diferentes.
+var _RE_CORE_MUSCULO = /core|abdômen|abdomin|lombar|oblíquo|obliquo|prancha|plank|crunch|sit.?up|dead.?bug|bird.?dog/i;
+var _RE_CORE_NOME = /prancha|plank|crunch|sit.?up|dead.?bug|bird.?dog|abdominal|elevação de perna|elevação de joelh|roman chair|captain.?chair|knee raise|ab wheel|hollow body|l.?sit|dragon flag|pallof|mountain climb/i;
+
+function _ehCore(ex) {
+  if (!ex) return false;
+  if (ex.isCore) return true;
+  var musculo = (ex.musculo || ex.muscle || ex.grupo || '');
+  var nome = (ex.name || ex.nome || '');
+  return _RE_CORE_MUSCULO.test(musculo) || _RE_CORE_NOME.test(nome);
+}
+
 // ============ CONTEXTO DE TREINO PARA A IA (v0.9.1.52) ============
 // Extraido do resolvedor de get_historico para nao existirem duas formatacoes do mesmo dado —
 // mesmo erro que o aplicador de plano macro tinha. A tool e a injecao direta usam este texto.
+// ─── Histórico ATRAVESSANDO ciclos ───
+// Ao arquivar um ciclo o app faz state.history = [] e joga o conteúdo em state.ciclos[].history.
+// Nenhum bloco de contexto lia state.ciclos, então a IA começava todo ciclo novo com histórico
+// ZERO — e tudo que foi levantado antes ficava invisível, apesar de estar salvo no app.
+// Os limites de 20/40 sessões quase nunca eram atingidos: o que limitava era a idade do ciclo.
+//
+// As entradas arquivadas são COPIADAS com a marca _ciclo (cópia rasa: mexer no objeto original
+// corromperia o arquivo do ciclo). Ordenação por data, porque a ordem entre ciclos não é
+// garantida pela concatenação.
+// ═══════════ MIGRAÇÃO PARA HISTÓRICO CONTÍNUO (v0.9.1.63) ═══════════
+// Funde state.ciclos[].history e [].bikeHistory nos arrays principais, encerrando o modelo de
+// ciclos como fonte do histórico.
+//
+// ESTA É A OPERAÇÃO MAIS DESTRUTIVA DO APP. Roda uma vez, é irreversível, e o que está em jogo
+// é o histórico inteiro de treino. Não mexer na tela NÃO a torna segura — torna um erro
+// INVISÍVEL, que é o pior modo de falha possível. Daí a sequência abaixo, em que nenhuma
+// mutação acontece antes da verificação:
+//
+//   1. conta tudo ANTES
+//   2. baixa backup JSON do state inteiro (se o download falhar, aborta sem tocar em nada)
+//   3. monta os arrays novos em memória, SEM tocar no state
+//   4. confere: contagem bate E todo id de origem está presente no resultado
+//   5. só então grava, e só então esvazia history/bikeHistory de cada ciclo
+//
+// O que NÃO é apagado: os ciclos continuam existindo com nome, número, datas, snapshot do plano
+// e snapshot da biblioteca. Some apenas a CÓPIA do histórico, que passou a viver no array
+// principal. Assim o `_ciclo` de cada entrada continua tendo a que se referir, e nada além da
+// duplicata é destruído.
+//
+// _historicoCompleto continua funcionando sem alteração: depois da migração `c.history` é [],
+// então o laço de mesclagem simplesmente não acrescenta nada.
+// Quem migrou nas versões .63/.64 ficou com `_ciclo` gravado nos registros e com `state.ciclos`
+// ainda presente. Esta limpeza roda uma vez no boot e alinha esses aparelhos ao modelo final.
+// Idempotente: sem a flag de migração, não faz nada.
+function _limparResiduosDeCiclo() {
+  if (!state._migracaoContinuoV1) return false;
+  var mexeu = false;
+  (state.history || []).forEach(function(h) { if (h._ciclo !== undefined) { delete h._ciclo; mexeu = true; } });
+  (state.bikeHistory || []).forEach(function(r) { if (r._ciclo !== undefined) { delete r._ciclo; mexeu = true; } });
+  if (state.ciclos !== undefined) { delete state.ciclos; mexeu = true; }
+  return mexeu;
+}
+
+// ═══════════ PRÓXIMO TREINO — MODELO CONTÍNUO (v0.9.1.68) ═══════════
+// Não há mais plano de N semanas. Existe UM próximo treino, sem data, derivado de duas coisas:
+// a rotação configurada no Perfil e o que já foi feito no histórico.
+//
+// A posição NÃO é um índice guardado. Um ponteiro em `state` desanda em silêncio: basta um
+// registro editado, removido ou vindo do outro aparelho para ele apontar para o lugar errado, e
+// nada na tela denuncia. Derivar do histórico faz a rotação ser sempre consequência do que de
+// fato aconteceu.
+
+// Qual série conflita com o pedal. Ciclismo carrega quadríceps, glúteo, posterior e panturrilha;
+// A/B/C (ombros, costas/bíceps, peito/tríceps) praticamente não tocam nisso. O conflito é só o
+// treino de pernas — identificado pelo NOME (o rótulo A/B/C/D é configurável e pode mudar).
+function _serieDePernas() {
+  var series = (state.series || []).filter(function(x) { return x.id !== 'score'; });
+  var porNome = series.find(function(x) { return /perna|quadr|leg/i.test(x.name || ''); });
+  if (porNome) return porNome;
+  return series.find(function(x) { return x.label === 'D'; }) || null;
+}
+
+// Reproduz os contadores de intercalada percorrendo o histórico, do mais antigo ao mais recente.
+// Não basta olhar o último treino: uma intercalada entra "a cada N treinos da fila principal",
+// então a decisão depende de QUANTOS treinos principais se passaram desde a última vez que ela
+// apareceu — informação que só existe percorrendo a sequência.
+function _estadoRotacao() {
+  var cfg = getConfigTreino();
+  var coreS = (state.series || []).find(function(x) { return x.id === 'score'; });
+  var coreLabel = coreS ? coreS.label : null;
+
+  var fila = (cfg.filaPrincipal || ['A','B','C']).filter(function(l) { return l !== coreLabel; });
+  var intercaladas = (cfg.intercaladas || []).filter(function(ic) { return ic.label !== coreLabel; });
+
+  var contadores = {};
+  intercaladas.forEach(function(ic) { contadores[ic.label] = 0; });
+  var idxFila = 0;
+
+  // Só treinos de musculação que pertencem à rotação. Core e séries fora da fila não movem nada.
+  var relevantes = (state.history || []).filter(function(h) {
+    var l = h.serieLabel;
+    return fila.indexOf(l) >= 0 || intercaladas.some(function(ic) { return ic.label === l; });
+  }).slice().reverse();   // history é unshift: inverter dá ordem cronológica
+
+  relevantes.forEach(function(h) {
+    var l = h.serieLabel;
+    var ic = intercaladas.find(function(x) { return x.label === l; });
+    if (ic) {
+      contadores[l] = 0;
+    } else {
+      var pos = fila.indexOf(l);
+      if (pos >= 0) idxFila = pos + 1;
+      intercaladas.forEach(function(x) { contadores[x.label]++; });
+    }
+  });
+
+  return { cfg: cfg, fila: fila, intercaladas: intercaladas, contadores: contadores, idxFila: idxFila };
+}
+
+// Qual série viria a seguir, ignorando o pedal. Mesma regra do gerarFilaEstatica, um passo.
+function _serieNaFila(rot, pular) {
+  var prontas = rot.intercaladas.filter(function(ic) {
+    return rot.contadores[ic.label] >= ic.freqApos && (!pular || pular.indexOf(ic.label) < 0);
+  }).sort(function(a, b) { return a.prioridade - b.prioridade; });
+  if (prontas.length) return prontas[0].label;
+
+  var f = rot.fila.filter(function(l) { return !pular || pular.indexOf(l) < 0; });
+  if (!f.length) return null;
+  // Mantém a ordem circular a partir da posição corrente, apenas ignorando os rótulos pulados.
+  for (var i = 0; i < rot.fila.length; i++) {
+    var cand = rot.fila[(rot.idxFila + i) % rot.fila.length];
+    if (f.indexOf(cand) >= 0) return cand;
+  }
+  return f[0];
+}
+
+// Há quantos dias o último treino daquela série (ou qualquer treino) aconteceu.
+function _ultimoTreino(label) {
+  var lista = (state.history || []).filter(function(h) { return !label || h.serieLabel === label; });
+  if (!lista.length) return null;
+  var mais = lista.reduce(function(a, b) {
+    return new Date(b.date || 0).getTime() > new Date(a.date || 0).getTime() ? b : a;
+  });
+  var d0 = new Date(mais.date || 0);
+  if (isNaN(d0.getTime())) return null;
+  // DIAS DE CALENDARIO, nao horas decorridas (v0.9.1.93). `(agora - t)/86400000` media o intervalo:
+  // um treino as 22h de ontem, consultado as 10h de hoje, dava 12 horas -> floor 0 -> "hoje".
+  // Errado na tela e errado no prompt, porque `_diasDesde` alimenta `diasSemPernas` e o bloco de
+  // rotacao. A regra do projeto ja existia: comparacao de DIA usa a meia-noite local dos dois
+  // lados, nunca subtracao de timestamps.
+  d0.setHours(0, 0, 0, 0);
+  var hoje0 = new Date(); hoje0.setHours(0, 0, 0, 0);
+  return { registro: mais, dias: Math.round((hoje0.getTime() - d0.getTime()) / 86400000) };
+}
+function _diasDesde(label) {
+  var u = _ultimoTreino(label);
+  return u ? u.dias : null;
+}
+
+// O próximo treino, já considerando o interruptor PEDAL HOJE.
+//
+// Pedal é prioridade máxima do usuário — ele só não pedala por impedimento fora do controle
+// dele. Então com PEDAL = SIM a série de pernas é PULADA, nunca perdida: ela continua na frente
+// e entra na primeira vez em que houver uma noite sem pedal.
+function _proximoTreino() {
+  var rot = _estadoRotacao();
+  var pernas = _serieDePernas();
+  var labelPernas = pernas ? pernas.label : null;
+  var pedal = state.pedalHoje !== false;   // padrão SIM
+
+  var alvo = _serieNaFila(rot, null);
+  var adiada = null;
+
+  if (pedal && labelPernas && alvo === labelPernas) {
+    var alternativa = _serieNaFila(rot, [labelPernas]);
+    if (alternativa) { adiada = labelPernas; alvo = alternativa; }
+  }
+
+  var serie = (state.series || []).find(function(x) { return x.label === alvo; }) || null;
+  var serieAdiada = adiada ? (state.series || []).find(function(x) { return x.label === adiada; }) : null;
+
+  return {
+    label: alvo,
+    serie: serie,
+    pedalHoje: pedal,
+    adiada: adiada,
+    serieAdiada: serieAdiada,
+    diasSemPernas: labelPernas ? _diasDesde(labelPernas) : null,
+    diasSemTreinar: _diasDesde(null),
+    ultimo: _ultimoTreino(null),
+    labelPernas: labelPernas
+  };
+}
+
+// ═══ CONTEXTO DA ROTAÇÃO PARA A IA (v0.9.1.74) ═══
+// Ate aqui o prompt nao tinha NENHUMA forma de saber que existe um interruptor de pedal. A IA
+// prescrevia pernas para um dia em que o usuario ia pedalar, e oferecia "pernas leve" como
+// meio-termo — exatamente o que o historico de tendao patelar desaconselha. Estado e restricao
+// passam a ir explicitos.
+//
+// Vazio antes da migracao: no modelo de ciclos quem manda e o plano, e um bloco de rotacao ali
+// faria o prompt afirmar duas coisas contraditorias.
+//
+// try/catch em volta de tudo: este texto entra no system prompt de TODA conversa. Uma excecao
+// aqui (serie removida, config incompleta) derrubaria o chat inteiro em vez de so perder o bloco.
+function _textoRotacao() {
+  if (!state._migracaoContinuoV1) return '';
+  try {
+    var p = _proximoTreino();
+    var rot = _estadoRotacao();
+    var nomeDe = function(label) {
+      if (!label) return '—';
+      var s = (state.series || []).find(function(x) { return x.label === label; });
+      return s && s.name ? (s.label + ' — ' + s.name) : label;
+    };
+
+    var l = [];
+    l.push('ESTADO DA ROTAÇÃO (modelo contínuo — a posição é derivada do histórico, não há plano de semanas):');
+    l.push('  Fila principal: ' + (rot.fila.length ? rot.fila.join(' → ') : '(vazia)'));
+    if (rot.intercaladas.length) {
+      l.push('  Intercaladas: ' + rot.intercaladas.map(function(ic) {
+        return ic.label + ' a cada ' + ic.freqApos + ' treino(s) da fila (contador atual: ' + (rot.contadores[ic.label] || 0) + ')';
+      }).join('; '));
+    }
+    // NAO rotular isto como "proximo treino". Quando o bloco entrega um vencedor no topo, a IA
+    // ancora nele e usa o resto do texto para justificar — foi exatamente o que aconteceu: ela
+    // repetia a saida da fila e depois procurava razoes. A fila e um insumo; quem decide e o
+    // usuario, com a avaliacao ajudando. O rotulo tem de dizer o que o numero e, nada alem.
+    l.push('  Vez pela ordem da fila: ' + nomeDe(p.label) + '   (é só a saída da fila — NÃO é recomendação nem decisão)');
+    if (p.ultimo && p.ultimo.registro) {
+      l.push('  Último registrado: ' + nomeDe(p.ultimo.registro.serieLabel) + ', há ' + p.ultimo.dias + ' dia(s)');
+    } else {
+      l.push('  Último registrado: nenhum treino no histórico');
+    }
+    var espera = (state.series || []).filter(function(x) { return x.id !== 'score'; })
+      .map(function(x) {
+        var d = _diasDesde(x.label);
+        return x.label + ' ' + (d === null ? 'nunca' : d + 'd');
+      });
+    if (espera.length) l.push('  Dias desde o último treino de cada série: ' + espera.join(' · '));
+    // CARGA DE CICLISMO RECENTE (v0.9.1.96). Faltava — e era o dado central da unica decisao que
+    // este bloco existe para informar. A IA recebia "PEDAL HOJE: NAO" e o numero de dias sem
+    // pernas, e nada sobre QUANTO foi pedalado. Sem isso ela nao tinha como distinguir uma noite
+    // livre depois de uma semana leve de uma noite livre depois de 50km em dois dias — e escrevia
+    // "nao ha dados de ciclismo recente", que era a verdade do ponto de vista dela.
+    var MSd = 86400000, z = new Date(); z.setHours(0, 0, 0, 0);
+    var janelas = [3, 7], cargas = [];
+    var rides = (state.bikeHistory || []).map(function(r) {
+      var t = new Date(r.date || 0); if (isNaN(t.getTime())) return null;
+      t.setHours(0, 0, 0, 0);
+      var km = parseFloat(String(r.distancia || '').replace(',', '.').replace(/[^\d.]/g, ''));
+      return { dia: t.getTime(), km: isNaN(km) ? 0 : km, bpm: r.bpmMedio || '' };
+    }).filter(Boolean);
+    janelas.forEach(function(j) {
+      var corte = z.getTime() - (j - 1) * MSd;
+      var sel = rides.filter(function(r) { return r.dia >= corte; });
+      var km = sel.reduce(function(a, b) { return a + b.km; }, 0);
+      cargas.push(j + 'd: ' + sel.length + ' ride(s)' + (km ? ', ' + Math.round(km) + ' km' : ''));
+    });
+    var ultRide = rides.length ? Math.max.apply(null, rides.map(function(r) { return r.dia; })) : null;
+    l.push('  CARGA DE CICLISMO RECENTE — ' + cargas.join(' | ') +
+      (ultRide !== null ? ' | último ride há ' + Math.round((z.getTime() - ultRide) / MSd) + ' dia(s)' : ' | nenhum ride registrado'));
+    l.push('  PEDAL HOJE: ' + (p.pedalHoje ? 'SIM' : 'NÃO'));
+    if (p.labelPernas) {
+      var linha = '  Série de pernas (' + nomeDe(p.labelPernas) + '): ' +
+        (p.diasSemPernas === null ? 'nunca registrada' : 'último registro há ' + p.diasSemPernas + ' dia(s)');
+      if (p.adiada) linha += ' — ADIADA AGORA pelo pedal: continua na frente da fila e entra na primeira noite sem pedal';
+      l.push(linha);
+    }
+
+    l.push('');
+    l.push('RESTRIÇÃO PEDAL × PERNAS (absoluta — decisão do usuário, não negociável):');
+    l.push('  - Pedalar é prioridade máxima. Ele só deixa de pedalar por impedimento fora do controle dele (frio, chuva).');
+    l.push('  - Em dia de pedal ele NÃO treina pernas. A série de pernas é ADIADA, nunca perdida.');
+    l.push('  - Com PEDAL HOJE = SIM, NÃO prescreva treino de pernas.');
+    l.push('  - PEDAL HOJE = NÃO abre a janela, mas NÃO basta sozinho: o que impede o treino de pernas é a carga de ciclismo ACUMULADA, que não some porque hoje não há ride. Volume recente mantém quadríceps, glúteo e posterior carregados mesmo numa noite livre.');
+    l.push('  - NÃO existe intervalo fixo de recuperação. Determine o intervalo adequado A PARTIR DOS DADOS: volume e intensidade dos rides recentes (km e BPM), quanto tempo desde o último, e sobretudo o histórico de cruzamento entre rides e treinos de pernas — como as sessões de pernas se comportaram depois de rides de cada porte. Se o histórico não bastar para concluir, diga isso em vez de recorrer a um número convencional.');
+    l.push('  - Ao decidir adiar ou não, DIGA qual intervalo você está aplicando e o que nos dados sustenta esse intervalo. Volume recente alto justifica adiar mesmo sem pedal hoje — e essa é uma razão POSITIVA, que deve vir com os números.');
+    l.push('  - Quanto maior a espera acumulada, mais forte esse argumento. "Nenhum dado contraindica adiar" NÃO é razão para adiar: é preciso uma razão POSITIVA para deixar pernas passar mais uma vez.');
+    l.push('  - A ordem da fila é um critério entre outros, não o desempate final. Uma série sem conflito (A/B/C) ser segura não justifica, sozinha, empurrar pernas por mais um ciclo.');
+    l.push('  - NÃO proponha meio-termo (pernas leve, volume reduzido, sem excêntrico): histórico de tendão patelar direito desaconselha. Ou pernas cheio, ou pedal.');
+    l.push('  - O ciclismo já carrega quadríceps, glúteo, posterior e panturrilha; A/B/C praticamente não tocam nesses grupos. O conflito é SÓ o treino de pernas — não há treino a inventar, são os que já existem.');
+    l.push('  - Se os adiamentos estiverem se acumulando (muitos dias sem pernas), APONTE isso e sugira abrir uma noite sem pedal. A decisão é do usuário; não a tome por ele.');
+    l.push('');
+    l.push('O plano de N dias está em eliminação e NÃO governa mais o que vem a seguir — quem determina o próximo treino é a rotação acima. Só trate do plano se o usuário pedir explicitamente.');
+
+    return l.join('\n');
+  } catch (e) {
+    return '';
+  }
+}
+
+function alternarPedalHoje() {
+  // É DADO, não preferência de tela: a decisão é sobre o usuário, não sobre o aparelho. Se fosse
+  // UI_FIELD, marcar NÃO no celular deixaria o desktop mostrando outro próximo treino.
+  pushUndo('Alternar pedal de hoje');
+  state.pedalHoje = state.pedalHoje === false;   // persistente, sem reset diário
+  saveState();
+  renderProximoTreino();
+  renderAgendaLinear();
+}
+
+// ═══ REGISTRO DE TREINO NO MODELO CONTÍNUO (v0.9.1.73) ═══
+// finishSerieFromAgenda só é alcançável de dentro do card de dia do PLANO. Depois da migração
+// aquele card não é mais renderizado — e o app ficava SEM NENHUMA forma de registrar treino.
+// Aqui a série vem da rotação e a data, do momento do registro (ou do datepicker, se você
+// estiver lançando algo de outro dia).
+// O catálogo de uma sessão são os exercícios da série MAIS os de Core (v0.9.2.05).
+// Core vive numa série separada (`id: 'score'`, a aba CORE) e está configurado como complementar
+// com freqApos 'todos' — ou seja, acompanha TODO treino. O catálogo enviado à IA usava só
+// `serie.exercises`, então os exercícios de core nunca chegavam ao contexto. Não era o modelo
+// cortando core: ele nunca os viu. Três rodadas de instrução mandaram incluir o que não existia.
+function _catalogoDaSessao(serie) {
+  var base = (serie && serie.exercises ? serie.exercises : []).slice();
+  var coreS = (state.series || []).find(function(x) { return x.id === 'score'; });
+  if (coreS && coreS !== serie) {
+    (coreS.exercises || []).forEach(function(e) {
+      base.push(Object.assign({}, e, { isCore: true }));
+    });
+  }
+  return base;
+}
+
+// Os exercícios DA SESSÃO. Com projeção, são os projetados, na ordem projetada, com a carga
+// ajustada — o catálogo inteiro no modal de registro contradizia o painel: você seleciona 6 e o
+// registro te oferece 16. Sem projeção, cai no catálogo, que é o comportamento anterior.
+// Devolve objetos no formato de exercício da Biblioteca para o resto do fluxo não mudar.
+function _exerciciosDaSessao(serie) {
+  var dec = _serieDecidida();
+  var tp = dec && dec.label === serie.label ? dec.treino : null;
+  if (!tp || !tp.exercicios || !tp.exercicios.length) return _catalogoDaSessao(serie);
+  var porNome = {};
+  _catalogoDaSessao(serie).forEach(function(e) { porNome[String(e.name || '').trim().toLowerCase()] = e; });
+  return tp.exercicios.map(function(x) {
+    var base = porNome[String(x.nome).trim().toLowerCase()] || {};
+    return Object.assign({}, base, {
+      name: x.nome, sets: x.sets || base.sets || '', weight: x.weight || base.weight || '',
+      rest: x.rest || base.rest || '', _status: x.status || ''
+    });
+  });
+}
+
+function abrirRegistroTreino(labelForcado) {
+  // Precedência: o que foi pedido explicitamente > a DECISÃO > a ordem da fila. Sem o degrau do
+  // meio o botão diria "REGISTRAR D" e lançaria a série da rotação — o app desobedecendo a
+  // escolha que ele mesmo pediu para o usuário confirmar.
+  var dec = _serieDecidida();
+  var p = _proximoTreino();
+  var label = labelForcado || (dec ? dec.label : null) || p.label;
+  var s = (state.series || []).find(function(x) { return x.label === label; });
+  if (!s) { toast('Série não encontrada'); return; }
+
+  var exs = _exerciciosDaSessao(s);
+  if (!exs.length) { toast('Série sem exercícios na Biblioteca'); return; }
+
+  // O que foi marcado no painel durante o treino chega marcado aqui. Quem não foi tocado entra
+  // como feito, que é o caso comum — desmarca-se o que não saiu.
+  _registroPendente = { serieId: s.id, label: s.label, nome: s.name,
+    exercicios: exs,
+    marcados: exs.map(function(e) { return e._status !== 'skipped'; }) };
+
+  _renderRegistroTreino();
+  document.getElementById('modal').classList.add('open');
+}
+
+var _registroPendente = null;
+
+function _toggleRegistroEx(i) {
+  if (!_registroPendente) return;
+  _registroPendente.marcados[i] = !_registroPendente.marcados[i];
+  _renderRegistroTreino();
+}
+
+// Carga da PROJEÇÃO quando ela existe e cobre o exercício; senão, a da Biblioteca. O registro
+// grava o que está na tela, então isto é o que entra no histórico — e é o que faz a sugestão da
+// IA valer alguma coisa em vez de ficar num painel para consulta.
+function _projExercicio(ex) {
+  var dec = _serieDecidida();
+  var tp = dec && dec.treino;
+  if (!tp || !tp.exercicios) return null;
+  var alvo = String(ex.name || '').trim().toLowerCase();
+  return tp.exercicios.find(function(x) { return String(x.nome).trim().toLowerCase() === alvo; }) || null;
+}
+function _projSets(ex) { var p = _projExercicio(ex); return (p && p.sets) || ex.sets || ''; }
+function _projWeight(ex) { var p = _projExercicio(ex); return (p && p.weight) || ex.weight || ''; }
+
+function _renderRegistroTreino() {
+  var r = _registroPendente;
+  if (!r) return;
+  var s = (state.series || []).find(function(x) { return x.id === r.serieId; });
+  if (!s) return;
+  // A MESMA lista capturada em abrirRegistroTreino. Reler `s.exercises` aqui traria o catálogo
+  // de volta e os índices de `marcados` apontariam para outros exercícios.
+  var exs = r.exercicios || s.exercises || [];
+  var feitos = r.marcados.filter(Boolean).length;
+
+  var hoje = new Date();
+  var p2 = function(n) { return (n < 10 ? '0' : '') + n; };
+  var dataStr = p2(hoje.getDate()) + '/' + p2(hoje.getMonth() + 1) + '/' + hoje.getFullYear();
+  var horaStr = p2(hoje.getHours()) + ':' + p2(hoje.getMinutes());
+
+  document.getElementById('modal-title').textContent = 'REGISTRAR ' + r.label;
+  document.getElementById('modal-body').innerHTML =
+    '<div style="font-family:DM Sans,sans-serif;font-size:12px;color:var(--muted);margin-bottom:10px">' +
+      escHtml(r.nome || '') + ' \u00b7 ' + feitos + '/' + exs.length + ' exercícios</div>' +
+    '<div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">' +
+      '<div style="flex:1;min-width:120px">' +
+        '<label style="font-family:DM Mono,monospace;font-size:9px;letter-spacing:.5px;color:var(--muted)">DATA (dd/mm/aaaa)</label>' +
+        '<div style="display:flex;gap:6px;margin-top:3px">' +
+        '<input id="reg-data" type="text" inputmode="numeric" value="' + dataStr + '" style="flex:1;min-width:0;box-sizing:border-box;' +
+        'padding:8px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);' +
+        'font-family:DM Mono,monospace;font-size:13px">' +
+        '<button type="button" onclick="toggleDatepickerInline(\'regdata\',\'reg-dp-wrap\')" title="Abrir calendário" ' +
+        'style="flex-shrink:0;padding:0 12px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);cursor:pointer;font-size:16px">&#128197;</button>' +
+        '</div>' +
+        '<div id="reg-dp-wrap" style="display:none;margin-top:6px">' + datepickerInlineHTML('regdata', 'reg-data') + '</div></div>' +
+      '<div style="width:100%;font-family:DM Sans,sans-serif;font-size:11px;color:var(--muted);margin-top:4px;order:9">Para lançar um treino de outro dia, mude a data acima.</div>' +
+      '<div style="flex:1;min-width:90px">' +
+        '<label style="font-family:DM Mono,monospace;font-size:9px;letter-spacing:.5px;color:var(--muted)">HORA</label>' +
+        '<input id="reg-hora" inputmode="numeric" oninput="_mascaraTempo(this)" value="' + horaStr + '" ' +
+        'style="display:block;width:100%;box-sizing:border-box;margin-top:3px;padding:8px;border-radius:8px;' +
+        'border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:DM Mono,monospace;font-size:13px"></div>' +
+    '</div>' +
+    '<div style="max-height:46vh;overflow-y:auto;border-top:1px solid var(--border);padding-top:8px">' +
+      exs.map(function(ex, i) {
+        var on = r.marcados[i];
+        return '<div onclick="_toggleRegistroEx(' + i + ')" style="display:flex;align-items:baseline;gap:8px;' +
+          'padding:6px 0;border-bottom:1px solid rgba(255,255,255,.04);cursor:pointer">' +
+          '<span style="color:' + (on ? 'var(--done)' : 'var(--muted)') + ';font-size:11px;width:14px;flex-shrink:0">' +
+            (on ? '\u25cf' : '\u25cb') + '</span>' +
+          '<span style="flex:1;font-size:12px;color:' + (on ? 'var(--text)' : 'var(--muted)') + '">' +
+            escHtml(ex.name || '') + '</span>' +
+          '<span style="font-family:DM Mono,monospace;font-size:11px;color:var(--accent)">' + escHtml(_projSets(ex)) + '</span>' +
+          '<span style="font-family:DM Mono,monospace;font-size:11px;color:var(--accent2);min-width:76px;text-align:right">' +
+            escHtml(_projWeight(ex)) + '</span>' +
+        '</div>';
+      }).join('') +
+    '</div>';
+
+  modalCallback = _aplicarRegistroTreino;
+  var cb = document.getElementById('modal-confirm');
+  if (cb) { cb.style.display = ''; cb.textContent = 'REGISTRAR'; cb.onclick = modalCallback; }
+}
+
+function _aplicarRegistroTreino() {
+  var r = _registroPendente;
+  if (!r) return;
+  var s = (state.series || []).find(function(x) { return x.id === r.serieId; });
+  if (!s) return;
+
+  var dm = (document.getElementById('reg-data').value || '').trim().match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (!dm) { toast('Data inválida — use dd/mm/aaaa'); return; }
+  var hm = (document.getElementById('reg-hora').value || '').trim().match(/^(\d{1,2}):(\d{2})$/);
+  if (!hm) { toast('Hora inválida — use hh:mm'); return; }
+  var hh = parseInt(hm[1], 10), mi = parseInt(hm[2], 10);
+  if (hh > 23 || mi > 59) { toast('Hora inválida'); return; }
+
+  pushUndo('Registrar treino: ' + r.label);
+
+  var exercises = (r.exercicios || s.exercises || []).map(function(ex, i) {
+    return {
+      name: ex.name, musculo: ex.musculo || '', isCore: ex.isCore || false,
+      sets: _projSets(ex), weight: _projWeight(ex),
+      rest: (function(){ var p = _projExercicio(ex); return (p && p.rest) || ex.rest || ''; })(),
+      status: r.marcados[i] ? 'done' : 'skipped'
+    };
+  });
+
+  state.history.unshift({
+    id: uid(),
+    date: new Date(parseInt(dm[3]), parseInt(dm[2]) - 1, parseInt(dm[1]), hh, mi).toISOString(),
+    serieId: s.id, serieLabel: s.label, serieName: s.name,
+    variant: 'Contínuo',
+    done: exercises.filter(function(e) { return e.status === 'done'; }).length,
+    total: exercises.length,
+    exercises: exercises
+  });
+  s.lastDone = new Date().toISOString();
+  _registroPendente = null;
+  // Registrado o treino, a decisão cumpriu seu papel: daqui em diante quem manda é o histórico.
+  if (state.proximoDecidido) delete state.proximoDecidido;
+
+  saveState();
+  closeModal();
+  renderAgendaLinear();   // o card do próximo treino avança sozinho: a rotação vem do histórico
+  renderHistory();
+  toast('Registrado \u2713');
+}
+
+// Pedal autônomo (Etapa 3): sem dia de plano, com data própria.
+function abrirRegistroPedal() {
+  var hoje = new Date();
+  var p2 = function(n) { return (n < 10 ? '0' : '') + n; };
+  var campo = function(rot, id, ph, modo) {
+    return '<div style="flex:1;min-width:88px">' +
+      '<label style="font-family:DM Mono,monospace;font-size:9px;letter-spacing:.5px;color:var(--muted)">' + rot + '</label>' +
+      '<input id="' + id + '"' + (modo ? ' inputmode="' + modo + '"' : '') +
+        (id === 'ped-tempoMov' || id === 'ped-tempoTotal' ? ' oninput="_mascaraDuracao(this)"' : '') +
+        ' placeholder="' + ph + '" style="display:block;width:100%;box-sizing:border-box;margin-top:3px;padding:8px;' +
+        'border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);' +
+        'font-family:DM Mono,monospace;font-size:13px"></div>';
+  };
+  document.getElementById('modal-title').textContent = 'REGISTRAR PEDAL';
+  document.getElementById('modal-body').innerHTML =
+    '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">' +
+      '<div style="flex:1;min-width:120px">' +
+        '<label style="font-family:DM Mono,monospace;font-size:9px;letter-spacing:.5px;color:var(--muted)">DATA (dd/mm/aaaa)</label>' +
+        '<div style="display:flex;gap:6px;margin-top:3px">' +
+        '<input id="ped-data" type="text" inputmode="numeric" value="' + p2(hoje.getDate()) + '/' + p2(hoje.getMonth()+1) + '/' + hoje.getFullYear() + '" ' +
+        'style="flex:1;min-width:0;box-sizing:border-box;padding:8px;border-radius:8px;' +
+        'border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:DM Mono,monospace;font-size:13px">' +
+        '<button type="button" onclick="toggleDatepickerInline(\'peddata\',\'ped-dp-wrap\')" title="Abrir calendário" ' +
+        'style="flex-shrink:0;padding:0 12px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);cursor:pointer;font-size:16px">&#128197;</button>' +
+        '</div>' +
+        '<div id="ped-dp-wrap" style="display:none;margin-top:6px">' + datepickerInlineHTML('peddata', 'ped-data') + '</div></div>' +
+      '<div style="width:100%;font-family:DM Sans,sans-serif;font-size:11px;color:var(--muted);margin-top:4px">Para lançar um pedal de outro dia, mude a data acima.</div>' +
+      '<div style="flex:1;min-width:90px">' +
+        '<label style="font-family:DM Mono,monospace;font-size:9px;letter-spacing:.5px;color:var(--muted)">HORA</label>' +
+        '<input id="ped-hora" inputmode="numeric" oninput="_mascaraTempo(this)" value="' + p2(hoje.getHours()) + ':' + p2(hoje.getMinutes()) + '" ' +
+        'style="display:block;width:100%;box-sizing:border-box;margin-top:3px;padding:8px;border-radius:8px;' +
+        'border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:DM Mono,monospace;font-size:13px"></div>' +
+    '</div>' +
+    '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">' +
+      campo('KM', 'ped-distancia', 'km', 'decimal') +
+      campo('T. MOVIMENTO', 'ped-tempoMov', 'h:mm:ss', 'numeric') +
+      campo('T. TOTAL', 'ped-tempoTotal', 'h:mm:ss', 'numeric') +
+    '</div>' +
+    '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">' +
+      campo('VEL. MÉD.', 'ped-velocidade', 'km/h', 'decimal') +
+      campo('ELEV. (m)', 'ped-elevacao', 'm', 'numeric') +
+      campo('KCAL', 'ped-kcal', 'kcal', 'numeric') +
+      campo('BPM MÉD.', 'ped-bpmMedio', 'bpm', 'numeric') +
+    '</div>' +
+    '<div style="display:flex;gap:8px;flex-wrap:wrap">' +
+      campo('FOCO', 'ped-foco', 'Z2, Z4…', null) +
+      campo('PERCURSO', 'ped-percurso', 'percurso', null) +
+    '</div>';
+  modalCallback = _aplicarRegistroPedal;
+  var cb = document.getElementById('modal-confirm');
+  if (cb) { cb.style.display = ''; cb.textContent = 'REGISTRAR'; cb.onclick = modalCallback; }
+  document.getElementById('modal').classList.add('open');
+}
+
+function _aplicarRegistroPedal() {
+  var dm = (document.getElementById('ped-data').value || '').trim().match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (!dm) { toast('Data inválida — use dd/mm/aaaa'); return; }
+  var hm = (document.getElementById('ped-hora').value || '').trim().match(/^(\d{1,2}):(\d{2})$/);
+  if (!hm) { toast('Hora inválida — use hh:mm'); return; }
+  var hh = parseInt(hm[1], 10), mi = parseInt(hm[2], 10);
+  if (hh > 23 || mi > 59) { toast('Hora inválida'); return; }
+
+  var v = function(id, re) {
+    var el = document.getElementById(id);
+    var val = (el ? el.value : '').trim();
+    return re ? val.replace(re, '') : val;
+  };
+
+  pushUndo('Registrar pedal');
+  if (!state.bikeHistory) state.bikeHistory = [];
+  state.bikeHistory.unshift({
+    id: uid(), type: 'bike',
+    date: new Date(parseInt(dm[3]), parseInt(dm[2]) - 1, parseInt(dm[1]), hh, mi).toISOString(),
+    foco: v('ped-foco') || 'Pedal',
+    distancia: v('ped-distancia', /\s*km\s*$/i),
+    tempoMov: _normalizaDuracao(v('ped-tempoMov')),
+    tempoTotal: _normalizaDuracao(v('ped-tempoTotal')),
+    velocidade: v('ped-velocidade', /\s*km\/?h\s*$/i),
+    elevacao: v('ped-elevacao', /\s*m\s*$/i),
+    kcal: v('ped-kcal', /\s*kcal\s*$/i),
+    bpmMedio: v('ped-bpmMedio', /\s*bpm\s*$/i),
+    percurso: v('ped-percurso')
+  });
+
+  saveState();
+  closeModal();
+  renderAgendaLinear();
+  renderHistory();
+  toast('Pedal registrado \u2713');
+}
+
+// ═══ AJUSTE DA TELA AO MODELO EM VIGOR (v0.9.1.78 → .84) ═══
+// Ponto unico onde a interface se adapta ao valor de `_migracaoContinuoV1`. Espalhar essas
+// decisoes por varios lugares foi o que produziu a aba PLANO vazia com o chat pendurado na
+// agenda: cada trecho sabia ir, nenhum sabia voltar.
+// A aba PLANO era casa de duas coisas: o plano de N semanas e o chat com a IA. O plano morreu;
+// o chat nao. Entao o chat vai para onde a decisao acontece, dentro da AGENDA.
+//
+// MOVE o no com appendChild em vez de duplicar markup: um `.plano-main` clonado significaria
+// dois elementos com `id="plano-input"`, e todo `getElementById` do app passaria a escrever no
+// primeiro que o DOM encontrasse — o invisivel, se a ordem virasse.
+//
+// Move o CONTAINER, nao so as mensagens: dentro dele estao tambem a linha de acoes e o campo de
+// digitar. Mover so o `plano-chat` deixaria o input para tras.
+//
+// VAI E VOLTA (v0.9.1.79). A primeira versao so sabia ir. Importar um backup anterior a migracao
+// apaga `_migracaoContinuoV1` — o app volta legitimamente ao modelo de ciclos, a aba PLANO
+// reaparece no render() e encontrava a propria casa vazia, com o chat pendurado embaixo da
+// agenda. Uma funcao que muda a tela conforme uma flag precisa saber desfazer quando a flag
+// muda de valor, e a flag e DADO: qualquer importacao ou sincronizacao pode altera-la.
+//
+// Idempotente nos dois sentidos: comparar o pai atual com o desejado antes de mexer.
+function _ajustarTelaAoModelo() {
+  var main = document.getElementById('plano-main');
+  if (!main) return;
+  var agenda = document.getElementById('view-agenda');
+  var layout = document.querySelector('#view-ia .plano-layout');
+  var sidebar = document.querySelector('#view-ia .plano-sidebar');
+  var continuo = !!state._migracaoContinuoV1;
+
+  if (continuo) {
+    if (agenda && main.parentElement !== agenda) {
+      main.classList.add('na-agenda');
+      agenda.appendChild(main);
+    }
+  } else if (layout && main.parentElement !== layout) {
+    // De volta para o lugar de origem: ANTES da barra lateral, senao o plano atual apareceria
+    // a esquerda e o chat a direita, com o grid trocado.
+    main.classList.remove('na-agenda');
+    if (sidebar) layout.insertBefore(main, sidebar);
+    else layout.appendChild(main);
+  }
+
+  // Acoes que so fazem sentido com plano de N semanas. GERAR ORIENTACOES sai porque o card
+  // PROXIMO TREINO ja tem o botao ORIENTACAO, que e o mesmo caminho com nome honesto.
+  // `display` explicito nos dois ramos: '' devolve o valor da folha de estilo.
+  ['qa-novo-ciclo', 'qa-reorganizar', 'qa-orientacoes'].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) el.style.display = continuo ? 'none' : '';
+  });
+  var res = document.getElementById('plano-resultado');
+  if (res) { res.style.display = continuo ? 'none' : ''; if (continuo) res.innerHTML = ''; }
+  // `agenda-hoje` e o card de dia do PLANO e viaja junto dentro do .plano-main. Seu renderizador
+  // ja nao roda sem plano, mas se sobrasse conteudo de antes da migracao ele apareceria abaixo
+  // do card PROXIMO TREINO afirmando outro dia — duas telas contraditorias de novo.
+  var hoje = document.getElementById('agenda-hoje');
+  if (hoje) { hoje.style.display = continuo ? 'none' : ''; if (continuo) hoje.innerHTML = ''; }
+
+  // Itens de menu que sobrevivem sem funcao nenhuma depois da migracao: MIGRAR so abre um modal
+  // dizendo que ja foi feito, e os dois LIMPAR CHAT operam sobre `state.plano.chatInline` e
+  // retornam em silencio sem plano. Item que nao faz nada e pior que item ausente — o usuario
+  // toca, nada acontece, e nao ha como saber se falhou ou se nao havia o que limpar.
+  ['mm-migracao', 'mm-limpar-passados', 'mm-limpar-semanas'].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) el.style.display = continuo ? 'none' : '';
+  });
+}
+
+// ═══ DECISÃO DO PRÓXIMO TREINO (v0.9.1.91) ═══
+// A rotacao sabe de quem e a vez pela ORDEM. Ela nao sabe nada de fadiga — e pedalar forte a
+// semana inteira carrega quadriceps, gluteo e posterior mesmo numa noite sem bike. Decidir so
+// pela ordem e decidir com metade da informacao, e o card afirmava o resultado como fato.
+//
+// Agora a rotacao PROPOE e o usuario DECIDE. Enquanto nao decidir, o proximo treino fica EM
+// ABERTO — estado honesto, em vez de uma afirmacao que o app nao tem como sustentar.
+//
+// A decisao vive em `state` e sincroniza: e decisao sobre TREINO, nao preferencia de tela.
+// Decidir no celular tem de valer no desktop. Sai sozinha quando o treino e registrado — a
+// partir dai quem manda e o historico de novo.
+function _serieDecidida() {
+  var d = state.proximoDecidido;
+  if (!d || !d.label) return null;
+  var s = (state.series || []).find(function(x) { return x.label === d.label; });
+  return s ? d : null;   // série removida do Perfil invalida a decisão
+}
+
+function _aplicarDecisaoTreino(label, motivo, origem) {
+  pushUndo('Definir próximo treino');
+  // Sem `treino`: a projeção é de UMA série. Trocar a série e manter a projeção antiga mostraria
+  // cargas de outro treino com o rótulo novo.
+  state.proximoDecidido = {
+    label: label,
+    motivo: motivo || '',
+    origem: origem || 'usuario',
+    em: new Date().toISOString()
+  };
+  saveState();
+  closeModal();
+  renderAgendaLinear();
+  toast('Próximo treino: ' + label);
+}
+
+function limparDecisaoTreino() {
+  if (!state.proximoDecidido) return;
+  pushUndo('Reabrir próximo treino');
+  delete state.proximoDecidido;
+  saveState();
+  renderAgendaLinear();
+}
+
+// Escolha manual — o caminho de "quero treinar pernas mesmo sabendo que estão fadigadas".
+// Existe independente da avaliação: forçar não pode depender de pedir opinião antes.
+function abrirEscolhaSerie() {
+  _sugestaoPendente = null;   // escolher outra abandona a sugestão; não deve sobreviver ao modal
+  var series = (state.series || []).filter(function(x) { return x.id !== 'score'; });
+  if (!series.length) { toast('Nenhuma série configurada'); return; }
+  var rot = null;
+  try { rot = _proximoTreino().label; } catch (e) {}
+
+  document.getElementById('modal-title').textContent = 'ESCOLHER PRÓXIMO TREINO';
+  document.getElementById('modal-body').innerHTML =
+    '<div style="display:flex;flex-direction:column;gap:6px">' +
+    series.map(function(x) {
+      var daVez = x.label === rot;
+      return '<button onclick="_aplicarDecisaoTreino(\'' + x.label + '\',\'\',\'usuario\')" ' +
+        'style="display:flex;align-items:center;gap:8px;text-align:left;padding:10px 12px;border-radius:8px;' +
+        'border:1px solid ' + (daVez ? 'var(--accent)' : 'var(--border)') + ';background:var(--surface2);' +
+        'color:var(--text);cursor:pointer;font-family:DM Sans,sans-serif;font-size:13px">' +
+        '<span style="font-family:DM Mono,monospace;font-size:12px;color:var(--accent);width:18px">' + escHtml(x.label) + '</span>' +
+        '<span style="flex:1">' + escHtml(x.name || '') + '</span>' +
+        (daVez ? '<span style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted)">É A VEZ PELA ORDEM</span>' : '') +
+        '</button>';
+    }).join('') + '</div>';
+  var cb = document.getElementById('modal-confirm');
+  if (cb) cb.style.display = 'none';
+  modalCallback = null;
+  document.getElementById('modal').classList.add('open');
+}
+
+// Avaliação pela IA. Pede UM json e nada mais; o motivo aparece na confirmação, para a escolha
+// ser informada em vez de obedecida.
+async function avaliarProximoTreino() {
+  var series = (state.series || []).filter(function(x) { return x.id !== 'score'; });
+  if (!series.length) { toast('Nenhuma série configurada'); return; }
+
+  var rot = '';
+  try { var p = _proximoTreino(); rot = p.label || ''; } catch (e) {}
+
+  var ctx = _contextoTreino();
+
+  var msg = 'Avalie qual deve ser o PRÓXIMO TREINO e responda SOMENTE com este JSON, sem markdown:\n' +
+    '{"proximoTreino":{"serie":"X","motivo":"uma ou duas frases"}}\n\n' +
+    'Séries possíveis: ' + series.map(function(x) { return x.label + ' (' + (x.name || '') + ')'; }).join(', ') + '.\n' +
+    (rot ? 'Pela ordem da fila, a vez é da ' + rot + ' — mas a ordem é apenas um dos critérios.\n' : '') +
+    'Considere: fadiga acumulada de ciclismo (volume, BPM e proximidade dos rides), há quantos dias ' +
+    'cada série não acontece, a cadência de treino e as restrições do perfil. ' +
+    'Se o ciclismo recente tiver carregado as pernas, é legítimo sugerir outra série mesmo sendo a vez delas — ' +
+    'e é legítimo sugerir pernas mesmo com pedal previsto, se a espera já estiver longa demais. ' +
+    'O motivo deve citar os números que sustentam a escolha.' +
+    (ctx ? '\n\n' + ctx : '');
+
+  toast('Avaliando…');
+  try {
+    var resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': getApiKey(),
+                 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+      body: JSON.stringify({ model: 'claude-sonnet-4-5', max_tokens: 400,
+                             system: getPLANO_SYSTEM(), messages: [{ role: 'user', content: msg }] })
+    });
+    var data = await resp.json();
+    var txt = (data.content && data.content[0] && data.content[0].text) || '';
+    var lim = txt.replace(/```json|```/g, '').trim();
+    var obj = null;
+    try { obj = JSON.parse(lim); } catch (e) {
+      var m = lim.match(/\{[\s\S]*\}/);
+      if (m) { try { obj = JSON.parse(m[0]); } catch (e2) {} }
+    }
+    var pt = obj && obj.proximoTreino;
+    if (!pt || !pt.serie) { toast('Não consegui interpretar a avaliação'); return; }
+    var alvo = series.find(function(x) { return x.label === String(pt.serie).toUpperCase(); });
+    if (!alvo) { toast('Série sugerida não existe: ' + pt.serie); return; }
+    _confirmarSugestao(alvo, pt.motivo || '');
+  } catch (e) {
+    toast('Erro ao avaliar: ' + (e && e.message ? e.message : 'desconhecido'));
+  }
+}
+
+// A sugestao viaja por VARIAVEL, nunca por atributo HTML (v0.9.1.99).
+// O botao APLICAR era montado com JSON.stringify(motivo) dentro de onclick="...". JSON.stringify
+// devolve o texto ENTRE ASPAS DUPLAS, e o atributo tambem e delimitado por aspas duplas: a
+// primeira aspa do motivo fechava o atributo, o resto virava lixo de HTML e o handler ficava
+// cortado no meio — "Unexpected end of input". Quanto melhor escrita a justificativa, mais certo
+// o erro. Escapar melhor seria remendo: texto livre nao deve trafegar por atributo.
+var _sugestaoPendente = null;
+
+function _aplicarSugestaoPendente() {
+  if (!_sugestaoPendente) { toast('Sugestão expirada — avalie de novo'); return; }
+  _aplicarDecisaoTreino(_sugestaoPendente.label, _sugestaoPendente.motivo, 'ia');
+  _sugestaoPendente = null;
+}
+
+function _confirmarSugestao(serie, motivo) {
+  _sugestaoPendente = { label: serie.label, motivo: motivo || '' };
+  document.getElementById('modal-title').textContent = 'SUGESTÃO DA IA';
+  document.getElementById('modal-body').innerHTML =
+    '<div style="border:1px solid var(--accent);border-radius:10px;padding:12px;margin-bottom:12px">' +
+      '<div style="font-family:DM Mono,monospace;font-size:9px;letter-spacing:2px;color:var(--muted);margin-bottom:6px">SUGERIDO</div>' +
+      '<div style="font-family:Bebas Neue,sans-serif;font-size:22px;letter-spacing:1px;color:var(--accent)">' +
+        escHtml(serie.label + ' — ' + (serie.name || '')) + '</div>' +
+      (motivo ? '<div style="font-family:DM Sans,sans-serif;font-size:12px;color:var(--text);margin-top:8px;line-height:1.45">' +
+        escHtml(motivo) + '</div>' : '') +
+    '</div>' +
+    '<div style="display:flex;gap:8px;flex-wrap:wrap">' +
+      '<button onclick="_aplicarSugestaoPendente()" ' +
+        'style="flex:1;min-width:130px;font-family:DM Mono,monospace;font-size:11px;padding:9px;border-radius:8px;' +
+        'border:1px solid var(--done);background:transparent;color:var(--done);cursor:pointer">\u2713 APLICAR</button>' +
+      '<button onclick="abrirEscolhaSerie()" ' +
+        'style="flex:1;min-width:130px;font-family:DM Mono,monospace;font-size:11px;padding:9px;border-radius:8px;' +
+        'border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer">ESCOLHER OUTRA</button>' +
+    '</div>';
+  var cb = document.getElementById('modal-confirm');
+  if (cb) cb.style.display = 'none';
+  modalCallback = null;
+  document.getElementById('modal').classList.add('open');
+}
+
+// ═══ PAINEL DA PROJEÇÃO — EDITÁVEL (v0.9.2.02) ═══
+// A primeira versao era lista de leitura, e isso perdeu o que o card de dia do plano fazia:
+// reordenar, trocar carga, tirar exercicio, pedir alteracao por conversa. Projecao que nao se
+// edita obriga a aceitar tudo ou refazer tudo.
+//
+// Edita `state.proximoDecidido.treino` direto — e a fonte que o registro le, entao o que voce
+// ajusta aqui e exatamente o que vai para o historico. Sem copia intermediaria que possa divergir.
+function _projMutar(fn) {
+  var dec = _serieDecidida();
+  if (!dec || !dec.treino) return;
+  pushUndo('Ajustar treino projetado');
+  fn(dec.treino);
+  saveState();
+  renderAgendaLinear();
+}
+function _projEditarCampo(i, campo, valor) {
+  // Sem re-render: o input esta em foco e redesenhar tiraria o cursor no meio da digitacao.
+  var dec = _serieDecidida();
+  if (!dec || !dec.treino || !dec.treino.exercicios[i]) return;
+  dec.treino.exercicios[i][campo] = valor;
+  saveState();
+}
+function _projMover(i, dir) {
+  _projMutar(function(tp) {
+    var j = i + dir;
+    if (j < 0 || j >= tp.exercicios.length) return;
+    var tmp = tp.exercicios[i]; tp.exercicios[i] = tp.exercicios[j]; tp.exercicios[j] = tmp;
+  });
+}
+function _projRemover(i) {
+  _projMutar(function(tp) { tp.exercicios.splice(i, 1); });
+}
+// Marcar DURANTE o treino, não só no fim. O card de dia do plano fazia isso e era o uso real:
+// abre no celular, faz, marca. Ciclo: pendente -> feito -> pulado -> pendente.
+function _projStatus(i) {
+  _projMutar(function(tp) {
+    var x = tp.exercicios[i];
+    if (!x) return;
+    x.status = x.status === 'done' ? 'skipped' : (x.status === 'skipped' ? '' : 'done');
+  });
+}
+function _projAdicionar(nome) {
+  if (!nome) return;
+  var dec = _serieDecidida();
+  var serie = dec ? (state.series || []).find(function(x) { return x.label === dec.label; }) : null;
+  var ex = serie && _catalogoDaSessao(serie).find(function(e) { return e.name === nome; });
+  if (!ex) return;
+  _projMutar(function(tp) {
+    tp.exercicios.push({ nome: ex.name, sets: ex.sets || '', weight: ex.weight || '',
+                         rest: ex.rest || '', obs: '' });
+  });
+}
+
+function _painelProjecao(dec) {
+  var tp = dec && dec.treino;
+  if (!tp || !tp.exercicios) return '';
+  var serie = (state.series || []).find(function(x) { return x.label === dec.label; });
+  var catalogo = serie ? _catalogoDaSessao(serie) : [];
+  var jaTem = {};
+  tp.exercicios.forEach(function(x) { jaTem[String(x.nome).trim().toLowerCase()] = true; });
+  var fora = catalogo.filter(function(e) { return !jaTem[String(e.name || '').trim().toLowerCase()]; });
+
+  var inp = function(i, campo, valor, largura, cor) {
+    return '<input value="' + escHtml(valor || '') + '" onchange="_projEditarCampo(' + i + ',\'' + campo + '\',this.value)" ' +
+      'style="width:' + largura + ';box-sizing:border-box;padding:3px 5px;border-radius:5px;border:1px solid var(--border);' +
+      'background:var(--surface2);color:' + cor + ';font-family:DM Mono,monospace;font-size:11px;text-align:right">';
+  };
+  var mini = function(fn, txt) {
+    return '<button onclick="' + fn + '" style="background:transparent;border:none;color:var(--muted);' +
+      'cursor:pointer;font-size:12px;padding:0 3px;line-height:1">' + txt + '</button>';
+  };
+
+  var linhas = tp.exercicios.map(function(x, i) {
+    var cor = x.status === 'done' ? 'var(--done)' : x.status === 'skipped' ? 'var(--danger)' : 'var(--muted)';
+    var ponto = x.status === 'done' ? '\u25cf' : x.status === 'skipped' ? '\u2715' : '\u25cb';
+    return '<div style="display:flex;align-items:center;gap:5px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.04)">' +
+      '<button onclick="_projStatus(' + i + ')" title="Marcar" style="background:transparent;border:none;' +
+        'color:' + cor + ';cursor:pointer;font-size:13px;padding:0 2px;flex-shrink:0">' + ponto + '</button>' +
+      '<span style="display:flex;flex-direction:column;flex-shrink:0">' +
+        mini('_projMover(' + i + ',-1)', '\u25b4') + mini('_projMover(' + i + ',1)', '\u25be') +
+      '</span>' +
+      '<span style="flex:1;min-width:80px;font-size:12px;color:' + (x.status === 'skipped' ? 'var(--muted)' : 'var(--text)') + '">' + escHtml(x.nome) +
+        (x.obs ? '<br><span style="font-size:10px;color:var(--muted)">' + escHtml(x.obs) + '</span>' : '') + '</span>' +
+      inp(i, 'sets', x.sets, '54px', 'var(--accent)') +
+      inp(i, 'weight', x.weight, '74px', 'var(--accent2)') +
+      inp(i, 'rest', x.rest, '50px', 'var(--muted)') +
+      mini('_projRemover(' + i + ')', '\u2715') +
+    '</div>';
+  }).join('');
+
+  var addSel = fora.length
+    ? '<select onchange="_projAdicionar(this.value);this.value=\'\'" ' +
+      'style="width:100%;margin-top:8px;padding:6px;border-radius:6px;border:1px solid var(--border);' +
+      'background:var(--surface2);color:var(--muted);font-family:DM Mono,monospace;font-size:11px">' +
+      '<option value="">+ ACRESCENTAR DO CATÁLOGO (' + fora.length + ')</option>' +
+      fora.map(function(e) {
+        return '<option value="' + escHtml(e.name) + '">' + escHtml(e.name) +
+               (e.isCore ? ' [core]' : '') + '</option>';
+      }).join('') + '</select>'
+    : '';
+
+  var chat =
+    '<div style="display:flex;gap:6px;margin-top:8px">' +
+      '<input id="proj-chat" placeholder="Ex: tire o crucifixo e ponha supino inclinado" ' +
+        'onkeydown="if(event.key===\'Enter\'){event.preventDefault();ajustarProjecaoChat();}" ' +
+        'style="flex:1;min-width:0;padding:7px;border-radius:6px;border:1px solid var(--border);' +
+        'background:var(--surface2);color:var(--text);font-family:DM Sans,sans-serif;font-size:12px">' +
+      '<button onclick="ajustarProjecaoChat()" style="flex-shrink:0;padding:0 12px;border-radius:6px;' +
+        'border:1px solid var(--accent);background:transparent;color:var(--accent);cursor:pointer">\u2191</button>' +
+    '</div>';
+
+  return '<div id="treino-projetado" style="padding:0 16px 12px">' +
+    '<div style="padding-top:8px;border-top:1px solid var(--border)">' +
+      (tp.observacoes ? '<div style="font-family:DM Sans,sans-serif;font-size:12px;color:var(--text);' +
+        'line-height:1.45;margin-bottom:8px">' + escHtml(tp.observacoes) + '</div>' : '') +
+      linhas + addSel + chat +
+    '</div></div>';
+}
+
+// Ajuste por conversa. Devolve a projecao INTEIRA em vez de acoes de diff: o modelo ja recebe a
+// lista atual, e reescrever tudo evita o caso em que uma acao "substituir" nao encontra o alvo e
+// falha em silencio.
+async function ajustarProjecaoChat() {
+  var campo = document.getElementById('proj-chat');
+  var pedido = campo ? campo.value.trim() : '';
+  if (!pedido) return;
+  var dec = _serieDecidida();
+  if (!dec || !dec.treino) { toast('Nenhuma projeção para ajustar'); return; }
+  var serie = (state.series || []).find(function(x) { return x.label === dec.label; });
+  if (!serie) return;
+
+  var atual = dec.treino.exercicios.map(function(x, i) {
+    return '  ' + (i + 1) + '. ' + x.nome + ' | ' + (x.sets || '') + ' | ' + (x.weight || '') +
+           (x.rest ? ' | ' + x.rest : '');
+  }).join('\n');
+  var catalogo = _catalogoDaSessao(serie).map(function(e) {
+    return '  - ' + e.name + (e.isCore ? ' [core]' : '');
+  }).join('\n');
+
+  campo.value = '';
+  campo.disabled = true;
+  toast('Ajustando…');
+  try {
+    var msg = 'Treino projetado de ' + dec.label + ' — ' + (serie.name || '') + ', na ordem de execução:\n' +
+      atual + '\n\nCatálogo completo da série (só estes nomes existem):\n' + catalogo + '\n\n' +
+      'Pedido do usuário: ' + pedido + '\n\n' +
+      'Aplique o pedido e devolva a projeção INTEIRA já ajustada, SOMENTE neste JSON, sem markdown:\n' +
+      '{"treinoProjetado":{"foco":"...","observacoes":"...","exercicios":[{"nome":"...","sets":"3x8","weight":"22kg","rest":"90s","obs":""}]}}\n' +
+      'Use apenas nomes do catálogo, idênticos. Mantenha o que o usuário não pediu para mudar.';
+    var resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': getApiKey(),
+                 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+      body: JSON.stringify({ model: 'claude-sonnet-4-5', max_tokens: 1500,
+                             system: getPLANO_SYSTEM(), messages: [{ role: 'user', content: msg }] })
+    });
+    var data = await resp.json();
+    var txt = (data.content && data.content[0] && data.content[0].text) || '';
+    var lim = txt.replace(/```json|```/g, '').trim();
+    var obj = null;
+    try { obj = JSON.parse(lim); } catch (e) {
+      var m = lim.match(/\{[\s\S]*\}/);
+      if (m) { try { obj = JSON.parse(m[0]); } catch (e2) {} }
+    }
+    var np = obj && obj.treinoProjetado;
+    var porNome = {};
+    _catalogoDaSessao(serie).forEach(function(e) { porNome[String(e.name || '').trim().toLowerCase()] = true; });
+    var itens = (np && np.exercicios ? np.exercicios : []).filter(function(x) {
+      return x && x.nome && porNome[String(x.nome).trim().toLowerCase()];
+    }).map(function(x) {
+      return { nome: String(x.nome).trim(), sets: x.sets || '', weight: x.weight || '',
+               rest: x.rest || '', obs: x.obs || '' };
+    });
+    if (!itens.length) { toast('Não consegui aplicar o ajuste'); return; }
+    _projMutar(function(tp) {
+      tp.exercicios = itens;
+      if (np.foco) tp.foco = np.foco;
+      if (np.observacoes) tp.observacoes = np.observacoes;
+    });
+    toast('Ajustado \u2713');
+  } catch (e) {
+    toast('Erro: ' + (e && e.message ? e.message : 'desconhecido'));
+  } finally {
+    var c = document.getElementById('proj-chat');
+    if (c) c.disabled = false;
+  }
+}
+
+function renderProximoTreino() {
+  var el = document.getElementById('proximo-treino');
+  if (!el) return;
+  if (!state._migracaoContinuoV1) { el.innerHTML = ''; return; }   // modelo antigo intacto
+
+  var p = _proximoTreino();
+  if (!p.serie) {
+    el.innerHTML = '<div style="padding:14px;border:1px dashed var(--border);border-radius:12px;' +
+      'font-family:DM Mono,monospace;font-size:11px;color:var(--muted)">' +
+      'Configure a fila de séries no Perfil para o app indicar o próximo treino.</div>';
+    return;
+  }
+
+  var btn = function(lig, txt) {
+    return '<button onclick="alternarPedalHoje()" style="font-family:DM Mono,monospace;font-size:10px;' +
+      'letter-spacing:1px;padding:4px 12px;border-radius:8px;cursor:pointer;border:1px solid ' +
+      (lig ? 'var(--accent)' : 'var(--border)') + ';color:' + (lig ? 'var(--accent)' : 'var(--muted)') +
+      ';background:' + (lig ? 'rgba(232,255,60,.07)' : 'transparent') + '">' + txt + '</button>';
+  };
+
+  var dec = _serieDecidida();
+  var serieDec = dec ? (state.series || []).find(function(x) { return x.label === dec.label; }) : null;
+
+  // Volume de pedal recente: o dado que faltava na tela. O app nao conclui nada com ele — quem
+  // decide precisa ve-lo, e ninguem lembra de cor quantos quilometros fez na semana.
+  var MS = 86400000, zero = new Date(); zero.setHours(0, 0, 0, 0);
+  var corte = zero.getTime() - 7 * MS, nRides = 0, kmSemana = 0;
+  (state.bikeHistory || []).forEach(function(r) {
+    var t = new Date(r.date || 0).getTime();
+    if (isNaN(t) || t < corte) return;
+    nRides++;
+    var km = parseFloat(String(r.distancia || '').replace(',', '.').replace(/[^\d.]/g, ''));
+    if (!isNaN(km)) kmSemana += km;
+  });
+  var cargaPedal = nRides
+    ? nRides + (nRides > 1 ? ' pedais' : ' pedal') + (kmSemana ? ' \u00b7 ' + Math.round(kmSemana) + ' km' : '') + ' em 7 dias'
+    : '';
+
+  var linha = function(cor, txt) {
+    return '<span style="font-family:DM Mono,monospace;font-size:10px;color:' + cor + '">' + txt + '</span>';
+  };
+  var acao = function(fn, txt, cor) {
+    return '<button class="agenda-action-btn" style="flex:1;min-width:132px' +
+      (cor ? ';border-color:' + cor + ';color:' + cor : '') + '" onclick="' + fn + '">' + txt + '</button>';
+  };
+
+  var rodape = '', botoes = '', titulo = '';
+
+  if (dec && serieDec) {
+    titulo = '<span class="agenda-dia-serie">' + escHtml(dec.label + ' \u2014 ' + (serieDec.name || '')) + '</span>';
+    rodape =
+      (dec.origem === 'ia' && dec.motivo
+        ? linha('var(--muted)', '\u2726 ' + escHtml(dec.motivo))
+        : linha('var(--muted)', dec.origem === 'ia' ? 'Sugerido pela avaliação.' : 'Escolhido por você.')) +
+      (cargaPedal ? linha('var(--bike-chuva)', '\ud83d\udeb2 ' + escHtml(cargaPedal)) : '');
+    var tp = dec.treino;
+    if (tp) rodape += linha('var(--accent)', '\u25b8 ' + escHtml(tp.foco || 'Treino projetado'));
+    botoes =
+      acao('abrirRegistroTreino()', '\u2b24 REGISTRAR ' + escHtml(dec.label)) +
+      (tp ? acao('projetarTreino()', '\u21ba REPROJETAR', 'var(--accent)')
+          : acao('projetarTreino()', '\u2726 PROJETAR TREINO', 'var(--accent)')) +
+      acao('limparDecisaoTreino()', '\u21ba REABRIR', 'var(--muted)');
+  } else {
+    // EM ABERTO. A ordem aparece como informacao, nunca como veredito.
+    titulo = '<span class="agenda-dia-serie" style="color:var(--muted)">EM ABERTO</span>';
+    rodape =
+      linha('var(--muted)', 'Pela ordem da fila, a vez seria de ' + escHtml(p.label || '\u2014') + '.') +
+      (cargaPedal ? linha('var(--bike-chuva)', '\ud83d\udeb2 ' + escHtml(cargaPedal)) : '') +
+      (p.diasSemPernas !== null && p.labelPernas
+        ? linha('var(--partial)', escHtml(p.labelPernas) + ' h\u00e1 ' + p.diasSemPernas + ' dia' + (p.diasSemPernas === 1 ? '' : 's')) : '');
+    botoes =
+      acao('avaliarProximoTreino()', '\u2726 AVALIAR', 'var(--accent)') +
+      acao('abrirEscolhaSerie()', 'ESCOLHER S\u00c9RIE') +
+      acao('abrirRegistroPedal()', '\ud83d\udeb2 REGISTRAR PEDAL', 'var(--bike-chuva)');
+  }
+
+  rodape += (p.ultimo
+    ? linha('var(--muted)', '\u00daltimo registrado: ' + escHtml(p.ultimo.registro.serieLabel || '?') +
+        (p.ultimo.registro.serieName ? ' \u2014 ' + escHtml(p.ultimo.registro.serieName) : '') +
+        ', ' + (p.ultimo.dias === 0 ? 'hoje' : 'h\u00e1 ' + p.ultimo.dias + ' dia' + (p.ultimo.dias === 1 ? '' : 's')))
+    : linha('var(--muted)', 'Nenhum treino registrado ainda.'));
+
+  el.innerHTML =
+    '<div class="agenda-dia hoje" style="margin-bottom:10px">' +
+      '<div class="agenda-dia-head" style="cursor:default;flex-wrap:wrap">' +
+        '<span class="agenda-dia-label" style="color:var(--accent)">PR\u00d3XIMO' +
+          '<br><span style="font-size:9px;font-family:DM Mono,monospace;color:var(--muted);letter-spacing:.5px">TREINO</span>' +
+        '</span>' +
+        titulo +
+        '<span style="display:flex;align-items:center;gap:6px;flex-shrink:0">' +
+          '<span style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted);letter-spacing:.5px">PEDAL</span>' +
+          btn(p.pedalHoje, p.pedalHoje ? 'SIM' : 'N\u00c3O') +
+        '</span>' +
+      '</div>' +
+      '<div style="padding:0 16px 12px;display:flex;flex-direction:column;gap:3px">' + rodape + '</div>' +
+      _painelProjecao(dec) +
+      '<div style="padding:0 16px 14px;display:flex;gap:8px;flex-wrap:wrap">' + botoes + '</div>' +
+    '</div>';
+}
+
+
+function _contarHistorico() {
+  var h = (state.history || []).length, b = (state.bikeHistory || []).length;
+  var hc = 0, bc = 0;
+  (state.ciclos || []).forEach(function(c) {
+    hc += (c.history || []).length;
+    bc += (c.bikeHistory || []).length;
+  });
+  return { hAtual: h, bAtual: b, hCiclos: hc, bCiclos: bc,
+           hTotal: h + hc, bTotal: b + bc, nCiclos: (state.ciclos || []).length };
+}
+
+function abrirMigracaoContinuo() {
+  var c = _contarHistorico();
+  if (state._migracaoContinuoV1) {
+    openModal('MIGRAÇÃO JÁ REALIZADA', [{ label:
+      'O histórico já foi convertido para o modelo contínuo. Treinos: ' + c.hAtual +
+      ' · Rides: ' + c.bAtual + '.', key:'_', type:'hidden' }], null);
+    return;
+  }
+  if (!c.nCiclos || (!c.hCiclos && !c.bCiclos)) {
+    openModal('NADA A MIGRAR', [{ label:
+      'Não há ciclos arquivados com histórico. Treinos: ' + c.hAtual + ' · Rides: ' + c.bAtual +
+      '.', key:'_', type:'hidden' }], null);
+    return;
+  }
+  openModal('MIGRAR PARA HISTÓRICO CONTÍNUO', [{ label:
+    'Os ' + c.nCiclos + ' ciclo(s) arquivado(s) serão fundidos num histórico único.\n\n' +
+    'Treinos: ' + c.hAtual + ' atuais + ' + c.hCiclos + ' arquivados = ' + c.hTotal + '\n' +
+    'Rides: ' + c.bAtual + ' atuais + ' + c.bCiclos + ' arquivados = ' + c.bTotal + '\n\n' +
+    'Um backup JSON será baixado ANTES de qualquer alteração. Nada é gravado se a verificação ' +
+    'de integridade falhar. Os ciclos continuam existindo (nome, datas, plano) — apenas a cópia ' +
+    'do histórico sai de dentro deles.', key:'_', type:'hidden' }],
+    function() { _executarMigracaoContinuo(); });
+}
+
+function _executarMigracaoContinuo() {
+  var antes = _contarHistorico();
+
+  // 1) backup ANTES de qualquer coisa. Falhou o backup, não começa.
+  try {
+    _baixarJSON(state, 'treino-backup-pre-migracao-' + _carimboArquivo(new Date().toISOString()) + '.json');
+  } catch (e) {
+    console.warn('migracao: backup falhou', e);
+    toast('Backup falhou — migração cancelada');
+    return;
+  }
+
+  // 2) monta em MEMÓRIA. O state não é tocado aqui.
+  var novoHist = (state.history || []).slice();
+  var novoBike = (state.bikeHistory || []).slice();
+  var idsOrigem = { h: [], b: [] };
+  (state.history || []).forEach(function(x) { idsOrigem.h.push(x.id); });
+  (state.bikeHistory || []).forEach(function(x) { idsOrigem.b.push(x.id); });
+
+  (state.ciclos || []).forEach(function(c) {
+    (c.history || []).forEach(function(h) {
+      var copia = JSON.parse(JSON.stringify(h));
+      delete copia._ciclo;
+      novoHist.push(copia);
+      idsOrigem.h.push(h.id);
+    });
+    (c.bikeHistory || []).forEach(function(r) {
+      var copia = JSON.parse(JSON.stringify(r));
+      delete copia._ciclo;
+      novoBike.push(copia);
+      idsOrigem.b.push(r.id);
+    });
+  });
+
+  var porData = function(a, b) {
+    return new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime();
+  };
+  novoHist.sort(porData);
+  novoBike.sort(porData);
+
+  // 3) verificação: contagem E presença de cada id de origem.
+  var erros = [];
+  if (novoHist.length !== antes.hTotal) erros.push('treinos ' + novoHist.length + ' != ' + antes.hTotal);
+  if (novoBike.length !== antes.bTotal) erros.push('rides ' + novoBike.length + ' != ' + antes.bTotal);
+  var setH = {}; novoHist.forEach(function(x) { setH[x.id] = 1; });
+  var setB = {}; novoBike.forEach(function(x) { setB[x.id] = 1; });
+  var faltaH = idsOrigem.h.filter(function(id) { return id !== undefined && !setH[id]; });
+  var faltaB = idsOrigem.b.filter(function(id) { return id !== undefined && !setB[id]; });
+  if (faltaH.length) erros.push(faltaH.length + ' treino(s) sumiram');
+  if (faltaB.length) erros.push(faltaB.length + ' ride(s) sumiram');
+
+  if (erros.length) {
+    console.warn('migracao ABORTADA:', erros);
+    _logSync('migração abortada', erros.join('; '));
+    closeModal();
+    openModal('MIGRAÇÃO ABORTADA', [{ label:
+      'A verificação de integridade falhou e NADA foi alterado. Seus dados estão intactos e o ' +
+      'backup foi baixado.\n\n' + erros.join('\n'), key:'_', type:'hidden' }], null);
+    return;
+  }
+
+  // 4) só agora grava.
+  pushUndo('Migração para histórico contínuo');
+  state.history = novoHist;
+  state.bikeHistory = novoBike;
+  // Ciclo deixa de existir — não fica rótulo, não fica array, não fica filtro. Uma primeira
+  // versão marcava cada registro migrado com `_ciclo` chamando isso de "procedência", mas
+  // procedência de quê, se o conceito foi eliminado? Manter o rótulo era manter o modelo vivo
+  // na tela e no prompt da IA depois de ele ter sido decidido morto.
+  state.history.forEach(function(h) { delete h._ciclo; });
+  state.bikeHistory.forEach(function(r) { delete r._ciclo; });
+  delete state.ciclos;
+  state._migracaoContinuoV1 = new Date().toISOString();
+
+  saveState();
+  _logSync('migração', antes.hTotal + ' treinos, ' + antes.bTotal + ' rides');
+  closeModal();
+  // A migracao roda com a tela ja montada: o chat precisa mudar de casa AGORA, senao a aba PLANO
+  // some no render() abaixo e o chat fica numa view sem aba ate o proximo reload.
+  _ajustarTelaAoModelo();
+  render();
+  // A aba PLANO e a HISTORICO deixam de existir agora; quem estivesse numa delas precisa sair.
+  // Quem ja estava na AGENDA e redesenhado pelo render() acima.
+  if (currentTab === 'ia' || currentTab === 'history') switchTab('agenda');
+  toast('Histórico unificado \u2713');
+  openModal('MIGRAÇÃO CONCLUÍDA', [{ label:
+    'Histórico único: ' + novoHist.length + ' treinos e ' + novoBike.length + ' rides.\n\n' +
+    'Registros vindos de ciclos arquivados aparecem marcados com o nome do ciclo. O backup ' +
+    'anterior à migração foi baixado — guarde-o até confirmar que está tudo certo.',
+    key:'_', type:'hidden' }], null);
+}
+
+function _historicoCompleto() {
+  var out = (state.history || []).slice();
+  (state.ciclos || []).forEach(function(c) {
+    var nome = c.nome || ('Ciclo ' + (c.numero || '?'));
+    (c.history || []).forEach(function(h) {
+      var copia = {};
+      for (var k in h) if (Object.prototype.hasOwnProperty.call(h, k)) copia[k] = h[k];
+      copia._ciclo = nome;
+      out.push(copia);
+    });
+  });
+  return out.sort(function(a, b) {
+    return new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime();
+  });
+}
+
+function _bikeHistoricoCompleto() {
+  var out = (state.bikeHistory || []).slice();
+  (state.ciclos || []).forEach(function(c) {
+    var nome = c.nome || ('Ciclo ' + (c.numero || '?'));
+    (c.bikeHistory || []).forEach(function(r) {
+      var copia = {};
+      for (var k in r) if (Object.prototype.hasOwnProperty.call(r, k)) copia[k] = r[k];
+      copia._ciclo = nome;
+      out.push(copia);
+    });
+  });
+  return out.sort(function(a, b) {
+    return new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime();
+  });
+}
+
 function _textoHistorico(n) {
   if (isNaN(n) || n < 1) n = 20;
-  var hist = (state.history || []).slice(0, n);
+  var hist = _historicoCompleto().slice(0, n);
   if (!hist.length) return 'Sem histórico registrado ainda.';
   return 'HISTÓRICO DE TREINOS (' + hist.length + ' sessões, mais recente primeiro):\n' +
     hist.map(function(h) {
       var d = new Date(h.date).toLocaleDateString('pt-BR', {weekday:'short', day:'2-digit', month:'2-digit', year:'2-digit'});
-      var linha = d + ': Série ' + h.serieLabel + ' (' + h.done + '/' + h.total + ')';
+      // Sem marca de ciclo: no modelo continuo a sequencia E continua, e era exatamente isso
+      // que a marca contradizia.
+      var linha = d + ': Série ' + h.serieLabel + ' (' + h.done + '/' + h.total + ')' +
+                  ((!state._migracaoContinuoV1 && h._ciclo) ? ' [' + h._ciclo + ']' : '');
       if (h.exercises && h.exercises.length) {
         linha += '\n' + h.exercises.map(function(e) {
           var p = [e.name];
@@ -4058,7 +5506,7 @@ function _textoHistorico(n) {
 function _textoProgressaoCargas(maxSessoes, maxPontos) {
   maxSessoes = maxSessoes || 40;
   maxPontos = maxPontos || 6;
-  var hist = (state.history || []).slice(0, maxSessoes);
+  var hist = _historicoCompleto().slice(0, maxSessoes);
   if (!hist.length) return '';
   var porSerie = {};
   // slice().reverse(): history e unshift, entao indice 0 e o MAIS RECENTE. A leitura da
@@ -4070,6 +5518,10 @@ function _textoProgressaoCargas(maxSessoes, maxPontos) {
     h.exercises.forEach(function(e) {
       var nome = e.name || '';
       if (!nome) return;
+      // Core sai do balde da serie: agrupa-lo por serie faz um exercicio transversal parecer
+      // pertencer a A/B/C/D, e um padrao de skip dentro de uma serie parecer problema daquela
+      // serie — quando o que importa e a frequencia GLOBAL de core.
+      if (_ehCore(e)) return;
       if (!porSerie[chaveSerie][nome]) porSerie[chaveSerie][nome] = [];
       porSerie[chaveSerie][nome].push({
         peso: e.weight || '—',
@@ -4093,9 +5545,354 @@ function _textoProgressaoCargas(maxSessoes, maxPontos) {
   return 'PROGRESSÃO DE CARGA (ordem cronológica, do mais antigo ao mais recente):\n' + blocos.join('\n');
 }
 
+// Core visto como o que ele e: uma dimensao propria, medida por frequencia ao longo do tempo e
+// nao dentro de cada serie.
+//
+// Por que este bloco existe: com o core diluido no agrupamento por serie, o modelo lia "core
+// pulado nas duas ultimas sessoes C" e concluia que havia um problema de core — sem enxergar
+// que houve core concluido nas sessoes B e D do mesmo periodo. Pular core num dia especifico
+// nao e falha nenhuma desde que a frequencia global esteja de pe. A leitura por serie estava
+// estruturalmente incapaz de mostrar isso.
+function _textoCore(maxSessoes, maxPontos) {
+  maxSessoes = maxSessoes || 40;
+  maxPontos = maxPontos || 6;
+  var hist = _historicoCompleto().slice(0, maxSessoes);
+  if (!hist.length) return '';
+
+  var sessoesComCore = 0, sessoesCoreFeito = 0, ultimoFeito = null;
+  var porSerie = {};      // serie -> { feitas, prescritas }
+  var trajetoria = {};    // nome -> [pontos]
+
+  hist.slice().reverse().forEach(function(h) {
+    var cores = (h.exercises || []).filter(_ehCore);
+    if (!cores.length) return;
+    var lab = h.serieLabel || '?';
+    if (!porSerie[lab]) porSerie[lab] = { feitas: 0, prescritas: 0 };
+    porSerie[lab].prescritas++;
+    sessoesComCore++;
+    var algumFeito = cores.some(function(e) { return e.status === 'done'; });
+    if (algumFeito) {
+      sessoesCoreFeito++;
+      porSerie[lab].feitas++;
+      ultimoFeito = { data: h.date, serie: lab };
+    }
+    cores.forEach(function(e) {
+      var nome = e.name || '';
+      if (!nome) return;
+      if (!trajetoria[nome]) trajetoria[nome] = [];
+      trajetoria[nome].push({
+        peso: e.weight || '—', sets: e.sets || '',
+        pulado: e.status !== 'done', serie: lab
+      });
+    });
+  });
+
+  if (!sessoesComCore) return '';
+
+  var linhas = ['CORE (transversal às séries A/B/C/D — avalie por FREQUÊNCIA GLOBAL, nunca por série):'];
+  linhas.push('  Sessões com core prescrito: ' + sessoesComCore +
+              ' | com core realizado: ' + sessoesCoreFeito +
+              ' (' + Math.round((sessoesCoreFeito / sessoesComCore) * 100) + '%)');
+  if (ultimoFeito) {
+    var du = new Date(ultimoFeito.data);
+    var diasAtras = Math.round((Date.now() - du.getTime()) / 86400000);
+    linhas.push('  Último core realizado: ' +
+      du.toLocaleDateString('pt-BR', {weekday:'short', day:'2-digit', month:'2-digit'}) +
+      ' (na série ' + ultimoFeito.serie + ')' +
+      (diasAtras >= 0 ? ' — há ' + diasAtras + ' dia' + (diasAtras === 1 ? '' : 's') : ''));
+  }
+  var porSerieTxt = Object.keys(porSerie).sort().map(function(l) {
+    return l + ' ' + porSerie[l].feitas + '/' + porSerie[l].prescritas;
+  }).join(' · ');
+  if (porSerieTxt) {
+    linhas.push('  Distribuição por série (apenas informativo): ' + porSerieTxt);
+  }
+  // Em core a progressao costuma estar em series/tempo (4x30s -> 4x35s), nao em carga: muitos
+  // exercicios nao tem peso nenhum. Mostrar `peso` e `sets` colados produzia coisas como
+  // "3x10 3x10(pulado)". Aqui `sets` manda, e o peso so aparece quando e carga de verdade.
+  var traj = Object.keys(trajetoria).map(function(nome) {
+    var pts = trajetoria[nome].slice(-maxPontos);
+    return '    ' + nome + ': ' + pts.map(function(p) {
+      var peso = (p.peso && p.peso !== '—') ? p.peso : '';
+      var base = p.sets || peso || '—';
+      if (peso && p.sets && peso !== p.sets) base = p.sets + ' @ ' + peso;
+      return base + (p.pulado ? '(pulado)' : '');
+    }).join(' → ');
+  });
+  if (traj.length) linhas.push('  Trajetória:\n' + traj.join('\n'));
+  return linhas.join('\n');
+}
+
 // Aderencia a partir de diasStatus. Volume prescrito so faz sentido contra volume cumprido:
 // prescrever intensificacao para quem perdeu um terco dos dias e prescrever no vazio.
+// Ciclismo. O Plano nao enxergava NADA disso: _textoHistorico le apenas state.history
+// (musculacao), e bikeHistory e um array separado. Existia a tool get_bike, mas (a) o modelo
+// precisaria decidir chama-la contra a instrucao de nao pedir dados por precaucao, e (b) ela le
+// state.plano.diasBike — so o ciclo atual, nunca o historico acumulado.
+//
+// Importa porque pedal e carga: um ride longo na vespera muda o que faz sentido prescrever para
+// pernas. O BPM medio e o unico dado de carga INTERNA que existe aqui — 40km a 150bpm e outro
+// treino que 40km a 125bpm, e so o BPM distingue os dois.
+// Declara o que a leitura de fato alcancou. Sem isto nem voce nem o modelo sabem se a analise
+// cobre um ciclo ou tres: os limites sao em SESSOES, entao a profundidade em tempo depende da
+// frequencia de treino e do tamanho de cada ciclo. O modelo tambem precisa disso para nao
+// afirmar tendencia de longo prazo com base em cinco semanas.
+function _textoCobertura(nHist, nProg, nBike) {
+  var todos = _historicoCompleto();
+  var usadas = todos.slice(0, nProg);
+  if (!usadas.length) return '';
+
+  // Ciclos representados NA JANELA lida, não os que existem no app.
+  var ciclos = [];
+  usadas.forEach(function(h) {
+    var nome = h._ciclo || 'ciclo atual';
+    if (ciclos.indexOf(nome) < 0) ciclos.push(nome);
+  });
+
+  // Duas janelas, dois periodos. Declarar so o da janela grande fazia parecer que o detalhe
+  // exercicio a exercicio tambem alcancava aquele periodo. E como o limite e em SESSOES, o
+  // periodo em dias varia com a frequencia de treino: as mesmas 24 sessoes cobrem 5 semanas
+  // treinando 5x, e o dobro disso treinando 2x.
+  var _span = function(lista) {
+    var ult = lista[lista.length - 1];
+    var d0 = ult && ult.date ? new Date(ult.date) : null;
+    if (!d0 || isNaN(d0.getTime())) return '';
+    var dias = Math.round((Date.now() - d0.getTime()) / 86400000);
+    return ' desde ' + d0.toLocaleDateString('pt-BR', {day:'2-digit',month:'2-digit',year:'2-digit'}) +
+           ' (' + dias + ' dias)';
+  };
+  var detalhadas = todos.slice(0, nHist);
+  var span = _span(usadas);
+  var spanDet = _span(detalhadas);
+  var dIni = usadas[usadas.length - 1] && usadas[usadas.length - 1].date
+           ? new Date(usadas[usadas.length - 1].date) : null;
+
+  var rides = _bikeHistoricoCompleto().slice(0, nBike);
+  var linhas = ['COBERTURA DESTA ANÁLISE:'];
+  linhas.push('  Trajetória de carga: ' + usadas.length + ' sessões' + span);
+  linhas.push('  Detalhe exercício a exercício: ' + detalhadas.length + ' sessões' + spanDet);
+  if (!state._migracaoContinuoV1) {
+    linhas.push('  Ciclos abrangidos: ' + ciclos.length + ' — ' + ciclos.join(', '));
+  }
+  if (rides.length) linhas.push('  Rides lidos: ' + rides.length);
+  // Truncamento e informacao: se a janela encheu, existe historico anterior que ficou de fora.
+  if (todos.length > nProg) {
+    linhas.push('  * Existem ' + (todos.length - nProg) + ' sessões mais antigas fora desta janela — ' +
+                'não afirme tendências anteriores a ' + (dIni && !isNaN(dIni.getTime())
+                  ? dIni.toLocaleDateString('pt-BR', {day:'2-digit',month:'2-digit',year:'2-digit'})
+                  : 'esta janela') + '.');
+  }
+  return linhas.join('\n');
+}
+
+function _textoBike(maxRides, maxLista) {
+  maxRides = maxRides || 40;
+  maxLista = maxLista || 8;
+  var hist = _bikeHistoricoCompleto().slice(0, maxRides);
+  if (!hist.length) return '';
+
+  var _num = function(v) {
+    var n = parseFloat(String(v == null ? '' : v).replace(',', '.').replace(/[^\d.\-]/g, ''));
+    return isNaN(n) ? null : n;
+  };
+  var _min = function(hhmm) {   // "1:15" -> 75
+    // Aceita h:mm e h:mm:ss. Sem o segundo formato, "1:15:30" nao casava, caia no _num e virava
+    // 1 minuto — o volume de pedal enviado a IA ficava uma ordem de grandeza menor.
+    var ms = String(hhmm || '').match(/^(\d+):(\d{2}):(\d{2})$/);
+    if (ms) return parseInt(ms[1], 10) * 60 + parseInt(ms[2], 10) + (parseInt(ms[3], 10) >= 30 ? 1 : 0);
+    var m = String(hhmm || '').match(/^(\d+):(\d{2})$/);
+    if (!m) { var so = _num(hhmm); return so && so < 24 ? so * 60 : (so || null); }
+    return parseInt(m[1], 10) * 60 + parseInt(m[2], 10);
+  };
+  var _hm = function(min) {
+    if (!min) return '';
+    return Math.floor(min / 60) + 'h' + (min % 60 < 10 ? '0' : '') + (min % 60);
+  };
+
+  var agora = Date.now(), DIA = 86400000;
+  var totKm = 0, km30 = 0, min30 = 0, n30 = 0;
+  var bpms = [];
+  hist.forEach(function(r) {
+    var km = _num(r.distancia); if (km) totKm += km;
+    var t = new Date(r.date).getTime();
+    var recente = !isNaN(t) && (agora - t) <= 30 * DIA;
+    if (recente) {
+      n30++;
+      if (km) km30 += km;
+      var mm = _min(r.tempoMov); if (mm) min30 += mm;
+    }
+    var b = _num(r.bpmMedio);
+    if (b) bpms.push({ v: b, t: t, km: km });
+  });
+
+  var linhas = ['CICLISMO (carga que afeta a recuperação para musculação):'];
+  linhas.push('  Rides registrados: ' + hist.length + (totKm ? ' | Distância total: ' + Math.round(totKm) + 'km' : ''));
+  if (n30) {
+    linhas.push('  Últimos 30 dias: ' + n30 + ' ride' + (n30 > 1 ? 's' : '') +
+      (km30 ? ' · ' + Math.round(km30) + 'km' : '') +
+      (min30 ? ' · ' + _hm(min30) + ' em movimento' : ''));
+  }
+
+  if (bpms.length) {
+    // Ordem cronologica para a tendencia fazer sentido lida da esquerda para a direita.
+    var ordem = bpms.slice().sort(function(a, b) { return a.t - b.t; }).slice(-6);
+    var media = Math.round(bpms.reduce(function(a, x) { return a + x.v; }, 0) / bpms.length);
+    linhas.push('  BPM médio geral: ' + media + ' (últimos: ' +
+      ordem.map(function(x) { return Math.round(x.v); }).join(' → ') + ')');
+    linhas.push('  * BPM é a carga INTERNA do ride: distância igual com BPM maior significa ' +
+                'esforço maior e recuperação mais lenta.');
+  } else {
+    linhas.push('  BPM: ainda não registrado nos rides (monitor cardíaco recém-adotado).');
+  }
+
+  var lista = hist.slice(0, maxLista).map(function(r) {
+    var d = new Date(r.date);
+    var dt = isNaN(d.getTime()) ? '??' :
+      d.toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: '2-digit' });
+    var partes = [];
+    if (r.distancia) partes.push(r.distancia + 'km');
+    if (r.tempoMov) partes.push(r.tempoMov + ' mov.');
+    if (r.velocidade) partes.push(r.velocidade + 'km/h méd.');
+    if (r.elevacao) partes.push(r.elevacao + 'm elev.');
+    if (r.bpmMedio) partes.push(r.bpmMedio + 'bpm');
+    var extra = r.timingReal ? ' — ' + r.timingReal + ' da musculação' : '';
+    return '    ' + dt + ': ' + (partes.join(', ') || (r.foco || 'ride')) + extra;
+  });
+  if (lista.length) linhas.push('  Rides recentes (mais recente primeiro):\n' + lista.join('\n'));
+
+  // Proximidade entre ride e treino de PERNAS: e o cruzamento que muda prescricao. Um ride
+  // pesado na vespera de D (ou no mesmo dia) e a diferenca entre progredir e acumular fadiga.
+  var pernas = _historicoCompleto().filter(function(h) { return h.serieLabel === 'D'; }).slice(0, 5);
+  if (pernas.length && hist.length) {
+    var cruz = [];
+    pernas.forEach(function(h) {
+      var td = new Date(h.date).getTime();
+      if (isNaN(td)) return;
+      hist.forEach(function(r) {
+        var tr = new Date(r.date).getTime();
+        if (isNaN(tr)) return;
+        var difDias = Math.round((td - tr) / DIA);
+        if (difDias < 0 || difDias > 2) return;
+        var quando = difDias === 0 ? 'no mesmo dia' : (difDias === 1 ? 'na véspera' : 'dois dias antes');
+        cruz.push('    D em ' + new Date(h.date).toLocaleDateString('pt-BR', {day:'2-digit',month:'2-digit'}) +
+          ' — ride ' + quando + ' (' + (r.distancia ? r.distancia + 'km' : 'ride') +
+          (r.bpmMedio ? ', ' + r.bpmMedio + 'bpm' : '') + ')');
+      });
+    });
+    if (cruz.length) {
+      linhas.push('  Rides próximos a treino de PERNAS (série D):\n' + cruz.slice(0, 8).join('\n'));
+    }
+  }
+
+  return linhas.join('\n');
+}
+
+// ═══ CADÊNCIA (v0.9.1.76) — o que substitui a aderência no modelo contínuo ═══
+// `_textoAderencia` compara o executado contra um plano. Sem plano, "78% de cumprimento" nao
+// tem denominador: nao ha dia prescrito para cumprir ou perder. O que sobra e informacao REAL e
+// mais util — com que frequencia ele treina, quanto tempo fica parado, como as series se
+// distribuem. Tudo derivado das datas do historico.
+//
+// Mediana, nao media: uma unica viagem de duas semanas puxa a media e faz parecer que ele treina
+// menos do que treina. A maior lacuna vai separada, que e onde a informacao daquele buraco mora.
+//
+// Intervalos contados por DIA LOCAL (setHours(0,0,0,0)), nunca por diferenca de timestamps: dois
+// treinos em horarios diferentes do mesmo dia sao um dia so, e registro tarde da noite em UTC−3
+// cairia no dia seguinte se lido em UTC.
+function _textoCadencia(janela) {
+  if (!state._migracaoContinuoV1) return '';
+  try {
+    janela = janela || 90;
+    var MS = 86400000;
+    var hojeZero = new Date(); hojeZero.setHours(0, 0, 0, 0);
+    var corte = hojeZero.getTime() - janela * MS;
+
+    var diaZero = function(v) {
+      var dt = new Date(v);
+      if (isNaN(dt.getTime())) return null;
+      dt.setHours(0, 0, 0, 0);
+      return dt.getTime();
+    };
+    var fmt = function(ts) {
+      return new Date(ts).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+    };
+
+    var sessoes = [];
+    var porSerie = {};
+    (state.history || []).forEach(function(h) {
+      var d = diaZero(h.date);
+      if (d === null || d < corte) return;
+      sessoes.push(d);
+      var l = h.serieLabel || '?';
+      porSerie[l] = (porSerie[l] || 0) + 1;
+    });
+    if (!sessoes.length) return '';
+
+    // Um dia com dois treinos e um dia de treino, nao dois intervalos.
+    var diasUnicos = sessoes.filter(function(v, i, a) { return a.indexOf(v) === i; })
+                            .sort(function(a, b) { return a - b; });
+
+    var intervalos = [];
+    for (var i = 1; i < diasUnicos.length; i++) {
+      intervalos.push(Math.round((diasUnicos[i] - diasUnicos[i - 1]) / MS));
+    }
+
+    var mediana = null, maior = null;
+    if (intervalos.length) {
+      var ord = intervalos.slice().sort(function(a, b) { return a - b; });
+      var meio = Math.floor(ord.length / 2);
+      mediana = ord.length % 2 ? ord[meio] : Math.round((ord[meio - 1] + ord[meio]) / 2);
+      maior = ord[ord.length - 1];
+    }
+
+    var semanas = Math.max(1, janela / 7);
+    var porSemana = (sessoes.length / semanas).toFixed(1).replace('.', ',');
+
+    var ult30 = sessoes.filter(function(d) { return d >= hojeZero.getTime() - 30 * MS; }).length;
+
+    var pedais = (state.bikeHistory || []).filter(function(r) {
+      var d = diaZero(r.date);
+      return d !== null && d >= corte;
+    }).length;
+
+    var l = [];
+    l.push('CADÊNCIA DE TREINO (últimos ' + janela + ' dias — no modelo contínuo não há plano a cumprir, então não existe percentual de aderência):');
+    l.push('  Musculação: ' + sessoes.length + ' sessões (' + porSemana + '/semana) · últimos 30 dias: ' + ult30);
+    if (mediana !== null) {
+      l.push('  Intervalo entre sessões: mediana ' + mediana + ' dia(s), maior ' + maior + ' dia(s)');
+    }
+    var dist = Object.keys(porSerie).sort().map(function(k) { return k + ' ' + porSerie[k]; }).join(' · ');
+    if (dist) l.push('  Distribuição por série: ' + dist);
+
+    var ultimo = diasUnicos[diasUnicos.length - 1];
+    l.push('  Último treino: ' + fmt(ultimo) + ' (há ' + Math.round((hojeZero.getTime() - ultimo) / MS) + ' dia(s))');
+    l.push('  Pedais no mesmo período: ' + pedais);
+
+    // As lacunas com data permitem a IA perguntar o que houve, em vez de so constatar o buraco.
+    if (intervalos.length) {
+      var lacunas = [];
+      for (var j = 1; j < diasUnicos.length; j++) {
+        var gap = Math.round((diasUnicos[j] - diasUnicos[j - 1]) / MS);
+        if (gap >= 5) lacunas.push({ gap: gap, txt: gap + ' dias (' + fmt(diasUnicos[j - 1]) + ' → ' + fmt(diasUnicos[j]) + ')' });
+      }
+      if (lacunas.length) {
+        lacunas.sort(function(a, b) { return b.gap - a.gap; });
+        l.push('  Maiores paradas: ' + lacunas.slice(0, 3).map(function(x) { return x.txt; }).join('; '));
+      }
+    }
+
+    return l.join('\n');
+  } catch (e) {
+    return '';
+  }
+}
+
 function _textoAderencia() {
+  // Depois da migracao nao existe plano contra o qual aderir — quem responde e a cadencia.
+  // O desvio fica AQUI, e nao no chamador: qualquer caminho que peca "aderencia" recebe
+  // automaticamente a leitura certa para o modelo em vigor.
+  if (state._migracaoContinuoV1) return _textoCadencia(90);
+
   if (!state.plano || !state.plano.semanas) return '';
   var ds = state.plano.diasStatus || {};
   var serieDe = {};
@@ -4130,6 +5927,20 @@ function _textoAderencia() {
 }
 
 function getToolsInstrucoes() {
+  // Ferramentas que so existem no modelo de ciclos ficam de fora depois da migracao: oferecer
+  // get_plano_macro sem plano, ou get_ciclo_anterior sem ciclos, faz o modelo gastar uma rodada
+  // de API para receber "Nenhum plano ativo." — e pior, sugere que o conceito ainda existe.
+  if (state._migracaoContinuoV1) {
+    return `
+ACESSO A DADOS SOB DEMANDA:
+Você tem acesso a dados do app mas NÃO os recebe automaticamente — solicite apenas quando necessário.
+Para solicitar dados, retorne SOMENTE o JSON de tool request (nada mais na mensagem):
+- Histórico de treinos: {"tool":"get_historico","n":20} (n é o número de sessões)
+- Exercícios de uma série: {"tool":"get_serie","label":"A"}
+- Dados de ciclismo: {"tool":"get_bike"}
+O app resolverá a solicitação e enviará os dados. Então responda normalmente.
+REGRA: solicite dados apenas quando a pergunta do usuário realmente exigir. Não solicite por precaução.`;
+  }
   return `
 ACESSO A DADOS SOB DEMANDA:
 Você tem acesso a dados do app mas NÃO os recebe automaticamente — solicite apenas quando necessário.
@@ -4277,7 +6088,197 @@ function reorganizarPlanoAPartirDeHoje() {
   toast('Plano reorganizado a partir de hoje ✓');
 }
 
+// ═══ CONTEXTO DE TREINO — FONTE ÚNICA (v0.9.1.97) ═══
+// AVALIAR e ORIENTAÇÃO decidem sobre o MESMO treino e passaram a montar o contexto em lugares
+// diferentes, escritos em momentos diferentes: a avaliação recebia só o bloco de ciclismo, a
+// orientação recebia tudo, e até a janela de bike divergia (30 rides contra 120). Duas decisões
+// sobre o mesmo treino com informação diferente produzem duas verdades — e a divergência não
+// aparece na tela, só numa resposta estranha semanas depois.
+//
+// Aqui os blocos são montados UMA vez. O que pode diferir entre as duas chamadas é a TAREFA
+// ("qual série?" versus "como executá-la?"), nunca o que se sabe ao decidir.
+//
+// Janelas: histórico detalhado curto (cresce ~1500 tokens a cada 20 sessões) e agregados longos
+// (uma linha por exercício, ~330 tokens a mais dobrando a janela) — calibragem medida na Sessão 12.
+function _contextoTreino() {
+  var partes = [];
+  var põe = function(fn) {
+    try { var t = fn(); if (t) partes.push(t); } catch (e) {}
+  };
+  põe(function() { return _textoCobertura(24, 120, 120); });
+  põe(function() { return _textoHistorico(24); });
+  põe(function() { return _textoProgressaoCargas(120, 8); });
+  põe(function() { return _textoCore(120, 8); });
+  põe(function() { return _textoBike(120, 10); });
+  return partes.join('\n\n');
+}
+
+// ═══ TREINO PROJETADO (v0.9.2.00) — o passo 3 ═══
+// A orientacao respondia em TEXTO no chat porque, quando foi escrita, nao havia onde gravar o
+// resultado. Com `state.proximoDecidido` isso mudou: a projecao passa a ser DADO — foco,
+// observacoes e a lista de exercicios com carga sugerida por exercicio.
+//
+// Isso devolve a tela que morreu na migracao. Os cards de dia do plano mostravam o treino a
+// fazer; depois dela sobrou uma Biblioteca (o que existe) e um historico (o que aconteceu), e
+// nada dizendo o que fazer HOJE.
+//
+// A projecao vive DENTRO da decisao, nao ao lado: projetar sem serie decidida nao significa
+// nada, e trocar a serie tem de invalidar a projecao junto. Sai quando o treino e registrado.
+async function projetarTreino() {
+  var dec = _serieDecidida();
+  if (!dec) { toast('Defina o próximo treino primeiro'); return; }
+  var serie = (state.series || []).find(function(x) { return x.label === dec.label; });
+  if (!serie) { toast('Série não encontrada'); return; }
+  var exs = _catalogoDaSessao(serie);
+  if (!exs.length) { toast('Série sem exercícios na Biblioteca'); return; }
+
+  var lista = exs.map(function(e) {
+    return '  - ' + (e.name || '?') + ' | atual: ' + (e.sets || '?') + ' | ' + (e.weight || '?') +
+      (e.rest ? ' | descanso ' + e.rest : '') + (e.isCore ? ' | [core]' : '');
+  }).join('\n');
+
+  var msg = 'Projete o treino de ' + dec.label + ' — ' + (serie.name || '') + '.\n\n' +
+    'Exercícios desta série na Biblioteca, com as cargas atuais:\n' + lista + '\n\n' +
+    (dec.origem === 'usuario'
+      ? 'IMPORTANTE: esta série foi escolhida PELO USUÁRIO. Projete-a como pedido, sem discutir a escolha. ' +
+        'Se houver fadiga acumulada relevante, ela deve aparecer na CARGA e nas observações de execução, não como recomendação de trocar de treino.\n\n'
+      : '') +
+    'Responda SOMENTE com este JSON, sem markdown:\n' +
+    '{"treinoProjetado":{"foco":"frase curta","observacoes":"2 a 4 frases sobre intensidade e execução",' +
+    '"exercicios":[{"nome":"exatamente como está na Biblioteca","sets":"3x8","weight":"22kg","rest":"90s","obs":"opcional, curto"}]}}\n\n' +
+    'A LISTA ACIMA É O CATÁLOGO DA SÉRIE, NÃO A SESSÃO. Ela reúne tudo que existe para este grupo ' +
+    'muscular; uma sessão real usa uma PARTE. SELECIONE os exercícios desta sessão e devolva só eles, ' +
+    'NA ORDEM DE EXECUÇÃO — compostos e pesados primeiro, isolados e acessórios depois. ' +
+    'QUANTOS EXERCÍCIOS E QUANTAS SÉRIES: a decisão é SUA, e deve vir dos OBJETIVOS do perfil. ' +
+    'O histórico mostra o tamanho habitual das sessões desta série — isso é REFERÊNCIA, não regra: ' +
+    'repetir o volume anterior por inércia não progride nem descarrega. Decida EXPLICITAMENTE se ' +
+    'este treino REDUZ, MANTÉM ou AUMENTA o volume (número de exercícios e de séries) em relação ' +
+    'ao habitual, e diga nas observações qual das três você escolheu e por quê — objetivo, fase, ' +
+    'fadiga acumulada, estagnação. Não use convenção de manual nem número redondo. ' +
+    'Prescrever o catálogo inteiro é erro: ele é o repertório da série, não uma sessão.\n' +
+    'Critérios de seleção: o que está estagnado e precisa de estímulo, o que ficou de fora nas ' +
+    'sessões recentes, a fadiga acumulada, e o equilíbrio do grupo muscular.\n' +
+    'CORE: os exercícios marcados [core] são COMPLEMENTARES e NÃO contam para as 5-8 do treino ' +
+    'principal. Inclua os de core desta sessão ao final da lista, salvo se a frequência global de ' +
+    'core já estiver alta — e nesse caso diga isso nas observações. Não os corte em silêncio.\n' +
+    'Nas observações, diga em uma frase o que ficou de fora e por quê.\n\n' +
+    'Regras de formato: nome IDÊNTICO ao da Biblioteca. Carga concreta para cada exercício, ' +
+    'partindo do que já foi levantado no histórico — suba onde houver margem, mantenha onde ' +
+    'estagnou e explique na obs, reduza onde a fadiga justificar. Nada de faixas vagas: um valor ' +
+    'por exercício. Inclua "rest" (descanso entre séries) em cada um.\n\n' + _contextoTreino();
+
+  toast('Projetando…');
+  try {
+    var resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': getApiKey(),
+                 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+      body: JSON.stringify({ model: 'claude-sonnet-4-5', max_tokens: 1500,
+                             system: getPLANO_SYSTEM(), messages: [{ role: 'user', content: msg }] })
+    });
+    var data = await resp.json();
+    var txt = (data.content && data.content[0] && data.content[0].text) || '';
+    var lim = txt.replace(/```json|```/g, '').trim();
+    var obj = null;
+    try { obj = JSON.parse(lim); } catch (e) {
+      var m = lim.match(/\{[\s\S]*\}/);
+      if (m) { try { obj = JSON.parse(m[0]); } catch (e2) {} }
+    }
+    var tp = obj && obj.treinoProjetado;
+    if (!tp || !tp.exercicios || !tp.exercicios.length) { toast('Não consegui interpretar a projeção'); return; }
+
+    // Guarda so o que casa com a Biblioteca. Exercicio inventado pelo modelo nao entra: o
+    // registro grava o que existe na serie, e um nome solto viraria carga orfa.
+    var porNome = {};
+    exs.forEach(function(e) { porNome[String(e.name || '').trim().toLowerCase()] = true; });   // exs já inclui core
+    var itens = tp.exercicios.filter(function(x) {
+      return x && x.nome && porNome[String(x.nome).trim().toLowerCase()];
+    }).map(function(x) {
+      return { nome: String(x.nome).trim(), sets: x.sets || '', weight: x.weight || '',
+               rest: x.rest || '', obs: x.obs || '' };
+    });
+    if (!itens.length) { toast('A projeção não bateu com a Biblioteca'); return; }
+    // Rede de seguranca visivel: se voltar o catalogo inteiro, o usuario fica sabendo na hora em
+    // vez de descobrir abrindo um treino de 16 exercicios.
+    if (itens.length > 10) toast('Atenção: projeção com ' + itens.length + ' exercícios');
+
+    pushUndo('Projetar treino');
+    state.proximoDecidido.treino = {
+      foco: tp.foco || '', observacoes: tp.observacoes || '',
+      exercicios: itens, em: new Date().toISOString()
+    };
+    saveState();
+    renderAgendaLinear();
+    toast('Treino projetado \u2713');
+  } catch (e) {
+    toast('Erro ao projetar: ' + (e && e.message ? e.message : 'desconhecido'));
+  }
+}
+
+function toggleTreinoProjetado() {
+  var el = document.getElementById('treino-projetado');
+  if (el) el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+
+// ═══ ORIENTAÇÃO DO PRÓXIMO TREINO (v0.9.1.77) ═══
+// A versao de plano pede orientacao para N dias futuros de uma vez — faz sentido quando existe
+// uma grade de datas decidida de antemao. No modelo continuo existe UM proximo treino e ele nao
+// tem data: e o que vier depois do ultimo registrado. Pedir orientacao para "os proximos cinco"
+// seria periodizar em cima de uma sequencia que qualquer pedal ou falta reordena.
+//
+// Responde em TEXTO, nao em JSON: nao ha campo `orientacao` de dia de plano onde gravar. A
+// orientacao e para ler antes de treinar.
+function gerarOrientacaoProximoTreino() {
+  var p = _proximoTreino();
+  if (!p.label) { toast('Nenhuma série na rotação.'); return; }
+
+  var serie = p.serie;
+  var nomeSerie = serie && serie.name ? (p.label + ' — ' + serie.name) : p.label;
+
+  var listaEx = '';
+  if (serie && serie.exercises && serie.exercises.length) {
+    listaEx = serie.exercises.map(function(e) {
+      return '  - ' + (e.name || '?') +
+        (e.sets ? ' · ' + e.sets : '') +
+        (e.weight ? ' · ' + e.weight : '') +
+        (e.rest ? ' · descanso ' + e.rest : '') +
+        (e.isCore ? ' [core]' : '');
+    }).join('\n');
+  }
+
+  // O estado da rotacao, o interruptor de pedal e a cadencia ja vao no system prompt
+  // (_textoRotacao / _textoCadencia). Repetir aqui so gastaria janela e criaria duas versoes
+  // do mesmo dado que podem divergir.
+  var ctx = _contextoTreino();
+
+  var msg = 'Gere a orientação do PRÓXIMO TREINO: ' + nomeSerie + '.\n\n' +
+    (listaEx ? 'Exercícios desta série na Biblioteca (cargas atuais):\n' + listaEx + '\n\n' : '') +
+    (ctx ? ctx + '\n\n' : '') +
+    'Use o histórico, a progressão de carga e a cadência para calibrar ESTE treino: ' +
+    'proponha cargas concretas a partir do que já foi levantado e aponte exercícios estagnados. ' +
+    'Considere a carga de ciclismo do período (volume, BPM, proximidade com o último treino de pernas). ' +
+    'CORE: é transversal às séries — só aponte problema se a FREQUÊNCIA GLOBAL estiver baixa; ' +
+    'core pulado nesta série não é problema se está sendo feito nas outras. ' +
+    'Os dados acima já são completos — NÃO solicite get_historico nem get_bike.\n\n' +
+    'Responda em TEXTO CORRIDO, não em JSON. Seja direto: foco do treino, intensidade alvo, ' +
+    'cargas sugeridas por exercício e o que observar durante a execução.';
+
+  switchTab('ia');
+  setTimeout(function() {
+    var input = document.getElementById('plano-input');
+    if (input) {
+      input.value = msg;
+      autoResizePlanoInput(input);
+      enviarMensagemPlano();
+    }
+  }, 300);
+}
+
 function gerarOrientacoesDiasFuturos() {
+  // Depois da migracao nao ha dias futuros de plano — o botao passa a pedir a orientacao do
+  // proximo treino. O desvio fica aqui para que qualquer entrada existente continue valendo.
+  if (state._migracaoContinuoV1) { gerarOrientacaoProximoTreino(); return; }
+
   if (!state.plano || !state.plano.semanas) {
     toast('Nenhum plano ativo.');
     return;
@@ -4335,19 +6336,34 @@ function gerarOrientacoesDiasFuturos() {
   // mensagem antiga nao mencionava historico nenhum. Resultado: ele periodizava sem saber
   // quais cargas foram realmente usadas nem quais dias foram cumpridos. Injetar e
   // deterministico, custa uma rodada de API a menos, e nao depende de o modelo decidir pedir.
-  var blocoHistorico = _textoHistorico(20);
-  var blocoProgressao = _textoProgressaoCargas(40, 6);
+  // Limites calibrados por CUSTO medido, nao por simetria. O historico detalhado cresce com as
+  // sessoes (20 -> ~1500 tokens, 60 -> ~4500), entao fica no recente. Progressao, core e bike
+  // sao uma linha por EXERCICIO/agregado: de 40 para 120 sessoes custam ~330 tokens a mais no
+  // total e passam a enxergar cerca de seis meses. A trajetoria longa e trabalho da progressao;
+  // o detalhe da sessao so interessa perto.
+  var blocoCobertura = _textoCobertura(24, 120, 120);
+  var blocoHistorico = _textoHistorico(24);
+  var blocoProgressao = _textoProgressaoCargas(120, 8);
+  var blocoCore = _textoCore(120, 8);
+  var blocoBike = _textoBike(120, 10);
   var blocoAderencia = _textoAderencia();
 
   var msg = 'Gere orientações de periodização para os seguintes dias futuros do plano:\n\n' +
     diasFuturos.join('\n') + '\n\n' +
     'Resumo das semanas:\n' + semanasSummary.join('\n') + '\n\n' +
+    (blocoCobertura ? blocoCobertura + '\n\n' : '') +
     blocoHistorico + '\n\n' +
     (blocoProgressao ? blocoProgressao + '\n\n' : '') +
+    (blocoCore ? blocoCore + '\n\n' : '') +
+    (blocoBike ? blocoBike + '\n\n' : '') +
     (blocoAderencia ? blocoAderencia + '\n\n' : '') +
     'Use o histórico, a progressão de carga e a aderência acima para calibrar cada dia: ' +
     'proponha cargas concretas a partir do que já foi levantado, identifique exercícios estagnados, ' +
     'e ajuste o volume à aderência real (não prescreva intensificação para um período com muitos dias perdidos). ' +
+    'CORE: é transversal às séries — só aponte problema de core se a FREQUÊNCIA GLOBAL estiver baixa. ' +
+    'Core pulado em uma série específica não é problema desde que esteja sendo feito em outras sessões. ' +
+    'CICLISMO: os rides acima são carga real — considere volume, BPM (esforço interno) e a proximidade ' +
+    'com o treino de pernas ao prescrever intensidade. Não peça get_bike: os dados acima já são completos. ' +
     'Os dados acima já são completos — NÃO solicite get_historico. ' +
     'Para cada dia, defina: foco do treino, intensidade, orientações específicas de execução e exercícios de core recomendados. ' +
     'Considere a progressão entre semanas e as restrições do perfil. ' +
@@ -4744,7 +6760,11 @@ async function enviarMensagemPlano() {
       }
     } else if (parsed && parsed.modificacoes) {
       renderModificacoesProposta(parsed.modificacoes);
-      addPlanoChatMsg('ai', '✓ Modificações geradas. Veja a prévia no painel à direita e clique em "✓ APLICAR" para confirmar.');
+      if (!state._migracaoContinuoV1) {
+        addPlanoChatMsg('ai', '✓ Modificações geradas. Veja a prévia no painel à direita e clique em "✓ APLICAR" para confirmar.');
+      }
+      // No modelo contínuo o próprio painel inline já é a mensagem — e ele é acrescentado
+      // DEPOIS de qualquer addPlanoChatMsg, que re-renderiza o chat inteiro e o apagaria.
     } else if (parsed && parsed.replanejamento) {
       renderReplanejamento(parsed.replanejamento);
     } else {
@@ -4898,8 +6918,63 @@ function _aplicarAcoesMacro(plano, mod) {
   return aplicadas;
 }
 
+// ═══ PRÉVIA DE MODIFICAÇÕES NO CHAT (v0.9.1.86) ═══
+// A previa sempre foi desenhada dentro do `plano-resultado`, o painel lateral do PLANO — e
+// escondi esse painel na v0.9.1.78. Resultado: pedir a IA para trocar um exercicio devolvia
+// "veja a previa no painel a direita" e nao havia painel. O botao APLICAR ficava num elemento
+// com display:none, inalcancavel.
+//
+// Alem de invisivel, aquela previa era inutil aqui: ela renderiza `planoCopy.semanas`, que
+// depois da migracao esta vazio. Uma modificacao de Biblioteca nao tem semana para mostrar —
+// tem uma LISTA DE ACOES. E isso que este painel exibe.
+//
+// Vive no DOM, nao em `state.planoChatMessages`: e uma proposta pendente, nao uma mensagem.
+// Persistir levaria botoes APLICAR para dentro do historico do chat, apontando para um
+// `_pendingMod` que nao existe mais depois de um reload.
+function _previaModificacoesNoChat(mod) {
+  var chat = document.getElementById('plano-chat');
+  if (!chat) return;
+  var antigo = document.getElementById('mod-proposta-inline');
+  if (antigo) antigo.remove();
+
+  var descr = function(a) {
+    if (a.tipo === 'substituir') return 'Substituir "' + (a.de || '?') + '" por "' + (a.por || '?') + '"' +
+      (a.sets ? ' — ' + a.sets : '') + (a.weight ? ' · ' + a.weight : '');
+    if (a.tipo === 'remover') return 'Remover "' + (a.nome || '?') + '"';
+    if (a.tipo === 'adicionar') return 'Adicionar "' + (a.nome || '?') + '"' +
+      (a.sets ? ' — ' + a.sets : '') + (a.weight ? ' · ' + a.weight : '');
+    if (a.tipo === 'alterar') return 'Alterar "' + (a.nome || '?') + '"' +
+      (a.sets ? ' — ' + a.sets : '') + (a.weight ? ' · ' + a.weight : '');
+    return a.tipo || 'ação';
+  };
+
+  var acoes = (mod.acoes || []).map(function(a) {
+    return '<div style="font-size:12px;margin:3px 0">• ' + escHtml(descr(a)) + '</div>';
+  }).join('');
+
+  var div = document.createElement('div');
+  div.id = 'mod-proposta-inline';
+  div.className = 'plano-msg plano-msg-ai';
+  div.innerHTML =
+    '<div style="border:1px solid var(--accent);border-radius:8px;padding:10px 12px;width:100%">' +
+      '<div style="font-family:DM Mono,monospace;font-size:9px;letter-spacing:2px;color:var(--accent);margin-bottom:8px">' +
+        'MODIFICAÇÕES PROPOSTAS' + (mod.serieLabel ? ' — SÉRIE ' + escHtml(mod.serieLabel) : '') +
+      '</div>' +
+      (acoes || '<div style="font-size:12px;color:var(--muted)">(nenhuma ação reconhecida)</div>') +
+      '<div style="display:flex;gap:8px;margin-top:10px">' +
+        '<button onclick="aplicarModificacoesPendentes()" style="font-family:DM Mono,monospace;font-size:11px;padding:6px 14px;border-radius:8px;border:1px solid var(--done);background:transparent;color:var(--done);cursor:pointer">\u2713 APLICAR</button>' +
+        '<button onclick="descartarModificacoesPendentes()" style="font-family:DM Mono,monospace;font-size:11px;padding:6px 14px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer">\u2715 IGNORAR</button>' +
+      '</div>' +
+    '</div>';
+  chat.appendChild(div);
+  chat.scrollTop = chat.scrollHeight;
+}
+
 function renderModificacoesProposta(mod) {
   _pendingMod = mod;
+
+  // No modelo contínuo a prévia vai para o chat: o painel lateral não existe mais.
+  if (state._migracaoContinuoV1) { _previaModificacoesNoChat(mod); return; }
 
   // Build a preview: apply modifications to a copy of the current plan
   var planoCopy = JSON.parse(JSON.stringify(state.plano || state.planoRascunho || { semanas: [] }));
@@ -4960,6 +7035,8 @@ function renderModificacoesProposta(mod) {
 }
 
 function aplicarModificacoesPendentes() {
+  var _inline = document.getElementById('mod-proposta-inline');
+  if (_inline) _inline.remove();
   if (!_pendingMod) return;
   var el = document.getElementById('mod-proposta-panel');
   if (el) el.remove();
@@ -4971,6 +7048,8 @@ function aplicarModificacoesPendentes() {
 }
 
 function descartarModificacoesPendentes() {
+  var _inline = document.getElementById('mod-proposta-inline');
+  if (_inline) _inline.remove();
   _pendingMod = null;
   if (state.planoRascunho || state.plano) {
     renderPlanoMacro(state.planoRascunho || state.plano);
@@ -4991,6 +7070,8 @@ function aplicarModificacoes(mod) {
   if (!serieObj) { toast('Série não encontrada'); return; }
   const pd = state.plano.seriesData[serieObj.id];
   if (!pd) { toast('Dados do plano não encontrados'); return; }
+
+  pushUndo('Aplicar modificações — série ' + mod.serieLabel);
 
   mod.acoes.forEach(a => {
     if (a.tipo === 'substituir') {
@@ -5022,6 +7103,8 @@ function aplicarModificacoesInline(mod, dayKey, serieLabel) {
     toast('Treino do dia não encontrado'); return;
   }
   var exs = expanded.exercicios;
+
+  pushUndo('Aplicar modificações — ' + (serieLabel || 'treino do dia'));
 
   (mod.acoes || []).forEach(function(a) {
     if (a.tipo === 'substituir') {
@@ -5074,7 +7157,10 @@ function aplicarModificacoesMacro(mod) {
     toast('Nenhum plano ativo'); return;
   }
 
-  var aplicadas = _aplicarAcoesMacro(state.plano, mod);
+  // Aplica numa COPIA primeiro. Assim o caminho de zero acoes nao toca o estado nem empilha um
+  // undo vazio — e o pushUndo, quando acontece, guarda exatamente o plano de antes da mudanca.
+  var copia = JSON.parse(JSON.stringify(state.plano));
+  var aplicadas = _aplicarAcoesMacro(copia, mod);
 
   // Zero acoes aplicadas nao pode virar mensagem de sucesso. Era assim que o formato
   // desconhecido passava despercebido: o laco nao casava com nada e o app anunciava
@@ -5086,6 +7172,8 @@ function aplicarModificacoesMacro(mod) {
     return;
   }
 
+  pushUndo('Aplicar orientações ao plano');
+  state.plano = copia;
   saveState();
   renderAgendaLinear();
   state.planoRascunho = JSON.parse(JSON.stringify(state.plano));
@@ -6507,6 +8595,57 @@ function desfazerBike(dayKey) {
   renderAgendaLinear();
 }
 
+// ─── Máscara de tempo: o usuário digita só números, os dois-pontos aparecem sozinhos ───
+// No celular o ":" exige trocar de teclado a cada campo de tempo. A máscara insere a partir da
+// DIREITA (os dois últimos dígitos são sempre minutos), que é como se pensa uma duração:
+// "45" → 45min, "115" → 1:15, "1230" → 12:30.
+// Duração aceita SEGUNDOS (v0.9.1.89). `_mascaraTempo` corta em 4 dígitos porque foi feita para
+// HORA do dia (hh:mm) — aplicá-la a duração não perdia os segundos, CORROMPIA o valor: "1:15:30"
+// vira os dígitos 11530, cortados para 1153, exibidos como "11:53". Um pedal de 1h15 passava a
+// constar como quase 12 horas, e o dado gravado era esse.
+//
+// Aqui vão até 6 dígitos: 3-4 continuam h:mm (compatível com tudo que já está gravado), 5-6
+// viram h:mm:ss. Quem fornece o dado é o GPS, e ele dá segundos.
+function _mascaraDuracao(el) {
+  if (!el) return;
+  var noFim = (el.selectionStart === null) || (el.selectionStart === el.value.length);
+  var d = (el.value || '').replace(/\D/g, '').slice(0, 6);
+  var out;
+  if (d.length <= 2) out = d;
+  else if (d.length <= 4) out = d.slice(0, d.length - 2) + ':' + d.slice(-2);
+  else out = d.slice(0, d.length - 4) + ':' + d.slice(-4, -2) + ':' + d.slice(-2);
+  if (out !== el.value) {
+    el.value = out;
+    if (noFim) { try { el.setSelectionRange(out.length, out.length); } catch(e) {} }
+  }
+}
+
+function _mascaraTempo(el) {
+  if (!el) return;
+  // Só reformata quando o cursor está no fim. Se a pessoa clicou no meio para corrigir um
+  // dígito, mexer no valor jogaria o cursor para o fim e atrapalharia a edição.
+  var noFim = (el.selectionStart === null) || (el.selectionStart === el.value.length);
+  var d = (el.value || '').replace(/\D/g, '').slice(0, 4);
+  var out = d.length <= 2 ? d : d.slice(0, d.length - 2) + ':' + d.slice(-2);
+  if (out !== el.value) {
+    el.value = out;
+    if (noFim) { try { el.setSelectionRange(out.length, out.length); } catch(e) {} }
+  }
+}
+
+// Normalização de DURAÇÃO no momento de gravar. Vale para o dado, não só para a tela: qualquer
+// caminho de entrada (digitação, colar, edição no modal) converge para "h:mm".
+// 1-2 dígitos são minutos ("45" → "0:45"); daí para cima os dois últimos são os minutos.
+function _normalizaDuracao(v) {
+  var d = (v || '').replace(/\D/g, '');
+  if (!d) return '';
+  d = d.slice(0, 6);
+  if (d.length <= 2) return '0:' + (d.length === 1 ? '0' + d : d);
+  if (d.length <= 4) return String(parseInt(d.slice(0, d.length - 2), 10)) + ':' + d.slice(-2);
+  // 5-6 dígitos: os dois últimos são segundos, os dois anteriores minutos.
+  return String(parseInt(d.slice(0, d.length - 4), 10)) + ':' + d.slice(-4, -2) + ':' + d.slice(-2);
+}
+
 function updateBikeField(dayKey, field, value) {
   if (!state.plano.diasBike) state.plano.diasBike = {};
   if (!state.plano.diasBike[dayKey]) state.plano.diasBike[dayKey] = { status: 'feito' };
@@ -6515,6 +8654,8 @@ function updateBikeField(dayKey, field, value) {
     if (field === 'distancia') value = value.replace(/\s*km\s*$/i, '');
     else if (field === 'elevacao') value = value.replace(/\s*m\s*$/i, '');
     else if (field === 'kcal') value = value.replace(/\s*kcal\s*$/i, '');
+    else if (field === 'bpmMedio') value = value.replace(/\s*bpm\s*$/i, '');
+    else if (field === 'tempoMov' || field === 'tempoTotal') value = _normalizaDuracao(value);
   }
   state.plano.diasBike[dayKey][field] = value;
   saveState();
@@ -6552,6 +8693,7 @@ function registrarBikeHistorico(dayKey) {
     velocidade: bikeInfo.velocidade || '',
     elevacao: bikeInfo.elevacao || '',
     kcal: bikeInfo.kcal || '',
+    bpmMedio: bikeInfo.bpmMedio || '',
     percurso: bikeInfo.percurso || '',
     timingReal: bikeInfo.timingReal || ''
   };
@@ -12635,6 +14777,7 @@ function removeBikeHistoryEntry(id) {
   state.bikeHistory = state.bikeHistory.filter(function(b) { return b.id !== id; });
   saveState();
   renderHistory();
+  renderAgendaLinear();
 }
 
 function _buildBikeSection(dayKey, bikeInfo, bikePlano, diaChegou) {
@@ -12696,6 +14839,7 @@ function _buildBikeSection(dayKey, bikeInfo, bikePlano, diaChegou) {
     var veloc = (bikeInfo&&bikeInfo.velocidade)||'';
     var elev = (bikeInfo&&bikeInfo.elevacao)||'';
     var kcal = (bikeInfo&&bikeInfo.kcal)||'';
+    var bpm = (bikeInfo&&bikeInfo.bpmMedio)||'';
     var percurso = (bikeInfo&&bikeInfo.percurso)||'';
     var tr = (bikeInfo&&bikeInfo.timingReal)||'';
 
@@ -12710,13 +14854,14 @@ function _buildBikeSection(dayKey, bikeInfo, bikePlano, diaChegou) {
 
     html += '<div style="display:flex;gap:8px;margin-bottom:6px;flex-wrap:wrap">';
     html += '<div style="flex:2;min-width:80px"><div style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted);letter-spacing:0.5px">KM</div><input class="bike-field" style="font-size:14px" value="' + escHtml(dist) + '" placeholder="km" onchange="updateBikeField(\'' + dayKey + '\',\'distancia\',this.value)"></div>';
-    html += '<div style="flex:2;min-width:80px"><div style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted);letter-spacing:0.5px">T. MOVIMENTO</div><input class="bike-field" style="font-size:14px" value="' + escHtml(tempoMov) + '" placeholder="hh:mm" onchange="updateBikeField(\'' + dayKey + '\',\'tempoMov\',this.value)"></div>';
-    html += '<div style="flex:2;min-width:80px"><div style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted);letter-spacing:0.5px">T. TOTAL</div><input class="bike-field" style="font-size:14px" value="' + escHtml(tempoTotal) + '" placeholder="hh:mm" onchange="updateBikeField(\'' + dayKey + '\',\'tempoTotal\',this.value)"></div>';
+    html += '<div style="flex:2;min-width:80px"><div style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted);letter-spacing:0.5px">T. MOVIMENTO</div><input class="bike-field" style="font-size:14px" value="' + escHtml(tempoMov) + '" placeholder="hh:mm" onchange="updateBikeField(\'' + dayKey + '\',\'tempoMov\',this.value)" oninput="_mascaraTempo(this)" inputmode="numeric"></div>';
+    html += '<div style="flex:2;min-width:80px"><div style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted);letter-spacing:0.5px">T. TOTAL</div><input class="bike-field" style="font-size:14px" value="' + escHtml(tempoTotal) + '" placeholder="hh:mm" onchange="updateBikeField(\'' + dayKey + '\',\'tempoTotal\',this.value)" oninput="_mascaraTempo(this)" inputmode="numeric"></div>';
     html += '</div>';
     html += '<div style="display:flex;gap:8px;margin-bottom:6px;flex-wrap:wrap">';
     html += '<div style="flex:1;min-width:60px"><div style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted);letter-spacing:0.5px">VEL. MÉD.</div><input class="bike-field" value="' + escHtml(veloc) + '" placeholder="km/h" onchange="updateBikeField(\'' + dayKey + '\',\'velocidade\',this.value)"></div>';
     html += '<div style="flex:1;min-width:60px"><div style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted);letter-spacing:0.5px">ELEV. (m)</div><input class="bike-field" value="' + escHtml(elev) + '" placeholder="m" onchange="updateBikeField(\'' + dayKey + '\',\'elevacao\',this.value)"></div>';
     html += '<div style="flex:1;min-width:60px"><div style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted);letter-spacing:0.5px">KCAL</div><input class="bike-field" value="' + escHtml(kcal) + '" placeholder="kcal" onchange="updateBikeField(\'' + dayKey + '\',\'kcal\',this.value)"></div>';
+    html += '<div style="flex:1;min-width:60px"><div style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted);letter-spacing:0.5px">BPM MÉD.</div><input class="bike-field" value="' + escHtml(bpm) + '" placeholder="bpm" inputmode="numeric" onchange="updateBikeField(\'' + dayKey + '\',\'bpmMedio\',this.value)"></div>';
     html += '</div>';
     html += '<div style="margin-bottom:8px"><div style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted);letter-spacing:0.5px">PERCURSO</div><input class="bike-field" value="' + escHtml(percurso) + '" placeholder="percurso" onchange="updateBikeField(\'' + dayKey + '\',\'percurso\',this.value)"></div>';
 
@@ -12773,9 +14918,253 @@ function toggleBikeSection(dayKey) {
   }
 }
 
+// Feed contínuo da agenda (v0.9.1.70). Substitui a visão de semanas com datas depois da
+// migração.
+//
+// Por que não podem coexistir: o card do PRÓXIMO TREINO deriva da ROTAÇÃO (último feito → o
+// seguinte da fila), enquanto o plano antigo tem DATAS fixas decididas semanas atrás. Os dois
+// estão certos dentro da própria lógica e discordam na tela — o app afirmava duas coisas
+// contraditórias sem dizer qual valia. Um modelo por vez.
+// Alterna o detalhe de um registro no feed da agenda. Prefixo próprio (ag-ex-) porque a aba
+// HISTÓRICO usa hist-ex- para os mesmos ids: as duas telas coexistem no DOM e um prefixo
+// compartilhado faria um toggle abrir o card da outra.
+function toggleAgendaEx(id) {
+  var el = document.getElementById('ag-ex-' + id);
+  if (!el) return;
+  el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+
+// Barra de ACRESCENTAR, no topo do feed (v0.9.1.88).
+// Registrar so era possivel pelos botoes do card PROXIMO TREINO — um card sobre o que VEM.
+// Lancar um pedal de ontem por ali e pedir para procurar o passado dentro do futuro: ninguem
+// vai olhar ali, e com razao. O passado mora no feed, entao a porta de entrada fica no feed.
+// Aparece tambem quando nao ha registro nenhum: sem ela, um historico vazio nao teria como
+// deixar de ser vazio a nao ser esperando o proximo treino acontecer.
+function _barraAcrescentar() {
+  var bt = function(fn, txt) {
+    return '<button onclick="' + fn + '" style="font-family:DM Mono,monospace;font-size:10px;' +
+      'letter-spacing:1px;padding:5px 12px;border-radius:8px;border:1px solid var(--border);' +
+      'color:var(--muted);background:transparent;cursor:pointer">' + txt + '</button>';
+  };
+  return '<div style="display:flex;gap:6px;align-items:center;margin-bottom:10px;flex-wrap:wrap">' +
+    '<span style="font-family:DM Mono,monospace;font-size:9px;letter-spacing:1px;color:var(--muted)">ACRESCENTAR</span>' +
+    bt('abrirRegistroTreino()', '+ TREINO') +
+    bt("abrirRegistroPedal()", '\ud83d\udeb2 + PEDAL') +
+    '</div>';
+}
+
+function renderAgendaContinua(list) {
+  var itens = [];
+  (state.history || []).forEach(function(h) {
+    itens.push({ t: new Date(h.date || 0).getTime(), tipo: 'gym', d: h });
+  });
+  (state.bikeHistory || []).forEach(function(r) {
+    itens.push({ t: new Date(r.date || 0).getTime(), tipo: 'bike', d: r });
+  });
+  itens.sort(function(a, b) { return b.t - a.t; });
+
+  if (!itens.length) {
+    list.innerHTML = _barraAcrescentar() +
+      '<div style="color:var(--muted);font-family:DM Mono,monospace;font-size:12px;padding:20px 0">' +
+      'Nenhum registro ainda. Use ACRESCENTAR acima para lançar um treino ou pedal de qualquer dia.</div>';
+    return;
+  }
+
+  var hojeStr = _diaLocal(new Date());
+  var ontem = new Date(); ontem.setDate(ontem.getDate() - 1);
+  var ontemStr = _diaLocal(ontem);
+  var DIAS = ['DOMINGO','SEGUNDA','TERÇA','QUARTA','QUINTA','SEXTA','SÁBADO'];
+  var p2 = function(n) { return (n < 10 ? '0' : '') + n; };
+
+  // ── AGRUPAMENTO POR SEMANA (v0.9.1.90) ──────────────────────────────────
+  // Um feed cronologico plano vira lista interminavel em poucos meses. Agrupar por SEMANA CIVIL
+  // (segunda a domingo) e o recorte que o usuario ja usa para pensar treino, e o projeto ja tem
+  // `getMondayOf` como base de qualquer calculo de data — inventar "blocos de 7 dias a partir de
+  // hoje" criaria uma segunda nocao de semana que mudaria de limite a cada dia.
+  //
+  // So a semana corrente nasce aberta. As demais mostram o resumo e abrem sob demanda: o que se
+  // quer do passado quase sempre e "quanto", nao "qual exercicio".
+  //
+  // `_semanasAbertas` vive em JS, NAO em `state`: e preferencia de tela deste aparelho nesta
+  // sessao. Em `state` viraria dado de sincronizacao — abrir uma semana no celular carimbaria o
+  // registro e disputaria com o desktop.
+  var montarCard = function(it) {
+    var dt = new Date(it.d.date || 0);
+    var valida = !isNaN(dt.getTime());
+    var diaStr = valida ? _diaLocal(dt) : '';
+    var nomeDia = !valida ? '—'
+      : diaStr === hojeStr ? 'HOJE'
+      : diaStr === ontemStr ? 'ONTEM'
+      : DIAS[dt.getDay()];
+    var dataStr = valida ? p2(dt.getDate()) + '/' + p2(dt.getMonth() + 1) : '';
+    var horaStr = valida ? p2(dt.getHours()) + ':' + p2(dt.getMinutes()) : '';
+
+    var label = '<span class="agenda-dia-label">' + escHtml(nomeDia) +
+      (dataStr ? '<br><span style="font-size:10px;font-family:DM Mono,monospace;color:var(--muted)">' + dataStr + '</span>' : '') +
+      (horaStr ? '<br><span style="font-size:9px;font-family:DM Mono,monospace;color:var(--muted);letter-spacing:0.5px">' + horaStr + '</span>' : '') +
+      '</span>';
+
+    var acoes = function(id, tipo) {
+      return '<span style="display:flex;gap:4px;flex-shrink:0" onclick="event.stopPropagation()">' +
+        '<button class="ex-action-btn" onclick="editHistoryDataPrompt(\'' + id + '\',\'' + tipo + '\')" title="Editar">&#9998;</button>' +
+        '<button class="ex-action-btn" onclick="' + (tipo === 'bike' ? 'removeBikeHistoryEntry' : 'removeHistoryEntry') +
+          '(\'' + id + '\')" title="Remover">\u2715</button>' +
+      '</span>';
+    };
+
+    if (it.tipo === 'gym') {
+      var h = it.d;
+      var temEx = h.exercises && h.exercises.length > 0;
+      // Todo treino REGISTRADO conta como feito (v0.9.1.87). O cinza vinha de "done >= total",
+      // regra herdada do plano, onde um dia so valia se cumprido inteiro. No modelo continuo o
+      // registro so existe porque o treino aconteceu — a proporcao de exercicios concluidos e
+      // detalhe da sessao, nao veredito sobre ela. Quem quiser o detalhe abre o card: o ponto
+      // por exercicio continua mostrando o que saiu e o que nao saiu.
+      var completo = true;
+
+      var detalhe = '';
+      if (temEx) {
+        var linhas = h.exercises.map(function(ex) {
+          var cor = ex.status === 'done' ? 'var(--done)' : ex.status === 'skipped' ? 'var(--danger)' : 'var(--muted)';
+          var ponto = ex.status === 'done' ? '\u25cf' : ex.status === 'skipped' ? '\u2715' : '\u25cb';
+          return '<div style="display:flex;align-items:baseline;gap:8px;padding:3px 0;border-bottom:1px solid rgba(255,255,255,.04)">' +
+            '<span style="color:' + cor + ';font-size:10px;width:12px;flex-shrink:0">' + ponto + '</span>' +
+            '<span style="flex:1;font-size:12px;color:var(--text)">' + escHtml(ex.name || '') + '</span>' +
+            '<span style="font-family:DM Mono,monospace;font-size:11px;color:var(--accent)">' + escHtml(ex.sets || '') + '</span>' +
+            '<span style="font-family:DM Mono,monospace;font-size:11px;color:var(--accent2);min-width:80px;text-align:right">' + escHtml(ex.weight || '') + '</span>' +
+            (ex.rest ? '<span style="font-family:DM Mono,monospace;font-size:11px;color:var(--muted);min-width:60px;text-align:right">' + escHtml(ex.rest) + '</span>' : '') +
+          '</div>';
+        }).join('');
+        detalhe = '<div id="ag-ex-' + h.id + '" style="display:none;padding:0 16px 12px">' +
+                  '<div style="padding-top:8px;border-top:1px solid var(--border)">' + linhas + '</div></div>';
+      }
+
+      return '<div class="agenda-dia' + (completo ? ' concluido' : '') + '">' +
+        '<div class="agenda-dia-head"' + (temEx ? ' onclick="toggleAgendaEx(\'' + h.id + '\')"' : ' style="cursor:default"') + '>' +
+          label +
+          '<span class="agenda-dia-serie">' +
+            escHtml((h.serieLabel || '') + (h.serieName ? ' \u2014 ' + h.serieName : '')) +
+            (temEx ? '<br><span style="font-family:DM Mono,monospace;font-size:9px;letter-spacing:0;color:var(--muted)">ver exercícios</span>' : '') +
+          '</span>' +
+          '<span class="agenda-dia-tipo tipo-treino">' + (h.done || 0) + '/' + (h.total || 0) + '</span>' +
+          acoes(h.id, 'gym') +
+        '</div>' + detalhe + '</div>';
+    } else {
+      var b = it.d;
+      var meta = [b.distancia ? b.distancia + 'km' : '', b.tempoMov ? b.tempoMov : '',
+                  b.velocidade ? b.velocidade + 'km/h' : '', b.elevacao ? b.elevacao + 'm' : '',
+                  b.bpmMedio ? b.bpmMedio + 'bpm' : '', b.kcal ? b.kcal + 'kcal' : '',
+                  b.percurso || ''].filter(Boolean).join(' \u00b7 ');
+      return '<div class="agenda-dia bike-dia">' +
+        '<div class="agenda-dia-head" style="cursor:default">' +
+          label +
+          '<span class="agenda-dia-serie">\ud83d\udeb2 ' + escHtml(b.foco || 'Pedal') +
+            (meta ? '<br><span style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:0;color:var(--muted)">' +
+                    escHtml(meta) + '</span>' : '') +
+          '</span>' +
+          '<span class="agenda-dia-tipo tipo-bike">PEDAL</span>' +
+          acoes(b.id, 'bike') +
+        '</div></div>';
+    }
+  };
+
+  var mesesNome = ['JANEIRO','FEVEREIRO','MARÇO','ABRIL','MAIO','JUNHO','JULHO',
+                   'AGOSTO','SETEMBRO','OUTUBRO','NOVEMBRO','DEZEMBRO'];
+  var segundaDe = function(d) {
+    var x = new Date(d);
+    x.setHours(0, 0, 0, 0);
+    var dow = x.getDay();              // 0=domingo
+    x.setDate(x.getDate() - (dow === 0 ? 6 : dow - 1));
+    return x;
+  };
+  var semanaAtualKey = _diaLocal(segundaDe(new Date()));
+
+  // Agrupa preservando a ordem cronologica ja aplicada em `itens` (mais recente primeiro).
+  var grupos = [], porChave = {};
+  itens.slice(0, 120).forEach(function(it) {
+    var dt = new Date(it.d.date || 0);
+    var chave = isNaN(dt.getTime()) ? 'sem-data' : _diaLocal(segundaDe(dt));
+    if (!porChave[chave]) {
+      porChave[chave] = { chave: chave, inicio: isNaN(dt.getTime()) ? null : segundaDe(dt), itens: [] };
+      grupos.push(porChave[chave]);
+    }
+    porChave[chave].itens.push(it);
+  });
+
+  var html = _barraAcrescentar();
+  var mesCorrente = '';
+
+  grupos.forEach(function(g) {
+    var aberta = (g.chave === semanaAtualKey)
+      ? _semanasAbertas[g.chave] !== false
+      : _semanasAbertas[g.chave] === true;
+
+    if (g.inicio) {
+      var mesKey = g.inicio.getFullYear() + '-' + g.inicio.getMonth();
+      if (mesKey !== mesCorrente) {
+        mesCorrente = mesKey;
+        html += '<div style="font-family:Bebas Neue,sans-serif;font-size:15px;letter-spacing:2px;' +
+          'color:var(--muted);margin:18px 0 8px;padding-bottom:4px;border-bottom:1px solid var(--border)">' +
+          mesesNome[g.inicio.getMonth()] + ' ' + g.inicio.getFullYear() + '</div>';
+      }
+    }
+
+    var treinos = g.itens.filter(function(x) { return x.tipo === 'gym'; }).length;
+    var pedais = g.itens.filter(function(x) { return x.tipo === 'bike'; }).length;
+    var km = 0;
+    g.itens.forEach(function(x) {
+      if (x.tipo !== 'bike') return;
+      var n = parseFloat(String(x.d.distancia || '').replace(',', '.').replace(/[^\d.]/g, ''));
+      if (!isNaN(n)) km += n;
+    });
+    var resumo = [];
+    if (treinos) resumo.push(treinos + (treinos > 1 ? ' treinos' : ' treino'));
+    if (pedais) resumo.push(pedais + (pedais > 1 ? ' pedais' : ' pedal'));
+    if (km) resumo.push(Math.round(km) + ' km');
+
+    var fim = g.inicio ? new Date(g.inicio) : null;
+    if (fim) fim.setDate(fim.getDate() + 6);
+    var p2d = function(n) { return (n < 10 ? '0' : '') + n; };
+    var periodo = g.inicio
+      ? p2d(g.inicio.getDate()) + '/' + p2d(g.inicio.getMonth() + 1) + ' – ' + p2d(fim.getDate()) + '/' + p2d(fim.getMonth() + 1)
+      : 'sem data';
+    var titulo = g.chave === semanaAtualKey ? 'ESTA SEMANA' : periodo;
+
+    html += '<div onclick="toggleSemanaAgenda(\'' + g.chave + '\')" ' +
+      'style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:7px 10px;margin:6px 0 4px;' +
+      'border-radius:8px;background:var(--surface2);border:1px solid var(--border)">' +
+      '<span style="font-family:DM Mono,monospace;font-size:10px;color:var(--muted);width:10px">' +
+        (aberta ? '\u25be' : '\u25b8') + '</span>' +
+      '<span style="font-family:DM Mono,monospace;font-size:11px;letter-spacing:1px;color:var(--text)">' +
+        escHtml(titulo) + '</span>' +
+      (g.chave === semanaAtualKey ? '<span style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted)">' + escHtml(periodo) + '</span>' : '') +
+      '<span style="margin-left:auto;font-family:DM Mono,monospace;font-size:10px;color:var(--muted)">' +
+        escHtml(resumo.join(' \u00b7 ')) + '</span>' +
+    '</div>';
+
+    html += '<div id="sem-' + g.chave + '"' + (aberta ? '' : ' style="display:none"') + '>' +
+      g.itens.map(montarCard).join('') + '</div>';
+  });
+
+  list.innerHTML = html;
+}
+
+// Preferencia de tela, deste aparelho, nesta sessao. Fora de `state` de proposito — ver
+// comentario em renderAgendaContinua.
+var _semanasAbertas = {};
+
+function toggleSemanaAgenda(chave) {
+  var atual = document.getElementById('sem-' + chave);
+  var abertaAgora = atual && atual.style.display !== 'none';
+  _semanasAbertas[chave] = !abertaAgora;
+  renderAgendaLinear();
+}
+
 function renderAgendaLinear() {
+  renderProximoTreino();
   const list = document.getElementById('agenda-linear-list');
   if (!list) return;
+  if (state._migracaoContinuoV1) { renderAgendaContinua(list); return; }
   if (!state.plano || !state.plano.semanas) {
     list.innerHTML = '<div style="color:var(--muted);font-family:DM Mono,monospace;font-size:12px;padding:20px 0">Nenhum plano ativo. Gere um plano na aba PLANO.</div>';
     return;
@@ -13593,7 +15982,9 @@ function finishSerieFromAgenda(dayKey, serieId) {
     };
   }) : (pd ? pd.exercises.map(function(e) {
     var st = e.status || 'undone';
-    return { name: e.name, musculo: e.musculo || '', sets: e.sets, weight: e.weight, rest: e.rest || '', status: st === 'done' ? 'done' : 'skipped' };
+    // isCore precisa sobreviver tambem por aqui: sem ele o registro nasce sem a marca e o core
+    // fica indistinguivel de exercicio da serie no historico.
+    return { name: e.name, musculo: e.musculo || '', isCore: e.isCore || false, sets: e.sets, weight: e.weight, rest: e.rest || '', status: st === 'done' ? 'done' : 'skipped' };
   }) : []);
 
   var done = exercises.filter(function(e) { return e.status === 'done'; }).length;
@@ -13697,9 +16088,7 @@ function adicionarNovosExerciciosNaBiblioteca(exercises, serieObj) {
     // Detectar exercício de Core: campo isCore, ou músculo relacionado, ou nome típico de Core
     var musculo = (ex.musculo || ex.muscle || ex.grupo || '').toLowerCase();
     var nomeEx = ex.name.toLowerCase();
-    var isCoreEx = ex.isCore ||
-      /core|abdômen|abdomin|lombar|oblíquo|obliquo|prancha|plank|crunch|sit.?up|dead.?bug|bird.?dog/i.test(musculo) ||
-      /prancha|plank|crunch|sit.?up|dead.?bug|bird.?dog|abdominal|elevação de perna|elevação de joelh|roman chair|captain.?chair|knee raise|ab wheel|hollow body|l.?sit|dragon flag|pallof|mountain climb/i.test(nomeEx);
+    var isCoreEx = _ehCore(ex);
     var destino = (isCoreEx && coreObj) ? coreObj : serieObj;
     destino.exercises.push({
       id: uid(),
@@ -14968,7 +17357,10 @@ function openModal(title, fields, cb) {
         data[f.key] = document.getElementById('mf-'+f.key).value;
       }
     });
-    cb(data);
+    // Modal so-informativo passa cb null: CONFIRMAR ali apenas fecha. Antes disso, clicar em
+    // CONFIRMAR num modal sem callback lancava "cb is not a function" e o modal ficava preso
+    // na tela, sem fechar.
+    if (typeof cb === 'function') cb(data);
     closeModal();
   };
   document.getElementById('modal-confirm').onclick = modalCallback;
@@ -16468,6 +18860,7 @@ function _aplicarImportacao(imported, finalStamp) {
   // desiste sozinho se o payload for identico ao que a nuvem ja tem.
   scheduleSyncToSupabase();
 
+  _ajustarTelaAoModelo();   // a flag de migração vem DENTRO do arquivo: pode ter mudado
   render();
   loadPerfil();
   renderPlanoChatMessages();
@@ -16525,6 +18918,33 @@ function importData() {
 
         var tituloImp = 'IMPORTAR DADOS';
         var msgImp = 'Isso substituir\u00e1 todos os dados atuais deste aparelho. Continuar?';
+
+        // ---- Reversao de MODELO (v0.9.1.79) ----
+        // `_migracaoContinuoV1` e um campo do state, entao um backup anterior a migracao nao o
+        // tem. Importar esse arquivo nao e so trocar registros: devolve o app inteiro ao modelo
+        // de ciclos — volta a aba PLANO, volta a agenda por semanas, some o card de proximo
+        // treino. "Substituira todos os dados atuais" e verdadeiro e ninguem le assim.
+        // Este aviso vem PRIMEIRO porque e a consequencia mais grave; o alerta de data, quando
+        // tambem se aplica, entra como linha adicional em vez de substituir este.
+        var voltaModelo = !!state._migracaoContinuoV1 && !imported._migracaoContinuoV1;
+        if (voltaModelo) {
+          var hAtual = (state.history || []).length, bAtual = (state.bikeHistory || []).length;
+          var hArq = (imported.history || []).length, bArq = (imported.bikeHistory || []).length;
+          tituloImp = 'ARQUIVO ANTERIOR \u00c0 MIGRA\u00c7\u00c3O';
+          msgImp = '\u26a0\ufe0f Este arquivo \u00e9 de ANTES do hist\u00f3rico cont\u00ednuo. Importar n\u00e3o troca s\u00f3 os ' +
+            'registros: o app VOLTA ao modelo de ciclos — a aba PLANO reaparece, a agenda volta a ser ' +
+            'por semanas e o card de pr\u00f3ximo treino some.\n\n' +
+            'Agora: ' + hAtual + ' treinos, ' + bAtual + ' rides.\n' +
+            'Arquivo: ' + hArq + ' treinos, ' + bArq + ' rides.\n\n' +
+            (maisAntigo || semData
+              ? 'Al\u00e9m disso, esta vers\u00e3o passar\u00e1 a valer como a mais recente e substituir\u00e1 as ' +
+                'c\u00f3pias dos outros aparelhos.\n\n'
+              : '') +
+            'Para voltar ao modelo cont\u00ednuo depois, ser\u00e1 preciso migrar de novo. Continuar?';
+        }
+        if (voltaModelo) {
+          // pula os avisos de data: ja est\u00e3o embutidos acima
+        } else
         if (semData && curStamp) {
           tituloImp = 'IMPORTAR ARQUIVO SEM DATA';
           msgImp = 'O arquivo n\u00e3o tem data de atualiza\u00e7\u00e3o, ent\u00e3o n\u00e3o d\u00e1 para compar\u00e1-lo com os ' +
@@ -16662,6 +19082,20 @@ loadPersistedState(function() {
   // nasce null, a primeira gravacao depois do boot conta como "mudou" seja qual for, e uma
   // troca de aba logo apos abrir o app carimbaria o dado. E a comparacao vale offline: nao
   // depende de haver sessao nem de a nuvem ter respondido.
+  if (_limparResiduosDeCiclo()) saveState(false, false);
+  _ajustarTelaAoModelo();
+
+  // A eliminação dos ciclos foi uma DECISÃO, não um recurso opcional. Deixá-la atrás de um item
+  // de menu significava que o app continuava idêntico até o usuário descobrir e clicar nele —
+  // foi exatamente o que aconteceu por três versões seguidas.
+  //
+  // Agora o app se apresenta sozinho. Continua exigindo confirmação (é irreversível e baixa
+  // backup antes), mas não exige que ninguém vá procurar.
+  setTimeout(function() {
+    if (state._migracaoContinuoV1) return;
+    var c = _contarHistorico();
+    if (c.nCiclos && (c.hCiclos || c.bCiclos)) abrirMigracaoContinuo();
+  }, 800);
   _lastDataSig = _assinatura(buildCloudPayload());
   _cloudExpected = hasCloudAccount();
   updateDbStamp();
