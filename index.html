@@ -1427,7 +1427,7 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
   <div class="header-brand">
     <div class="logo">TREINO</div>
     <div class="header-meta">
-      <span class="header-version">v0.9.2.07</span>
+      <span class="header-version">v0.9.2.14</span>
       <span id="dbStamp" title="Última atualização dos dados">⟳ —</span>
     </div>
   </div>
@@ -4394,11 +4394,32 @@ function _diasDesde(label) {
 // Pedal é prioridade máxima do usuário — ele só não pedala por impedimento fora do controle
 // dele. Então com PEDAL = SIM a série de pernas é PULADA, nunca perdida: ela continua na frente
 // e entra na primeira vez em que houver uma noite sem pedal.
+// Pedal de HOJE: fato antes de intenção (v0.9.2.08).
+// O interruptor sempre foi previsão — "pretendo pedalar hoje". Depois que um ride do dia está
+// registrado, isso deixou de ser previsão: aconteceu. Manter o botão alternável ali permitia
+// dizer NÃO com um pedal já no histórico, e a rotação passaria a oferecer pernas numa noite em
+// que as pernas já rodaram.
+//
+// Derivado, nunca guardado: `state.pedalHoje` continua sendo a intenção do usuário, e o registro
+// simplesmente tem precedência sobre ela enquanto o dia for hoje. Amanhã a intenção volta a valer
+// sozinha, sem nada para limpar.
+function _pedalRegistradoHoje() {
+  var hoje = _diaLocal(new Date());
+  return (state.bikeHistory || []).some(function(r) {
+    return r && r.date && _diaLocal(r.date) === hoje;
+  });
+}
+
+function _pedalHoje() {
+  if (_pedalRegistradoHoje()) return true;
+  return state.pedalHoje !== false;   // padrão SIM
+}
+
 function _proximoTreino() {
   var rot = _estadoRotacao();
   var pernas = _serieDePernas();
   var labelPernas = pernas ? pernas.label : null;
-  var pedal = state.pedalHoje !== false;   // padrão SIM
+  var pedal = _pedalHoje();
 
   var alvo = _serieNaFila(rot, null);
   var adiada = null;
@@ -4492,7 +4513,8 @@ function _textoRotacao() {
     var ultRide = rides.length ? Math.max.apply(null, rides.map(function(r) { return r.dia; })) : null;
     l.push('  CARGA DE CICLISMO RECENTE — ' + cargas.join(' | ') +
       (ultRide !== null ? ' | último ride há ' + Math.round((z.getTime() - ultRide) / MSd) + ' dia(s)' : ' | nenhum ride registrado'));
-    l.push('  PEDAL HOJE: ' + (p.pedalHoje ? 'SIM' : 'NÃO'));
+    l.push('  PEDAL HOJE: ' + (p.pedalHoje ? 'SIM' : 'NÃO') +
+      (_pedalRegistradoHoje() ? ' (ride de hoje JÁ REGISTRADO — as pernas já rodaram, não é previsão)' : ''));
     if (p.labelPernas) {
       var linha = '  Série de pernas (' + nomeDe(p.labelPernas) + '): ' +
         (p.diasSemPernas === null ? 'nunca registrada' : 'último registro há ' + p.diasSemPernas + ' dia(s)');
@@ -4523,6 +4545,7 @@ function _textoRotacao() {
 }
 
 function alternarPedalHoje() {
+  if (_pedalRegistradoHoje()) { toast('Pedal já registrado hoje'); return; }
   // É DADO, não preferência de tela: a decisão é sobre o usuário, não sobre o aparelho. Se fosse
   // UI_FIELD, marcar NÃO no celular deixaria o desktop mostrando outro próximo treino.
   pushUndo('Alternar pedal de hoje');
@@ -4674,6 +4697,38 @@ function _renderRegistroTreino() {
   if (cb) { cb.style.display = ''; cb.textContent = 'REGISTRAR'; cb.onclick = modalCallback; }
 }
 
+// ═══ BIBLIOTECA SEGUE O HISTÓRICO (v0.9.2.13) ═══
+// A Biblioteca guardava a carga com que o exercicio foi CADASTRADO e nunca mais mudava: o
+// registro copiava dela para o historico e a mao voltava vazia. Resultado: um exercicio migrado
+// de kg para PESOS ficava eternamente "22kg" na Biblioteca, e toda projecao futura partia dali —
+// prescrevendo em kg uma polia que o usuario passou a contar em pesos.
+//
+// Agora o caminho e de mao dupla: o que foi REGISTRADO vira a referencia. Vale para mudanca de
+// unidade ("3 pesos"), para carga progressiva ("18-20-22kg") e para simples evolucao de carga.
+//
+// So exercicios FEITOS atualizam. Um pulado nao carrega informacao de carga — herdou o valor
+// exibido sem ter sido executado, e grava-lo na Biblioteca congelaria um numero que ninguem
+// levantou. Core inclusive: ele vive na serie 'score' e e resolvido pelo nome, como no registro.
+function _sincronizarBiblioteca(exercises) {
+  if (!exercises || !exercises.length) return;
+  var todas = (state.series || []);
+  var porNome = {};
+  todas.forEach(function(sr) {
+    (sr.exercises || []).forEach(function(e) {
+      var k = String(e.name || '').trim().toLowerCase();
+      if (k && !porNome[k]) porNome[k] = e;
+    });
+  });
+  exercises.forEach(function(ex) {
+    if (ex.status !== 'done') return;
+    var alvo = porNome[String(ex.name || '').trim().toLowerCase()];
+    if (!alvo) return;
+    if (ex.weight) alvo.weight = ex.weight;
+    if (ex.sets) alvo.sets = ex.sets;
+    if (ex.rest) alvo.rest = ex.rest;
+  });
+}
+
 function _aplicarRegistroTreino() {
   var r = _registroPendente;
   if (!r) return;
@@ -4708,6 +4763,7 @@ function _aplicarRegistroTreino() {
     exercises: exercises
   });
   s.lastDone = new Date().toISOString();
+  _sincronizarBiblioteca(exercises);
   _registroPendente = null;
   // Registrado o treino, a decisão cumpriu seu papel: daqui em diante quem manda é o histórico.
   if (state.proximoDecidido) delete state.proximoDecidido;
@@ -4789,8 +4845,9 @@ function _aplicarRegistroPedal() {
 
   pushUndo('Registrar pedal');
   if (!state.bikeHistory) state.bikeHistory = [];
+  var _rideId = uid();
   state.bikeHistory.unshift({
-    id: uid(), type: 'bike',
+    id: _rideId, type: 'bike',
     date: new Date(parseInt(dm[3]), parseInt(dm[2]) - 1, parseInt(dm[1]), hh, mi).toISOString(),
     foco: v('ped-foco') || 'Pedal',
     distancia: v('ped-distancia', /\s*km\s*$/i),
@@ -4808,6 +4865,74 @@ function _aplicarRegistroPedal() {
   renderAgendaLinear();
   renderHistory();
   toast('Pedal registrado \u2713');
+
+  // O odômetro NÃO anda sozinho: o registro do ride e a leitura do ciclocomputador são fontes
+  // diferentes, e somar automático produziria divergência silenciosa entre o total do app e o
+  // número no guidão. Por isso pergunta, e só depois de o ride já estar salvo — recusar aqui
+  // não pode desfazer o registro.
+  _ofereceOdometro(_rideId);
+}
+
+// Guarda contra dobrar: a leitura fica marcada com o id do ride, então o mesmo ride nunca soma
+// duas vezes, mesmo que o usuário volte e responda de novo.
+function _odometroJaAplicado(rideId) {
+  var o = state.bikeOdo;
+  if (!o || !o.leituras) return false;
+  return o.leituras.some(function(l) { return l.rideId && l.rideId === rideId; });
+}
+
+function _ofereceOdometro(rideId) {
+  var o = state.bikeOdo;
+  if (!o) return;                       // odômetro nunca configurado: nada a atualizar
+  var ride = (state.bikeHistory || []).find(function(r) { return r.id === rideId; });
+  if (!ride) return;
+  var km = parseFloat(String(ride.distancia || '').replace(',', '.').replace(/[^\d.]/g, ''));
+  if (isNaN(km) || km <= 0) return;     // ride sem distância não tem o que somar
+  if (_odometroJaAplicado(rideId)) return;
+
+  var novoTotal = Math.round((o.total + km) * 10) / 10;
+  var novoParcial = Math.round(((o.parcial || 0) + km) * 10) / 10;
+  window._odoPendente = { rideId: rideId, km: km, data: ride.date };
+
+  document.getElementById('modal-title').textContent = 'ATUALIZAR ODÔMETRO?';
+  document.getElementById('modal-body').innerHTML =
+    '<p style="font-family:DM Sans,sans-serif;font-size:13px;color:var(--text);margin:0 0 12px;line-height:1.5">' +
+      'Somar os <b>' + km + ' km</b> deste pedal ao odômetro?</p>' +
+    '<div style="font-family:DM Mono,monospace;font-size:12px;color:var(--muted);margin-bottom:14px;line-height:1.7">' +
+      'Total: ' + o.total + ' \u2192 <span style="color:var(--accent)">' + novoTotal + ' km</span><br>' +
+      'Parcial: ' + (o.parcial || 0) + ' \u2192 <span style="color:var(--accent)">' + novoParcial + ' km</span>' +
+    '</div>' +
+    '<div style="display:flex;gap:8px">' +
+      '<button onclick="_aplicarOdometroDoRide()" style="flex:1;font-family:DM Mono,monospace;font-size:11px;' +
+        'padding:10px;border-radius:8px;border:1px solid var(--done);background:transparent;color:var(--done);cursor:pointer">SIM</button>' +
+      '<button onclick="window._odoPendente=null;closeModal()" style="flex:1;font-family:DM Mono,monospace;font-size:11px;' +
+        'padding:10px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer">NÃO</button>' +
+    '</div>';
+  var cb = document.getElementById('modal-confirm');
+  if (cb) cb.style.display = 'none';
+  modalCallback = null;
+  document.getElementById('modal').classList.add('open');
+}
+
+function _aplicarOdometroDoRide() {
+  var p = window._odoPendente;
+  var o = state.bikeOdo;
+  if (!p || !o) { closeModal(); return; }
+  if (_odometroJaAplicado(p.rideId)) { closeModal(); return; }
+
+  pushUndo('Atualizar odômetro pelo pedal');
+  o.total = Math.round((o.total + p.km) * 10) / 10;
+  o.parcial = Math.round(((o.parcial || 0) + p.km) * 10) / 10;
+  o.dataUltima = p.data || new Date().toISOString();
+  // `data` da leitura é a DO RIDE, não a de agora: lançar um pedal de ontem não pode inserir um
+  // ponto de hoje na série que alimenta o motor de estimativa de km/dia.
+  _bikeOdoLog('ride', { parcial: o.parcial, delta: p.km, totalApos: o.total,
+                        rideId: p.rideId, data: p.data || new Date().toISOString() });
+  window._odoPendente = null;
+  saveState();
+  closeModal();
+  if (typeof renderBikeTab === 'function') renderBikeTab();
+  toast('Odômetro: total ' + o.total + ' km \u2713');
 }
 
 // ═══ AJUSTE DA TELA AO MODELO EM VIGOR (v0.9.1.78 → .84) ═══
@@ -5184,7 +5309,8 @@ async function ajustarProjecaoChat() {
       'Pedido do usuário: ' + pedido + '\n\n' +
       'Aplique o pedido e devolva a projeção INTEIRA já ajustada, SOMENTE neste JSON, sem markdown:\n' +
       '{"treinoProjetado":{"foco":"...","observacoes":"...","exercicios":[{"nome":"...","sets":"3x8","weight":"22kg","rest":"90s","obs":""}]}}\n' +
-      'Use apenas nomes do catálogo, idênticos. Mantenha o que o usuário não pediu para mudar.';
+      'Use apenas nomes do catálogo, idênticos. Mantenha o que o usuário não pediu para mudar.\n\n' +
+      _notacaoCargas();
     var resp = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-api-key': getApiKey(),
@@ -5237,11 +5363,19 @@ function renderProximoTreino() {
     return;
   }
 
+  // Travado quando o ride de hoje já está registrado: o botão passa a relatar um fato, e um
+  // controle que não muda nada não deve parecer clicável. O cadeado e o title dizem por quê —
+  // desabilitar em silêncio pareceria defeito.
+  var travado = _pedalRegistradoHoje();
   var btn = function(lig, txt) {
-    return '<button onclick="alternarPedalHoje()" style="font-family:DM Mono,monospace;font-size:10px;' +
-      'letter-spacing:1px;padding:4px 12px;border-radius:8px;cursor:pointer;border:1px solid ' +
-      (lig ? 'var(--accent)' : 'var(--border)') + ';color:' + (lig ? 'var(--accent)' : 'var(--muted)') +
-      ';background:' + (lig ? 'rgba(232,255,60,.07)' : 'transparent') + '">' + txt + '</button>';
+    return '<button ' + (travado ? 'disabled title="Pedal já registrado hoje — não é mais uma previsão"'
+                                 : 'onclick="alternarPedalHoje()"') +
+      ' style="font-family:DM Mono,monospace;font-size:10px;' +
+      'letter-spacing:1px;padding:4px 12px;border-radius:8px;cursor:' + (travado ? 'default' : 'pointer') +
+      ';border:1px solid ' + (lig ? 'var(--accent)' : 'var(--border)') +
+      ';color:' + (lig ? 'var(--accent)' : 'var(--muted)') +
+      ';background:' + (lig ? 'rgba(232,255,60,.07)' : 'transparent') + '">' +
+      (travado ? '\ud83d\udd12 ' : '') + txt + '</button>';
   };
 
   var dec = _serieDecidida();
@@ -6122,6 +6256,35 @@ function _contextoTreino() {
   return partes.join('\n\n');
 }
 
+// ═══ NOTAÇÃO DE CARGAS (v0.9.2.13) ═══
+// O histórico carrega `weight` como TEXTO LIVRE, e o usuário usa três notações diferentes. Sem
+// explicá-las, o modelo lê "3 pesos" como um número solto e "18-20-22kg" como faixa vaga — e
+// devolve a prescrição em kg para uma polia que o usuário conta em pesos, ou achata a progressão
+// num valor único. Nenhum dos dois erros aparece na tela: aparece no treino errado.
+function _notacaoCargas() {
+  return 'NOTAÇÃO DE CARGAS — o campo de carga é TEXTO LIVRE e o usuário usa as formas abaixo. Produza SEMPRE na mesma forma do registro mais recente daquele exercício:\n' +
+    '  1. "22kg" — carga única em quilos.\n' +
+    '  2. "3 pesos" / "4 pesos" — PLACAS da máquina, não quilos. Aparelhos de polia têm pilhas ' +
+    'diferentes, e o mesmo número de kg estampado não corresponde ao mesmo esforço entre máquinas; ' +
+    'a contagem de placas é mais consistente. NUNCA converta pesos em kg nem kg em pesos, e NUNCA ' +
+    'invente a equivalência.\n' +
+    '  3. "18-20-22kg" ou "18-20kg" — CARGA PROGRESSIVA dentro da mesma sessão: começou em 18 e ' +
+    'terminou em 22. Com três valores para três séries, é um por série. Com dois valores para três ' +
+    'ou quatro séries, significa que subiu em algum ponto e em qual série isso ocorreu não importa. ' +
+    'Não é faixa de incerteza nem média: é progressão executada.\n' +
+    '  4. Qualificadores no fim, como "cada lado" ou "por lado" — o número vale para UM lado, e o ' +
+    'volume total é o dobro. "10-12.5kg cada lado" é progressão POR LADO. O usuário só anota isso ' +
+    'quando não é óbvio pelo exercício; a ausência do qualificador não significa carga bilateral. ' +
+    'Reproduza o qualificador exatamente quando o registro mais recente o traz, e NÃO o acrescente ' +
+    'onde ele não aparece.\n' +
+    '  5. "Peso corporal" — sem carga externa. Não substitua por um número.\n' +
+    'REGRA GERAL: para cada exercício, use a notação do REGISTRO MAIS RECENTE dele, incluindo ' +
+    'unidade e qualificadores. Se o último registro está em pesos, prescreva em pesos. Se vinha em ' +
+    'kg e passou a pesos, a mudança é deliberada — siga a nova. Nunca converta entre notações nem ' +
+    'normalize o formato. Progressão dentro da sessão é bem-vinda quando o histórico mostra margem: ' +
+    'prescrever "18-20-22kg" é resposta válida e melhor que um valor fixo quando ele vem subindo.';
+}
+
 // ═══ TREINO PROJETADO (v0.9.2.00) — o passo 3 ═══
 // A orientacao respondia em TEXTO no chat porque, quando foi escrita, nao havia onde gravar o
 // resultado. Com `state.proximoDecidido` isso mudou: a projecao passa a ser DADO — foco,
@@ -6173,8 +6336,9 @@ async function projetarTreino() {
     'Nas observações, diga em uma frase o que ficou de fora e por quê.\n\n' +
     'Regras de formato: nome IDÊNTICO ao da Biblioteca. Carga concreta para cada exercício, ' +
     'partindo do que já foi levantado no histórico — suba onde houver margem, mantenha onde ' +
-    'estagnou e explique na obs, reduza onde a fadiga justificar. Nada de faixas vagas: um valor ' +
-    'por exercício. Inclua "rest" (descanso entre séries) em cada um.\n\n' + _contextoTreino();
+    'estagnou e explique na obs, reduza onde a fadiga justificar. ' +
+    'Inclua "rest" (descanso entre séries) em cada um.\n\n' +
+    _notacaoCargas() + '\n\n' + _contextoTreino();
 
   toast('Projetando…');
   try {
@@ -10700,6 +10864,24 @@ function bikeAtualizarParcialCorrigirAnterior(novo) {
   var delta = Math.round((novo - o.parcial) * 10) / 10; // negativo
   var novoTotal = Math.round((o.total + delta) * 10) / 10;
   var body = document.getElementById('modal-body');
+
+  // PISO EM ZERO (v0.9.2.10). Sem isto a correcao aceitava qualquer delta: total 5 com delta -30
+  // gravava -25km, calado. Odometro negativo envenena tudo que depende dele — vida util de
+  // componente, media de km/dia, previsao de troca — e o erro so aparece muito depois, numa conta
+  // que nao fecha. Recusar aqui e dizer o limite disponivel e melhor que aceitar e inverter o sinal.
+  if (novoTotal < 0) {
+    body.innerHTML =
+      '<p style="font-family:DM Sans,sans-serif;font-size:13px;color:var(--text);margin:0 0 10px;line-height:1.5">' +
+      'Essa correção tiraria <b>' + Math.abs(delta) + 'km</b> de um total de <b>' + o.total + 'km</b>, ' +
+      'deixando o odômetro negativo.<br><br>A redução máxima possível é <b>' + o.total + 'km</b> ' +
+      '(parcial mínimo: ' + Math.max(0, Math.round((o.parcial - o.total) * 10) / 10) + 'km).<br><br>' +
+      'Se o total atual é que está errado, corrija-o direto em EDITAR TOTAL.</p>' +
+      '<button onclick="bikeAtualizarParcialPrompt()" style="display:block;width:100%;font-family:DM Mono,monospace;' +
+      'font-size:11px;padding:10px;border-radius:8px;border:1px solid var(--border);background:transparent;' +
+      'color:var(--text);cursor:pointer">VOLTAR E CORRIGIR</button>';
+    return;
+  }
+
   body.innerHTML =
     '<p style="font-family:DM Sans,sans-serif;font-size:13px;color:var(--text);margin:0 0 10px">Correção: parcial ' + o.parcial + 'km → ' + novo + 'km (<b>' + delta + 'km</b>)<br>Total: ' + o.total + 'km → <b>' + novoTotal + 'km</b></p>' +
     '<button onclick="bikeAtualizarParcialAplicarCorrecao(' + novo + ',' + delta + ')" style="display:block;width:100%;font-family:DM Mono,monospace;font-size:11px;padding:10px;border-radius:8px;border:none;background:var(--accent);color:#000;cursor:pointer">CONFIRMAR CORREÇÃO</button>';
@@ -10707,6 +10889,12 @@ function bikeAtualizarParcialCorrigirAnterior(novo) {
 
 function bikeAtualizarParcialAplicarCorrecao(novo, delta) {
   var o = state.bikeOdo;
+  // Segunda linha de defesa: esta funcao entra por onclick e nao pode confiar em ja ter passado
+  // pela verificacao da tela.
+  if (Math.round((o.total + delta) * 10) / 10 < 0) {
+    toast('Correção recusada: deixaria o odômetro negativo');
+    return;
+  }
   o.parcial = novo;
   o.total = Math.round((o.total + delta) * 10) / 10;
   o.dataUltima = new Date().toISOString();
@@ -11148,22 +11336,56 @@ function _bikeCorrenteFolgaAtualFerramentaId(c) {
   return meds.length ? meds[meds.length - 1].ferramentaId : null;
 }
 
-// Cálculo FRIO: expectativa de km definida pelo usuário (fixa, mesma para todas as correntes)
+// ═══ RODÍZIO E VIDA ÚTIL (v0.9.2.12) ═══
+// Uma corrente em rodízio NÃO acumula km no ritmo da bicicleta: ela roda um bloco, sai, espera
+// enquanto a outra roda, e volta. Com N correntes alternando, cada uma acumula 1/N do que a bike
+// roda. Todas as previsões de data usavam `kmRestante / médiaKmDia` — a média é da BICICLETA,
+// então elas anunciavam o fim da corrente na metade do prazo real.
+//
+// A projeção assume que o RODÍZIO CONTINUA: quando uma corrente acaba, ela é substituída e a
+// alternância se mantém. Não se modela "depois que a primeira morrer, a outra roda sozinha" —
+// isso descreveria uma decisão de compra que o usuário não tomou. Se ele aposentar o rodízio,
+// `rodizioAtivo` vira false e o fator volta a 1.
+//
+// Correntes de modelos diferentes duram diferente (uma RED pode durar o dobro de uma RIVAL),
+// então a expectativa passou a ser POR CORRENTE, caindo no valor global só para as que ainda
+// não têm o campo.
+function _bikeRodizioN() {
+  var o = state.bikeOdo;
+  if (!o) return 1;
+  if (o.rodizioAtivo === false) return 1;   // aposentado: uma corrente só
+  var n = (o.correntes || []).filter(function(c) {
+    return c.status === 'ativa' || c.status === 'espera';
+  }).length;
+  return n > 0 ? n : 1;
+}
+
+function _bikeCorrenteExpectativa(c) {
+  if (c && c.expectativaKm !== undefined && c.expectativaKm !== null) return c.expectativaKm;
+  var g = state.bikeOdo ? state.bikeOdo.correnteExpectativaKm : null;
+  return (g === undefined || g === null) ? 5000 : g;
+}
+
+// Data prevista para uma corrente consumir `kmRestante` DELA. Vale para ativa e para a que está
+// em espera: no rodízio, a que espera também tem prazo — ela volta. Antes, `if (status ===
+// 'ativa')` deixava a corrente em espera sem previsão nenhuma.
+function _bikeCorrenteDataEstimada(c, kmRestante) {
+  if (!(kmRestante > 0)) return null;
+  var media = _bikeOdoMediaKmDia();
+  if (!(media > 0)) return null;
+  var dias = Math.ceil((kmRestante * _bikeRodizioN()) / media);
+  var d = new Date();
+  d.setDate(d.getDate() + dias);
+  return d;
+}
+
+// Cálculo FRIO: expectativa de km da corrente (própria, ou a global como padrão)
 function _bikeCorrenteFixo(c) {
-  var kmEsperado = state.bikeOdo.correnteExpectativaKm || 5000;
+  var kmEsperado = _bikeCorrenteExpectativa(c);
   var kmAtual = _bikeCorrenteKm(c);
   var kmRestante = Math.round((kmEsperado - kmAtual) * 10) / 10;
-  var dataEstimada = null;
-  if (c.status === 'ativa' && kmRestante > 0) {
-    var media = _bikeOdoMediaKmDia();
-    if (media > 0) {
-      var dias = Math.ceil(kmRestante / media);
-      var d = new Date();
-      d.setDate(d.getDate() + dias);
-      dataEstimada = d;
-    }
-  }
-  return { status: 'ok', kmRestante: kmRestante, dataEstimada: dataEstimada };
+  return { status: 'ok', kmRestante: kmRestante,
+           dataEstimada: _bikeCorrenteDataEstimada(c, kmRestante) };
 }
 
 // PRÓXIMA IMERSÃO: plano PRÉ-FIXADO desde a última imersão — base + (máximo de top-offs
@@ -11173,21 +11395,13 @@ function _bikeCorrenteFixo(c) {
 function _bikeCorrenteProximaImersao(c) {
   var base = state.bikeOdo.correnteIntervaloImersaoKm || 400;
   var extPorTopoff = state.bikeOdo.correnteExtensaoTopoffKm || 150;
-  var maxTopoffs = state.bikeOdo.correnteMaxTopoffs || 2;
+  var maxTopoffs = _maxTopoffs();
   var kmUltimaImersao = (c.imersoes && c.imersoes.length) ? c.imersoes[0].kmIndividual : 0;
   var kmAlvo = kmUltimaImersao + base + maxTopoffs * extPorTopoff;
   var kmAtual = _bikeCorrenteKm(c);
   var kmRestante = Math.round((kmAlvo - kmAtual) * 10) / 10;
   var dataEstimada = null;
-  if (c.status === 'ativa' && kmRestante > 0) {
-    var media = _bikeOdoMediaKmDia();
-    if (media > 0) {
-      var dias = Math.ceil(kmRestante / media);
-      var d = new Date();
-      d.setDate(d.getDate() + dias);
-      dataEstimada = d;
-    }
-  }
+  dataEstimada = _bikeCorrenteDataEstimada(c, kmRestante);
   var nTopoffs = _bikeCorrenteNTopoffsDesdeImersao(c);
   return { status: 'ok', kmRestante: kmRestante, dataEstimada: dataEstimada, excedeu: nTopoffs > maxTopoffs };
 }
@@ -11198,7 +11412,7 @@ function _bikeCorrenteProximaImersao(c) {
 function _bikeCorrenteProximoTopoff(c) {
   var base = state.bikeOdo.correnteIntervaloImersaoKm || 400;
   var extPorTopoff = state.bikeOdo.correnteExtensaoTopoffKm || 150;
-  var maxTopoffs = state.bikeOdo.correnteMaxTopoffs || 2;
+  var maxTopoffs = _maxTopoffs();
   var nTopoffs = _bikeCorrenteNTopoffsDesdeImersao(c);
   if (nTopoffs >= maxTopoffs) return { status: 'limite-atingido' };
   var kmUltimaImersao = (c.imersoes && c.imersoes.length) ? c.imersoes[0].kmIndividual : 0;
@@ -11207,15 +11421,7 @@ function _bikeCorrenteProximoTopoff(c) {
   var kmAtual = _bikeCorrenteKm(c);
   var kmRestante = Math.round((kmAlvo - kmAtual) * 10) / 10;
   var dataEstimada = null;
-  if (c.status === 'ativa' && kmRestante > 0) {
-    var media = _bikeOdoMediaKmDia();
-    if (media > 0) {
-      var dias = Math.ceil(kmRestante / media);
-      var d = new Date();
-      d.setDate(d.getDate() + dias);
-      dataEstimada = d;
-    }
-  }
+  dataEstimada = _bikeCorrenteDataEstimada(c, kmRestante);
   return { status: 'ok', kmRestante: kmRestante, dataEstimada: dataEstimada };
 }
 
@@ -11245,15 +11451,7 @@ function _bikeCorrenteDinamica(c, alvo) {
   var kmAtual = _bikeCorrenteKm(c);
   var kmRestante = Math.round((kmAlvo - kmAtual) * 10) / 10;
   var dataEstimada = null;
-  if (c.status === 'ativa' && kmRestante > 0) {
-    var media = _bikeOdoMediaKmDia();
-    if (media > 0) {
-      var dias = Math.ceil(kmRestante / media);
-      var d = new Date();
-      d.setDate(d.getDate() + dias);
-      dataEstimada = d;
-    }
-  }
+  dataEstimada = _bikeCorrenteDataEstimada(c, kmRestante);
   return { status: 'ok', kmRestante: kmRestante, dataEstimada: dataEstimada };
 }
 
@@ -11270,20 +11468,12 @@ function _bikeCorrentePowerlockRestante(c) {
   var contador = c.powerlockContador || 0;
   var restantes = limite - contador;
   if (restantes <= 0) return { status: 'atingido' };
-  var kmPorCiclo = (state.bikeOdo.correnteIntervaloImersaoKm || 400) + (state.bikeOdo.correnteMaxTopoffs || 2) * (state.bikeOdo.correnteExtensaoTopoffKm || 150);
+  var kmPorCiclo = (state.bikeOdo.correnteIntervaloImersaoKm || 400) + (_maxTopoffs()) * (state.bikeOdo.correnteExtensaoTopoffKm || 150);
   var proximaImersao = _bikeCorrenteProximaImersao(c);
   var kmRestanteCicloAtual = (proximaImersao.status === 'ok') ? Math.max(proximaImersao.kmRestante, 0) : kmPorCiclo;
   var kmRestante = Math.round((kmRestanteCicloAtual + (restantes - 1) * kmPorCiclo) * 10) / 10;
   var dataEstimada = null;
-  if (c.status === 'ativa' && kmRestante > 0) {
-    var media = _bikeOdoMediaKmDia();
-    if (media > 0) {
-      var dias = Math.ceil(kmRestante / media);
-      var d = new Date();
-      d.setDate(d.getDate() + dias);
-      dataEstimada = d;
-    }
-  }
+  dataEstimada = _bikeCorrenteDataEstimada(c, kmRestante);
   return { status: 'ok', kmRestante: kmRestante, dataEstimada: dataEstimada };
 }
 
@@ -11376,7 +11566,9 @@ function renderBikeCorrentesHTML() {
   var labelLimite = (ferramentaAtiva && ferramentaAtiva.limiteValor !== null && ferramentaAtiva.limiteValor !== undefined) ? _folgaLabel(ferramentaAtiva.limiteValor, ferramentaAtiva.id) : '—';
   var vidaUtilHTML =
     '<div style="font-family:DM Mono,monospace;font-size:9px;letter-spacing:1px;color:var(--muted);margin-bottom:2px">VIDA ÚTIL</div>' +
-    _bikeVidaUtilLinhaHTML('FIXO — expectativa <span onclick="bikeCorrenteExpectativaPrompt()" style="color:var(--accent);text-decoration:underline;cursor:pointer">' + (state.bikeOdo.correnteExpectativaKm || 5000) + 'km</span>', fixo) +
+    _bikeVidaUtilLinhaHTML('FIXO — expectativa <span onclick="bikeCorrenteExpectativaPrompt()" style="color:var(--accent);text-decoration:underline;cursor:pointer">' + _bikeCorrenteExpectativa(sel) + 'km</span>' +
+      ' <span onclick="bikeRodizioTogglePrompt()" style="color:var(--muted);text-decoration:underline;cursor:pointer">· ' +
+      (_bikeRodizioN() > 1 ? 'rodízio 1/' + _bikeRodizioN() : 'sem rodízio') + '</span>', fixo) +
     _bikeVidaUtilLinhaHTML('DINÂMICO — TROCA IDEAL (folga ' + labelIdeal + ')', dinIdeal) +
     _bikeVidaUtilLinhaHTML('DINÂMICO — TROCA LIMITE (folga ' + labelLimite + ')', dinLimite) +
     _bikeVidaUtilLinhaHTML('POWERLOCK — <span onclick="bikePowerlockContadorPrompt(\'' + sel.id + '\')" style="color:var(--accent);text-decoration:underline;cursor:pointer">' + (sel.powerlockContador || 0) + '</span>/<span onclick="bikePowerlockLimitePrompt()" style="color:var(--accent);text-decoration:underline;cursor:pointer">' + (state.bikeOdo.powerlockLimiteMontagens || 7) + '</span> montagens', _bikeCorrentePowerlockRestante(sel));
@@ -11384,7 +11576,7 @@ function renderBikeCorrentesHTML() {
   var proxImersao = _bikeCorrenteProximaImersao(sel);
   var proxTopoff = _bikeCorrenteProximoTopoff(sel);
   var nTopoffs = _bikeCorrenteNTopoffsDesdeImersao(sel);
-  var maxTopoffs = state.bikeOdo.correnteMaxTopoffs || 2;
+  var maxTopoffs = _maxTopoffs();
   var proxImersaoHTML =
     '<div style="font-family:DM Mono,monospace;font-size:9px;letter-spacing:1px;color:var(--muted);margin-bottom:2px">PRÓXIMA IMERSÃO (PLANO)</div>' +
     _bikeVidaUtilLinhaHTML('base <span onclick="bikeCorrenteIntervaloImersaoPrompt()" style="color:var(--accent);text-decoration:underline;cursor:pointer">' + (state.bikeOdo.correnteIntervaloImersaoKm || 400) + 'km</span> + até <span onclick="bikeCorrenteMaxTopoffsPrompt()" style="color:var(--accent);text-decoration:underline;cursor:pointer">' + maxTopoffs + '</span> Drip-wax Top-off(s) de <span onclick="bikeCorrenteExtensaoTopoffPrompt()" style="color:var(--accent);text-decoration:underline;cursor:pointer">' + (state.bikeOdo.correnteExtensaoTopoffKm || 150) + 'km</span>', proxImersao) +
@@ -11662,10 +11854,11 @@ function bikeCorrenteExpectativaPrompt() {
   var title = document.getElementById('modal-title');
   var body = document.getElementById('modal-body');
   var confirmBtn = document.getElementById('modal-confirm');
-  if (title) title.textContent = 'EXPECTATIVA DE VIDA ÚTIL';
+  var _sel = _bikeCorrenteSel();
+  if (title) title.textContent = 'EXPECTATIVA — ' + (_sel ? _sel.nome : 'CORRENTE');
   if (body) body.innerHTML =
-    '<p style="font-family:DM Sans,sans-serif;font-size:12px;color:var(--muted);margin:0 0 10px">Km esperada por corrente, usada no cálculo "fixo" — vale para todas as correntes.</p>' +
-    '<input id="corrente-expectativa" type="number" step="100" min="0" value="' + (state.bikeOdo.correnteExpectativaKm || 5000) + '" style="display:block;width:100%;box-sizing:border-box;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:DM Mono,monospace;margin-bottom:10px">' +
+    '<p style="font-family:DM Sans,sans-serif;font-size:12px;color:var(--muted);margin:0 0 10px">Km esperada <b>desta corrente</b>, usada no cálculo "fixo". Modelos diferentes duram diferente — uma RED ou FORCE pode durar o dobro de uma RIVAL.</p>' +
+    '<input id="corrente-expectativa" type="number" step="100" min="0" value="' + (_bikeCorrenteSel() ? _bikeCorrenteExpectativa(_bikeCorrenteSel()) : 5000) + '" style="display:block;width:100%;box-sizing:border-box;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:DM Mono,monospace;margin-bottom:10px">' +
     '<button onclick="bikeCorrenteExpectativaAplicar()" style="display:block;width:100%;font-family:DM Mono,monospace;font-size:11px;padding:10px;border-radius:8px;border:none;background:var(--accent);color:#000;cursor:pointer">SALVAR</button>';
   if (confirmBtn) confirmBtn.style.display = 'none';
   document.getElementById('modal').classList.add('open');
@@ -11674,12 +11867,47 @@ function bikeCorrenteExpectativaPrompt() {
 function bikeCorrenteExpectativaAplicar() {
   var v = parseFloat(document.getElementById('corrente-expectativa').value);
   if (isNaN(v) || v <= 0) { toast('Valor inválido'); return; }
-  pushUndo('Editar expectativa de vida útil');
-  state.bikeOdo.correnteExpectativaKm = v;
+  var sel = _bikeCorrenteSel();
+  if (!sel) { toast('Nenhuma corrente selecionada'); return; }
+  pushUndo('Editar expectativa: ' + sel.nome);
+  // Grava NA CORRENTE. O valor global fica só como padrão de quem nunca foi editada.
+  sel.expectativaKm = v;
   saveState();
   closeModal();
   renderBikeTab();
-  toast('Expectativa atualizada: ' + v + 'km ✓');
+  toast('Expectativa de ' + sel.nome + ': ' + v + 'km ✓');
+}
+
+// Aposentar o rodízio: passar a rodar com uma corrente só. Enquanto ativo, a projeção assume que
+// a alternância continua — corrente que acaba é substituída.
+function bikeRodizioTogglePrompt() {
+  var o = state.bikeOdo;
+  var ativo = o.rodizioAtivo !== false;
+  var n = _bikeRodizioN();
+  document.getElementById('modal-title').textContent = 'RODÍZIO DE CORRENTES';
+  document.getElementById('modal-body').innerHTML =
+    '<p style="font-family:DM Sans,sans-serif;font-size:13px;color:var(--text);margin:0 0 12px;line-height:1.5">' +
+      (ativo
+        ? 'O rodízio está <b>ATIVO</b> com ' + n + ' corrente(s). Cada uma acumula 1/' + n +
+          ' do que a bicicleta roda, e as previsões assumem que a alternância continua — corrente que acabar será substituída.'
+        : 'O rodízio está <b>APOSENTADO</b>. As previsões contam como se a corrente ativa rodasse todo o km da bicicleta.') +
+    '</p>' +
+    '<button onclick="bikeRodizioToggleAplicar()" style="display:block;width:100%;font-family:DM Mono,monospace;' +
+      'font-size:11px;padding:10px;border-radius:8px;border:none;background:var(--accent);color:#000;cursor:pointer">' +
+      (ativo ? 'APOSENTAR O RODÍZIO' : 'REATIVAR O RODÍZIO') + '</button>';
+  var cb = document.getElementById('modal-confirm');
+  if (cb) cb.style.display = 'none';
+  document.getElementById('modal').classList.add('open');
+}
+
+function bikeRodizioToggleAplicar() {
+  var o = state.bikeOdo;
+  pushUndo('Alternar modo de rodízio');
+  o.rodizioAtivo = (o.rodizioAtivo === false);
+  saveState();
+  closeModal();
+  renderBikeTab();
+  toast(o.rodizioAtivo ? 'Rodízio reativado' : 'Rodízio aposentado');
 }
 
 function bikePowerlockLimitePrompt() {
@@ -11789,15 +12017,25 @@ function bikeCorrenteMaxTopoffsPrompt() {
   if (title) title.textContent = 'MÁXIMO DE DRIP-WAX TOP-OFFS';
   if (body) body.innerHTML =
     '<p style="font-family:DM Sans,sans-serif;font-size:12px;color:var(--muted);margin:0 0 10px">Nº de Drip-wax Top-offs previstos no plano antes de exigir uma imersão completa — vale para todas as correntes. Passar disso é sinalizado como imprevisto.</p>' +
-    '<input id="corrente-max-topoffs" type="number" step="1" min="1" value="' + (state.bikeOdo.correnteMaxTopoffs || 2) + '" style="display:block;width:100%;box-sizing:border-box;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:DM Mono,monospace;margin-bottom:10px">' +
+    '<input id="corrente-max-topoffs" type="number" step="1" min="0" value="' + _maxTopoffs() + '" style="display:block;width:100%;box-sizing:border-box;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:DM Mono,monospace;margin-bottom:10px">' +
     '<button onclick="bikeCorrenteMaxTopoffsAplicar()" style="display:block;width:100%;font-family:DM Mono,monospace;font-size:11px;padding:10px;border-radius:8px;border:none;background:var(--accent);color:#000;cursor:pointer">SALVAR</button>';
   if (confirmBtn) confirmBtn.style.display = 'none';
   document.getElementById('modal').classList.add('open');
 }
 
+// Máximo de top-offs combinado. Existe porque `x || 2` trata ZERO como ausência: com o valor 0
+// salvo, todos os leitores voltavam a assumir 2 e a configuração não tinha efeito algum — o campo
+// aceitaria o número e o app continuaria planejando dois top-offs. Zero é escolha legítima:
+// "não uso drip-wax, só imersão completa".
+function _maxTopoffs() {
+  var v = state.bikeOdo ? state.bikeOdo.correnteMaxTopoffs : null;
+  return (v === undefined || v === null) ? 2 : v;
+}
+
 function bikeCorrenteMaxTopoffsAplicar() {
   var v = parseInt(document.getElementById('corrente-max-topoffs').value, 10);
-  if (isNaN(v) || v <= 0) { toast('Valor inválido'); return; }
+  // Zero é válido: significa "não uso top-off, só imersão completa". `v <= 0` rejeitava isso.
+  if (isNaN(v) || v < 0) { toast('Valor inválido'); return; }
   pushUndo('Editar máximo de Drip-wax Top-offs');
   state.bikeOdo.correnteMaxTopoffs = v;
   saveState();
@@ -12077,7 +12315,7 @@ function bikeCorrenteDripWaxPrompt(id) {
   var c = state.bikeOdo.correntes.find(function(x) { return x.id === id; });
   if (!c) return;
   var nTopoffs = _bikeCorrenteNTopoffsDesdeImersao(c);
-  var maxTopoffs = state.bikeOdo.correnteMaxTopoffs || 2;
+  var maxTopoffs = _maxTopoffs();
   var title = document.getElementById('modal-title');
   var body = document.getElementById('modal-body');
   var confirmBtn = document.getElementById('modal-confirm');
