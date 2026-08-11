@@ -1427,7 +1427,7 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
   <div class="header-brand">
     <div class="logo">TREINO</div>
     <div class="header-meta">
-      <span class="header-version">v0.9.2.14</span>
+      <span class="header-version">v0.9.2.15</span>
       <span id="dbStamp" title="Última atualização dos dados">⟳ —</span>
     </div>
   </div>
@@ -10720,6 +10720,12 @@ function renderBikeTab() {
     else if (l.tipo === 'data') desc = 'Bike parada — apenas data atualizada';
     else if (l.tipo === 'edicao') desc = 'Correção de leitura — parcial ' + l.parcial + 'km, total ' + l.totalApos + 'km';
     else if (l.tipo === 'edicao-total') desc = 'EDIÇÃO MANUAL do total — ' + l.totalApos + 'km';
+    // 'ride' é gravado pelo prompt de odômetro que aparece após registrar um pedal na AGENDA.
+    // Ficou sem ramo aqui desde que o prompt foi criado: as entradas existiam com todos os
+    // campos, mas saíam como linha só com a data. Mesmo formato das leituras manuais + marca
+    // de origem, para distinguir do que foi digitado direto na aba BIKE.
+    else if (l.tipo === 'ride') desc = 'Parcial ' + l.parcial + 'km (+' + l.delta + 'km) — total ' + l.totalApos + 'km' +
+      ' <span style="color:var(--muted)">· via agenda</span>';
     var obsHTML = l.obs ? ' <span style="color:var(--accent)">— ' + escHtml(l.obs) + '</span>' : '';
     return '<div style="padding:8px 0;border-bottom:1px solid var(--border);font-family:DM Mono,monospace;font-size:11px;color:var(--text)"><span style="color:var(--muted)">' + d + '</span> · ' + desc + obsHTML + '</div>';
   }).join('');
