@@ -1427,7 +1427,7 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
   <div class="header-brand">
     <div class="logo">TREINO</div>
     <div class="header-meta">
-      <span class="header-version">v0.9.2.15</span>
+      <span class="header-version">v0.9.2.16</span>
       <span id="dbStamp" title="Última atualização dos dados">⟳ —</span>
     </div>
   </div>
@@ -4729,6 +4729,31 @@ function _sincronizarBiblioteca(exercises) {
   });
 }
 
+// Carga EXECUTADA mais recente de um exercício, lida direto do histórico.
+//
+// A Biblioteca é uma RÉPLICA do último registro, não a fonte. Entre o registro e a réplica cabe
+// uma versão do app anterior a `_sincronizarBiblioteca`, um exercício pulado, um aparelho que
+// registrou antes de sincronizar. Quando as duas discordam, quem levantou o peso é o histórico —
+// foi exatamente essa divergência que fez a IA tratar "7 pesos" de 05/08 como conversão pontual:
+// o catálogo entregava `atual: 27kg` de uma Biblioteca congelada antes daquela sessão.
+//
+// Só `status === 'done'` conta: um pulado herdou o valor exibido sem ter sido executado.
+function _cargaExecutada(nome) {
+  var k = String(nome || '').trim().toLowerCase();
+  if (!k) return null;
+  var hist = _historicoCompleto();          // índice 0 = mais recente
+  for (var i = 0; i < hist.length; i++) {
+    var exs = hist[i].exercises || [];
+    for (var j = 0; j < exs.length; j++) {
+      var e = exs[j];
+      if (e.status !== 'done') continue;
+      if (String(e.name || '').trim().toLowerCase() !== k) continue;
+      return { sets: e.sets || '', weight: e.weight || '', data: hist[i].date };
+    }
+  }
+  return null;
+}
+
 function _aplicarRegistroTreino() {
   var r = _registroPendente;
   if (!r) return;
@@ -6305,7 +6330,15 @@ async function projetarTreino() {
   if (!exs.length) { toast('Série sem exercícios na Biblioteca'); return; }
 
   var lista = exs.map(function(e) {
-    return '  - ' + (e.name || '?') + ' | atual: ' + (e.sets || '?') + ' | ' + (e.weight || '?') +
+    // `atual` vem do HISTÓRICO, não da Biblioteca — fonte única. Com a data junto, a IA não
+    // precisa cruzar este bloco com o histórico para saber de quando é o valor.
+    var exec = _cargaExecutada(e.name);
+    var sets = (exec && exec.sets) || e.sets || '?';
+    var peso = (exec && exec.weight) || e.weight || '?';
+    var fonte = exec
+      ? ' | executado em ' + new Date(exec.data).toLocaleDateString('pt-BR')
+      : ' | nunca registrado — valor de cadastro';
+    return '  - ' + (e.name || '?') + ' | atual: ' + sets + ' | ' + peso + fonte +
       (e.rest ? ' | descanso ' + e.rest : '') + (e.isCore ? ' | [core]' : '');
   }).join('\n');
 
@@ -19289,6 +19322,24 @@ loadPersistedState(function() {
     (state.history || []).forEach(_fundir);
     (state.bikeHistory || []).forEach(_fundir);
     state._migracaoCarimboUnicoV1 = true;
+  }
+
+  // Migração: reaplicar a sincronização da Biblioteca sobre as sessões já registradas.
+  //
+  // `_sincronizarBiblioteca` nasceu na v0.9.2.13. Os treinos registrados ANTES dela gravaram a
+  // carga executada no histórico e não devolveram nada ao catálogo — a sessão C de 05/08 deixou
+  // seis exercícios congelados numa notação anterior, e a projeção seguinte partiu de lá.
+  //
+  // RESTRITO a `variant === 'Contínuo'`. Os registros do modelo de ciclos nasceram quando a
+  // Biblioteca era a FONTE, não a réplica: reaplicá-los sobrescreveria com valores de abril
+  // edições manuais deliberadas feitas depois. Ordem cronológica (o histórico é unshift, daí o
+  // reverse) para que o mais recente prevaleça.
+  if (!state._migracaoBibSyncV1) {
+    (state.history || []).slice().reverse().forEach(function(h) {
+      if (h && h.variant === 'Contínuo') _sincronizarBiblioteca(h.exercises);
+    });
+    state._migracaoBibSyncV1 = true;
+    saveState();
   }
 
   render();
