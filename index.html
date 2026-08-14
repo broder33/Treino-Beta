@@ -1427,7 +1427,7 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
   <div class="header-brand">
     <div class="logo">TREINO</div>
     <div class="header-meta">
-      <span class="header-version">v0.9.2.16</span>
+      <span class="header-version">v0.9.2.22</span>
       <span id="dbStamp" title="Última atualização dos dados">⟳ —</span>
     </div>
   </div>
@@ -11408,14 +11408,63 @@ function _bikeCorrenteExpectativa(c) {
 // Data prevista para uma corrente consumir `kmRestante` DELA. Vale para ativa e para a que está
 // em espera: no rodízio, a que espera também tem prazo — ela volta. Antes, `if (status ===
 // 'ativa')` deixava a corrente em espera sem previsão nenhuma.
-function _bikeCorrenteDataEstimada(c, kmRestante) {
-  if (!(kmRestante > 0)) return null;
+// Data prevista para a bicicleta rodar `kmBike` km. O ARGUMENTO JÁ É EM KM DE BICICLETA — a
+// conversão de "km desta corrente" para "km de bicicleta" é responsabilidade de quem chama,
+// porque depende do horizonte.
+//
+// Antes esta função multiplicava por `_bikeRodizioN()` internamente, o que aplicava o fator do
+// rodízio aos cinco cálculos que a chamam, inclusive aos que não atravessam rodízio nenhum. O
+// ciclo de imersão É o turno: a corrente instalada roda os 300km dela seguidos, no ritmo cheio
+// da bike. Ter outra corrente na gaveta não faz a cera durar 600km. Com o fator embutido, a
+// previsão de imersão da corrente ativa dobrava só por existir uma segunda corrente cadastrada.
+function _bikeCorrenteDataEstimada(c, kmBike) {
+  if (!(kmBike > 0)) return null;
   var media = _bikeOdoMediaKmDia();
   if (!(media > 0)) return null;
-  var dias = Math.ceil((kmRestante * _bikeRodizioN()) / media);
+  var dias = Math.ceil(kmBike / media);
   var d = new Date();
   d.setDate(d.getDate() + dias);
   return d;
+}
+
+// Tamanho de um turno: quanto uma corrente roda entre uma imersão e a seguinte.
+function _bikeTurnoKm() {
+  var o = state.bikeOdo || {};
+  return (o.correnteIntervaloImersaoKm || 400) + _maxTopoffs() * (o.correnteExtensaoTopoffKm || 150);
+}
+
+// Km de BICICLETA até esta corrente acumular `kmIndividual` km DELA, dentro do turno corrente.
+//
+// Se ela está na bike, é 1:1 — ela é a única rodando. Se está em espera, ela não gasta nada até
+// voltar: primeiro a bike precisa terminar o turno da corrente ativa, e só então os km dela
+// começam a contar. É contagem sequencial, não um fator multiplicador.
+function _bikeCorrenteKmBike(c, kmIndividual) {
+  if (!(kmIndividual > 0)) return kmIndividual;
+  if (c && c.status === 'ativa') return kmIndividual;
+  var ativa = _bikeCorrenteAtiva();
+  var espera = 0;
+  if (ativa && ativa.id !== (c && c.id)) {
+    var alvoAtiva = ((ativa.imersoes && ativa.imersoes.length) ? ativa.imersoes[0].kmIndividual : 0) + _bikeTurnoKm();
+    espera = Math.max(alvoAtiva - _bikeCorrenteKm(ativa), 0);
+  }
+  return Math.round((espera + kmIndividual) * 10) / 10;
+}
+
+// Km de BICICLETA para um horizonte LONGO, que atravessa vários turnos.
+//
+// A parte que cabe no turno em curso não é multiplicada — a corrente montada está rodando agora,
+// sozinha. O que passa disso alterna com a outra corrente, e aí cada km dela custa N km de bike.
+// Para uma corrente que não está montada não existe turno em curso: tudo entra multiplicado.
+function _bikeCorrenteKmBikeLongo(c, kmIndividual) {
+  if (!(kmIndividual > 0)) return kmIndividual;
+  var n = _bikeRodizioN();
+  if (n <= 1) return kmIndividual;
+  var dentro = 0;
+  if (c && c.status === 'ativa') {
+    var pi = _bikeCorrenteProximaImersao(c);
+    dentro = Math.min(kmIndividual, (pi.status === 'ok') ? Math.max(pi.kmRestante, 0) : _bikeTurnoKm());
+  }
+  return Math.round((_bikeCorrenteKmBike(c, dentro) + (kmIndividual - dentro) * n) * 10) / 10;
 }
 
 // Cálculo FRIO: expectativa de km da corrente (própria, ou a global como padrão)
@@ -11423,8 +11472,9 @@ function _bikeCorrenteFixo(c) {
   var kmEsperado = _bikeCorrenteExpectativa(c);
   var kmAtual = _bikeCorrenteKm(c);
   var kmRestante = Math.round((kmEsperado - kmAtual) * 10) / 10;
-  return { status: 'ok', kmRestante: kmRestante,
-           dataEstimada: _bikeCorrenteDataEstimada(c, kmRestante) };
+  var kmBike = _bikeCorrenteKmBikeLongo(c, kmRestante);
+  return { status: 'ok', kmRestante: kmRestante, kmBike: kmBike,
+           dataEstimada: _bikeCorrenteDataEstimada(c, kmBike) };
 }
 
 // PRÓXIMA IMERSÃO: plano PRÉ-FIXADO desde a última imersão — base + (máximo de top-offs
@@ -11439,10 +11489,11 @@ function _bikeCorrenteProximaImersao(c) {
   var kmAlvo = kmUltimaImersao + base + maxTopoffs * extPorTopoff;
   var kmAtual = _bikeCorrenteKm(c);
   var kmRestante = Math.round((kmAlvo - kmAtual) * 10) / 10;
-  var dataEstimada = null;
-  dataEstimada = _bikeCorrenteDataEstimada(c, kmRestante);
+  // Dentro do turno: a ativa roda no ritmo cheio; a em espera só começa quando a ativa sair.
+  var kmBike = _bikeCorrenteKmBike(c, kmRestante);
+  var dataEstimada = _bikeCorrenteDataEstimada(c, kmBike);
   var nTopoffs = _bikeCorrenteNTopoffsDesdeImersao(c);
-  return { status: 'ok', kmRestante: kmRestante, dataEstimada: dataEstimada, excedeu: nTopoffs > maxTopoffs };
+  return { status: 'ok', kmRestante: kmRestante, kmBike: kmBike, dataEstimada: dataEstimada, excedeu: nTopoffs > maxTopoffs };
 }
 
 // PRÓXIMO TOP-OFF: 1º top-off vem "base" km após a última imersão; os seguintes vêm
@@ -11459,9 +11510,10 @@ function _bikeCorrenteProximoTopoff(c) {
   var kmAlvo = ultimoTopoff ? (ultimoTopoff.kmIndividual + extPorTopoff) : (kmUltimaImersao + base);
   var kmAtual = _bikeCorrenteKm(c);
   var kmRestante = Math.round((kmAlvo - kmAtual) * 10) / 10;
-  var dataEstimada = null;
-  dataEstimada = _bikeCorrenteDataEstimada(c, kmRestante);
-  return { status: 'ok', kmRestante: kmRestante, dataEstimada: dataEstimada };
+  // Também dentro do turno — mesmo tratamento da imersão.
+  var kmBike = _bikeCorrenteKmBike(c, kmRestante);
+  var dataEstimada = _bikeCorrenteDataEstimada(c, kmBike);
+  return { status: 'ok', kmRestante: kmRestante, kmBike: kmBike, dataEstimada: dataEstimada };
 }
 
 // Cálculo DINÂMICO: usa as janelas de transição reais (2c) pra projetar quando a corrente
@@ -11489,31 +11541,40 @@ function _bikeCorrenteDinamica(c, alvo) {
   var kmAlvo = p2.km + (alvo - p2.degrau) * taxaKmPorDegrau;
   var kmAtual = _bikeCorrenteKm(c);
   var kmRestante = Math.round((kmAlvo - kmAtual) * 10) / 10;
-  var dataEstimada = null;
-  dataEstimada = _bikeCorrenteDataEstimada(c, kmRestante);
-  return { status: 'ok', kmRestante: kmRestante, dataEstimada: dataEstimada };
+  // Horizonte longo, igual ao FRIO: atravessa vários turnos.
+  var kmBike = _bikeCorrenteKmBikeLongo(c, kmRestante);
+  return { status: 'ok', kmRestante: kmRestante, kmBike: kmBike,
+           dataEstimada: _bikeCorrenteDataEstimada(c, kmBike) };
 }
 
-// PowerLock: cada montagem (cadastro+ativação, ATIVAR no rodízio, ou uma imersão completa,
-// já que ela exige remover e reinstalar a corrente) usa um ciclo. Drip-wax Top-off NÃO conta
-// — é aplicado com a corrente ainda montada. A previsão usa o ciclo PLANEJADO entre imersões
-// (base + todos os Drip-wax Top-offs previstos), já que é isso que determina de quanto em
-// quanto km uma nova montagem (reinstalação pós-imersão) normalmente acontece.
-// PowerLock: o ciclo ATUAL já está em andamento (a corrente já rodou parte dele desde a
-// última imersão), então só ele usa o km restante real do plano — os ciclos seguintes
-// (depois da próxima imersão) é que são ciclos completos do zero.
+// Drip-wax Top-off NÃO conta como montagem — é aplicado com a corrente montada.
+// POWERLOCK. Um uso = a corrente sai da bike e volta, e isso acontece uma vez por turno — logo
+// cada uso restante vale um turno (300km) NA CORRENTE. Com N correntes em rodízio, o mesmo uso
+// vale 300 × N km DE BICICLETA, porque entre um uso e o seguinte a outra corrente roda o turno
+// dela.
+//
+// O resto do turno em curso só entra para a corrente MONTADA, e não é multiplicado: ela está na
+// bike agora, sozinha, e a montagem que pagou por esse turno já foi somada ao contador. Para uma
+// corrente que não está montada não existe turno em curso — o próximo turno dela começa com uma
+// montagem, que já está entre as `restantes`. Somar um turno ali contava 11 turnos para 10 usos.
+//
+// Sem o `- 1` que havia antes: os `restantes` são todos futuros e nenhum deve ser descontado.
 function _bikeCorrentePowerlockRestante(c) {
   var limite = state.bikeOdo.powerlockLimiteMontagens || 7;
   var contador = c.powerlockContador || 0;
   var restantes = limite - contador;
   if (restantes <= 0) return { status: 'atingido' };
-  var kmPorCiclo = (state.bikeOdo.correnteIntervaloImersaoKm || 400) + (_maxTopoffs()) * (state.bikeOdo.correnteExtensaoTopoffKm || 150);
-  var proximaImersao = _bikeCorrenteProximaImersao(c);
-  var kmRestanteCicloAtual = (proximaImersao.status === 'ok') ? Math.max(proximaImersao.kmRestante, 0) : kmPorCiclo;
-  var kmRestante = Math.round((kmRestanteCicloAtual + (restantes - 1) * kmPorCiclo) * 10) / 10;
-  var dataEstimada = null;
-  dataEstimada = _bikeCorrenteDataEstimada(c, kmRestante);
-  return { status: 'ok', kmRestante: kmRestante, dataEstimada: dataEstimada };
+  var turno = _bikeTurnoKm();
+  var montada = c.status === 'ativa';
+  var restoTurno = 0;
+  if (montada) {
+    var proximaImersao = _bikeCorrenteProximaImersao(c);
+    restoTurno = (proximaImersao.status === 'ok') ? Math.max(proximaImersao.kmRestante, 0) : turno;
+  }
+  var kmRestante = Math.round((restoTurno + restantes * turno) * 10) / 10;
+  var kmBike = _bikeCorrenteKmBikeLongo(c, kmRestante);
+  return { status: 'ok', kmRestante: kmRestante, kmBike: kmBike,
+           dataEstimada: _bikeCorrenteDataEstimada(c, kmBike) };
 }
 
 
@@ -11537,9 +11598,14 @@ function _bikeVidaUtilLinhaHTML(titulo, r) {
     '<span style="color:var(--perdido,#c33)">⚠ já passou (' + Math.abs(r.kmRestante) + 'km atrás)</span>' :
     ('faltam ' + r.kmRestante + 'km');
   var dataTxt = r.dataEstimada ? ' · ≈ ' + r.dataEstimada.toLocaleDateString('pt-BR') : '';
+  // Quando os dois divergem (rodízio), mostrar os dois: o que falta NA CORRENTE é o que ela ainda
+  // vai rodar; o da BICICLETA é o que explica a data, porque inclui os turnos em que esta corrente
+  // fica na gaveta enquanto a outra roda.
+  var bikeTxt = (r.kmBike !== undefined && r.kmRestante > 0 && Math.abs(r.kmBike - r.kmRestante) >= 1)
+    ? ' <span style="color:var(--muted)">(' + r.kmBike + 'km de bicicleta)</span>' : '';
   var excedeuTxt = r.excedeu ? ' <span style="color:var(--perdido,#c33)">⚠ já fez mais Drip-wax Top-offs que o combinado</span>' : '';
   var notaTxt = r.notaEstimativa ? ' <span style="color:var(--muted)">(' + r.notaEstimativa + ')</span>' : '';
-  return '<div style="padding:7px 0;border-bottom:1px solid var(--border)"><div style="font-family:DM Mono,monospace;font-size:9px;letter-spacing:1px;color:var(--muted)">' + titulo + '</div><div style="font-family:DM Sans,sans-serif;font-size:12px;color:var(--text)">' + kmTxt + dataTxt + excedeuTxt + notaTxt + '</div></div>';
+  return '<div style="padding:7px 0;border-bottom:1px solid var(--border)"><div style="font-family:DM Mono,monospace;font-size:9px;letter-spacing:1px;color:var(--muted)">' + titulo + '</div><div style="font-family:DM Sans,sans-serif;font-size:12px;color:var(--text)">' + kmTxt + bikeTxt + dataTxt + excedeuTxt + notaTxt + '</div></div>';
 }
 
 function renderBikeCorrentesHTML() {
@@ -11641,7 +11707,10 @@ function renderBikeCorrentesHTML() {
     '<div style="font-family:Bebas Neue,sans-serif;font-size:28px;color:var(--text);line-height:1.2">' + (folgaAtual === null ? '—' : _folgaLabel(folgaAtual, _bikeCorrenteFolgaAtualFerramentaId(sel))) + '</div>' +
     '</div>' +
     '</div>' +
-    '<div onclick="bikeCorrenteEditarInstalacaoPrompt(\'' + sel.id + '\')" style="font-family:DM Mono,monospace;font-size:10px;color:var(--muted);margin-bottom:12px;cursor:pointer;border-bottom:1px dotted var(--border);display:inline-block">Instalada em ' + dataInst + ' (bike com ' + (Math.round(sel.kmInstalacao * 10) / 10) + 'km)</div>' +
+    '<div onclick="bikeCorrenteEditarInstalacaoPrompt(\'' + sel.id + '\')" style="font-family:DM Mono,monospace;font-size:10px;color:var(--muted);margin-bottom:12px;cursor:pointer;border-bottom:1px dotted var(--border);display:inline-block">' +
+      (sel.dataInstalacao === null || sel.dataInstalacao === undefined
+        ? 'Nunca instalada — carimba ao ativar'
+        : 'Instalada em ' + dataInst + ' (bike com ' + (Math.round((sel.kmInstalacao || 0) * 10) / 10) + 'km)') + '</div>' +
     '<div style="margin-bottom:14px">' + vidaUtilHTML + '</div>' +
     '<div style="margin-bottom:14px">' + proxImersaoHTML + '</div>' +
     '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">' +
@@ -11858,7 +11927,7 @@ function bikeCorrenteEditarInstalacaoPrompt(id) {
     '</div>' +
     '<div id="corrente-edit-dp-wrap" style="display:none;margin:0 0 12px">' + datepickerInlineHTML('correnteeditinst', 'corrente-edit-data') + '</div>' +
     '<label style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;color:var(--muted)">KM DA BIKE (TOTAL) NA INSTALAÇÃO</label>' +
-    '<input id="corrente-edit-km" type="number" step="0.1" min="0" value="' + (Math.round(c.kmInstalacao * 10) / 10) + '" style="display:block;width:100%;box-sizing:border-box;margin:4px 0 12px;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:DM Mono,monospace">' +
+    '<input id="corrente-edit-km" type="number" step="0.1" min="0" value="' + (Math.round((c.kmInstalacao || 0) * 10) / 10) + '" style="display:block;width:100%;box-sizing:border-box;margin:4px 0 12px;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:DM Mono,monospace">' +
     '<button onclick="bikeCorrenteEditarInstalacaoAplicar(\'' + id + '\')" style="display:block;width:100%;font-family:DM Mono,monospace;font-size:11px;padding:10px;border-radius:8px;border:none;background:var(--accent);color:#000;cursor:pointer">SALVAR</button>';
   if (confirmBtn) confirmBtn.style.display = 'none';
   document.getElementById('modal').classList.add('open');
@@ -12092,9 +12161,15 @@ function bikeCorrenteNovaPrompt(primeira) {
   var totalAtual = Math.round(state.bikeOdo.total * 10) / 10;
   var kmInstDefault = primeira ? 0 : totalAtual;
   if (title) title.textContent = primeira ? 'CADASTRAR CORRENTE ATUAL' : 'NOVA CORRENTE';
+  // Instalação só existe quando a corrente ENTRA na bike. Uma corrente comprada e encerada que
+  // segue na gaveta não tem data nem km de instalação — pedir esses campos obrigava a inventar
+  // um fato ("instalada hoje com 510.9km") que nunca aconteceu. Em espera o bloco some; quem
+  // carimba a instalação é `bikeCorrenteAtivarAplicar`, no momento em que ela realmente entra.
+  // Os inputs continuam no DOM (wrapper com display:none) — só o Aplicar decide se os lê.
   if (body) body.innerHTML =
     '<label style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;color:var(--muted)">NOME</label>' +
     '<input id="corrente-nome" type="text" value="' + escHtml(nomeDefault) + '" style="display:block;width:100%;box-sizing:border-box;margin:4px 0 12px;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:DM Sans,sans-serif">' +
+    '<div id="corrente-inst-wrap" style="display:' + (primeira ? 'block' : 'none') + '">' +
     '<label style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;color:var(--muted)">DATA DE INSTALAÇÃO (dd/mm/aaaa)</label>' +
     '<div style="display:flex;gap:6px;margin:4px 0 8px">' +
     '<input id="corrente-data" type="text" inputmode="numeric" value="' + new Date().toLocaleDateString('pt-BR') + '" style="flex:1;box-sizing:border-box;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:DM Mono,monospace">' +
@@ -12104,28 +12179,45 @@ function bikeCorrenteNovaPrompt(primeira) {
     '<label style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;color:var(--muted)">KM DA BIKE (TOTAL) NO MOMENTO DA INSTALAÇÃO</label>' +
     '<input id="corrente-km-inst" type="number" step="0.1" min="0" value="' + kmInstDefault + '" style="display:block;width:100%;box-sizing:border-box;margin:4px 0 4px;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:DM Mono,monospace">' +
     '<p style="font-family:DM Sans,sans-serif;font-size:11px;color:var(--muted);margin:0 0 12px">' + (primeira ? 'Se essa é a corrente original de fábrica (desde antes de você começar a rodar), deixe 0 — ela conta desde o início.' : 'Total do odômetro quando esta corrente entrou em uso. Deixe o valor atual (' + totalAtual + ') se está instalando agora.') + '</p>' +
+    '</div>' +
     (primeira ? '' :
       '<label style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;color:var(--muted)">AO CADASTRAR</label>' +
-      '<div style="display:flex;gap:8px;margin:4px 0 16px">' +
-      '<label style="flex:1;font-family:DM Mono,monospace;font-size:11px;color:var(--text);border:1px solid var(--border);border-radius:8px;padding:10px;text-align:center;cursor:pointer"><input type="radio" name="corrente-ativar" value="espera" checked style="margin-right:6px">DEIXAR EM ESPERA</label>' +
-      '<label style="flex:1;font-family:DM Mono,monospace;font-size:11px;color:var(--text);border:1px solid var(--border);border-radius:8px;padding:10px;text-align:center;cursor:pointer"><input type="radio" name="corrente-ativar" value="ativa" style="margin-right:6px">ATIVAR AGORA</label>' +
-      '</div>') +
+      '<div style="display:flex;gap:8px;margin:4px 0 8px">' +
+      '<label style="flex:1;font-family:DM Mono,monospace;font-size:11px;color:var(--text);border:1px solid var(--border);border-radius:8px;padding:10px;text-align:center;cursor:pointer"><input type="radio" name="corrente-ativar" value="espera" checked onchange="_bikeCorrenteNovaToggleInst()" style="margin-right:6px">DEIXAR EM ESPERA</label>' +
+      '<label style="flex:1;font-family:DM Mono,monospace;font-size:11px;color:var(--text);border:1px solid var(--border);border-radius:8px;padding:10px;text-align:center;cursor:pointer"><input type="radio" name="corrente-ativar" value="ativa" onchange="_bikeCorrenteNovaToggleInst()" style="margin-right:6px">ATIVAR AGORA</label>' +
+      '</div>' +
+      '<p id="corrente-espera-nota" style="font-family:DM Sans,sans-serif;font-size:11px;color:var(--muted);margin:0 0 16px">Em espera a corrente entra com 0km e sem instalação — a data e o km da bike são carimbados quando você ativá-la. Imersão, medição de folga e drip-wax já podem ser registrados desde já.</p>') +
     '<button onclick="bikeCorrenteNovaAplicar(' + (primeira ? 'true' : 'false') + ')" style="display:block;width:100%;font-family:DM Mono,monospace;font-size:11px;padding:10px;border-radius:8px;border:none;background:var(--accent);color:#000;cursor:pointer">' + (primeira ? 'CADASTRAR' : 'ADICIONAR CORRENTE') + '</button>';
   if (confirmBtn) confirmBtn.style.display = 'none';
   document.getElementById('modal').classList.add('open');
 }
 
+function _bikeCorrenteNovaToggleInst() {
+  var el = document.querySelector('input[name="corrente-ativar"]:checked');
+  var ativa = el && el.value === 'ativa';
+  var wrap = document.getElementById('corrente-inst-wrap');
+  var nota = document.getElementById('corrente-espera-nota');
+  if (wrap) wrap.style.display = ativa ? 'block' : 'none';
+  if (nota) nota.style.display = ativa ? 'none' : 'block';
+}
+
 function bikeCorrenteNovaAplicar(primeira) {
   var nome = (document.getElementById('corrente-nome').value || '').trim();
-  var dataStr = (document.getElementById('corrente-data').value || '').trim();
-  var kmInst = parseFloat(document.getElementById('corrente-km-inst').value);
-  var m = dataStr.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
   if (!nome) { toast('Informe um nome'); return; }
-  if (!m) { toast('Data inválida — use dd/mm/aaaa'); return; }
-  if (isNaN(kmInst) || kmInst < 0) { toast('Km de instalação inválido'); return; }
-  var dataInstalacao = new Date(parseInt(m[3]), parseInt(m[2]) - 1, parseInt(m[1]));
   var ativarAgoraEl = document.querySelector('input[name="corrente-ativar"]:checked');
   var ativarAgora = primeira || (ativarAgoraEl && ativarAgoraEl.value === 'ativa');
+
+  // Em espera não há instalação para validar: os campos estão ocultos e serão preenchidos na
+  // ativação. Validar aqui rejeitaria um cadastro legítimo por causa de um campo invisível.
+  var dataInstalacao = null, kmInst = null;
+  if (ativarAgora) {
+    var dataStr = (document.getElementById('corrente-data').value || '').trim();
+    kmInst = parseFloat(document.getElementById('corrente-km-inst').value);
+    var m = dataStr.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+    if (!m) { toast('Data inválida — use dd/mm/aaaa'); return; }
+    if (isNaN(kmInst) || kmInst < 0) { toast('Km de instalação inválido'); return; }
+    dataInstalacao = new Date(parseInt(m[3]), parseInt(m[2]) - 1, parseInt(m[1]));
+  }
 
   pushUndo(primeira ? 'Cadastrar corrente' : 'Adicionar corrente: ' + nome);
   _bikeCorrentesInit();
@@ -12134,8 +12226,8 @@ function bikeCorrenteNovaAplicar(primeira) {
     id: uid(),
     nome: nome,
     status: 'espera',
-    dataInstalacao: dataInstalacao.toISOString(),
-    kmInstalacao: kmInst,
+    dataInstalacao: dataInstalacao ? dataInstalacao.toISOString() : null,
+    kmInstalacao: (kmInst === null || isNaN(kmInst)) ? null : kmInst,
     kmAcumulado: 0,
     kmInicioSessaoAtual: null,
     imersoes: [],
@@ -12294,6 +12386,13 @@ function bikeCorrenteAtivarAplicar(id) {
   nova.status = 'ativa';
   nova.kmInicioSessaoAtual = o.total;
   nova.powerlockContador = (nova.powerlockContador || 0) + 1;
+  // Ativar uma corrente que nunca esteve na bike É instalá-la — este é o momento em que a data e
+  // o km passam a existir. Só carimba se ainda for nulo: numa rotação a corrente volta a entrar,
+  // mas a instalação original continua sendo a primeira, e sobrescrever apagaria essa história.
+  if (nova.dataInstalacao === null || nova.dataInstalacao === undefined) {
+    nova.dataInstalacao = new Date().toISOString();
+    nova.kmInstalacao = o.total;
+  }
   state._bikeCorrenteSelecionada = nova.id;
   saveState();
   closeModal();
@@ -12343,7 +12442,14 @@ function bikeCorrenteImersaoAplicar(id) {
   pushUndo('Registrar imersão: ' + c.nome);
   if (!c.imersoes) c.imersoes = [];
   c.imersoes.unshift({ id: uid(), data: new Date(parseInt(dm[3]), parseInt(dm[2]) - 1, parseInt(dm[1])).toISOString(), kmIndividual: _bikeCorrenteKm(c), tipoImersao: tipoImersao, obs: (obsEl && obsEl.value.trim()) || '' });
-  c.powerlockContador = (c.powerlockContador || 0) + 1;
+  // O Powerlock não é usado NA imersão — ele nem entra na cera. O que gasta um uso é a montagem.
+  // Com rodízio, a corrente sai aqui e quem a remonta é `bikeCorrenteAtivarAplicar`, que conta;
+  // somar aqui também dobraria a contagem a cada volta, e contava até imersão de corrente em
+  // espera, que sequer estava na bike. Sem rodízio não existe ativação nenhuma no meio: a imersão
+  // É tirar, encerar e recolocar a mesma corrente, uma montagem real que ninguém mais registraria.
+  if (c.status === 'ativa' && _bikeRodizioN() === 1) {
+    c.powerlockContador = (c.powerlockContador || 0) + 1;
+  }
   saveState();
   closeModal();
   renderBikeTab();
@@ -19339,6 +19445,23 @@ loadPersistedState(function() {
       if (h && h.variant === 'Contínuo') _sincronizarBiblioteca(h.exercises);
     });
     state._migracaoBibSyncV1 = true;
+    saveState();
+  }
+
+  // Migração: zerar o Powerlock de corrente que nunca foi montada.
+  //
+  // Até a v0.9.2.18 a imersão incrementava o contador. Uma corrente cadastrada em espera e
+  // encerada antes de entrar na bike saía do cadastro com 1 uso registrado sem nunca ter sido
+  // montada. RESTRITO a `dataInstalacao == null`: aí a afirmação é demonstrável — corrente que
+  // nunca foi instalada não pode ter gasto montagem nenhuma. Não dá para inferir o mesmo das
+  // correntes já instaladas, cujo contador mistura montagens reais e correções manuais.
+  if (!state._migracaoPowerlockEsperaV1) {
+    ((state.bikeOdo && state.bikeOdo.correntes) || []).forEach(function(c) {
+      if ((c.dataInstalacao === null || c.dataInstalacao === undefined) && c.powerlockContador) {
+        c.powerlockContador = 0;
+      }
+    });
+    state._migracaoPowerlockEsperaV1 = true;
     saveState();
   }
 
