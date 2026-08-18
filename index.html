@@ -1427,7 +1427,7 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
   <div class="header-brand">
     <div class="logo">TREINO</div>
     <div class="header-meta">
-      <span class="header-version">v0.9.2.22</span>
+      <span class="header-version">v0.9.2.27</span>
       <span id="dbStamp" title="Última atualização dos dados">⟳ —</span>
     </div>
   </div>
@@ -2788,6 +2788,166 @@ function _localizarRegistro(id, tipo) {
     if (it) achado = { item: it, ciclo: c };
   });
   return achado;
+}
+
+// ── EDIÇÃO DE SESSÃO JÁ REGISTRADA ──────────────────────────────────────────
+// Até aqui, um treino gravado era imutável: o lápis do card só editava data e hora, e corrigir
+// um exercício exigia desfazer a conclusão inteira e registrar tudo de novo. Um exercício que a
+// IA deixou de fora, um peso digitado errado, um pulado marcado como feito — nada disso tinha
+// conserto proporcional ao erro.
+//
+// Trabalha sobre uma CÓPIA (`_edSessao`) e só escreve no state ao salvar: mexer direto no
+// registro deixaria o histórico meio editado se o modal fosse fechado no meio.
+var _edSessao = null;
+
+function editSessaoExerciciosPrompt(id) {
+  var h = (state.history || []).find(function(x) { return x.id === id; });
+  if (!h) { toast('Registro não encontrado'); return; }
+  _edSessao = {
+    id: id,
+    exercises: (h.exercises || []).map(function(e) {
+      return { name: e.name || '', sets: e.sets || '', weight: e.weight || '',
+               rest: e.rest || '', status: e.status || 'done', isCore: !!e.isCore,
+               musculo: e.musculo || '' };
+    })
+  };
+  document.getElementById('modal-title').textContent = 'EDITAR EXERCÍCIOS';
+  var confirmBtn = document.getElementById('modal-confirm');
+  if (confirmBtn) confirmBtn.style.display = 'none';
+  _edSessaoRender();
+  document.getElementById('modal').classList.add('open');
+}
+
+function _edSessaoRender() {
+  var body = document.getElementById('modal-body');
+  if (!body || !_edSessao) return;
+  var h = (state.history || []).find(function(x) { return x.id === _edSessao.id; });
+  if (!h) return;
+  var serie = (state.series || []).find(function(s) { return s.label === h.serieLabel; });
+  var catalogo = serie ? _catalogoDaSessao(serie) : [];
+  var jaTem = {};
+  _edSessao.exercises.forEach(function(e) { jaTem[String(e.name).trim().toLowerCase()] = true; });
+  var fora = catalogo.filter(function(e) { return !jaTem[String(e.name || '').trim().toLowerCase()]; });
+
+  var inp = function(i, campo, valor, largura) {
+    return '<input value="' + escHtml(valor) + '" oninput="_edSessaoCampo(' + i + ',\'' + campo + '\',this.value)" ' +
+      'style="width:' + largura + ';box-sizing:border-box;padding:5px 6px;border-radius:6px;border:1px solid var(--border);' +
+      'background:var(--surface2);color:var(--text);font-family:DM Mono,monospace;font-size:11px">';
+  };
+
+  var linhas = _edSessao.exercises.map(function(e, i) {
+    var feito = e.status === 'done';
+    return '<div style="display:flex;gap:5px;align-items:center;padding:6px 0;border-bottom:1px solid var(--border)">' +
+      '<button onclick="_edSessaoStatus(' + i + ')" title="' + (feito ? 'feito' : 'pulado') + '" ' +
+        'style="flex-shrink:0;width:24px;padding:3px 0;border-radius:6px;border:1px solid var(--border);cursor:pointer;' +
+        'background:transparent;color:' + (feito ? 'var(--done)' : 'var(--danger)') + '">' + (feito ? '\u25cf' : '\u2715') + '</button>' +
+      '<div style="flex:1;min-width:0">' +
+        '<div style="font-size:12px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' +
+          escHtml(e.name) + (e.isCore ? ' <span style="color:var(--muted);font-size:9px">[core]</span>' : '') + '</div>' +
+        '<div style="display:flex;gap:4px;margin-top:3px">' +
+          inp(i, 'sets', e.sets, '68px') + inp(i, 'weight', e.weight, '100%') +
+        '</div>' +
+      '</div>' +
+      '<span style="display:flex;flex-direction:column;gap:2px;flex-shrink:0">' +
+        '<button onclick="_edSessaoMover(' + i + ',-1)" style="padding:0 5px;border-radius:4px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;font-size:9px">\u25b2</button>' +
+        '<button onclick="_edSessaoMover(' + i + ',1)" style="padding:0 5px;border-radius:4px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;font-size:9px">\u25bc</button>' +
+      '</span>' +
+      '<button onclick="_edSessaoRemover(' + i + ')" title="Remover" ' +
+        'style="flex-shrink:0;padding:4px 8px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--danger);cursor:pointer">\u2715</button>' +
+    '</div>';
+  }).join('');
+
+  var nDone = _edSessao.exercises.filter(function(e) { return e.status === 'done'; }).length;
+
+  body.innerHTML =
+    '<p style="font-family:DM Sans,sans-serif;font-size:12px;color:var(--muted);margin:0 0 10px">' +
+      escHtml((h.serieLabel || '') + (h.serieName ? ' \u2014 ' + h.serieName : '')) + ' \u00b7 ' +
+      escHtml(new Date(h.date).toLocaleDateString('pt-BR')) + '</p>' +
+    (linhas || '<p style="font-family:DM Sans,sans-serif;font-size:12px;color:var(--muted)">Nenhum exercício.</p>') +
+    '<div style="font-family:DM Mono,monospace;font-size:10px;color:var(--muted);margin:8px 0 12px">' +
+      nDone + '/' + _edSessao.exercises.length + ' feitos \u00b7 \u25cf feito, \u2715 pulado (clique para alternar)</div>' +
+    (fora.length
+      ? '<select onchange="_edSessaoAdicionar(this.value);this.value=\'\'" ' +
+        'style="width:100%;box-sizing:border-box;margin-bottom:12px;padding:7px;border-radius:6px;border:1px solid var(--border);' +
+        'background:var(--surface2);color:var(--muted);font-family:DM Mono,monospace;font-size:11px">' +
+        '<option value="">+ ACRESCENTAR DO CATÁLOGO (' + fora.length + ')</option>' +
+        fora.map(function(e) {
+          return '<option value="' + escHtml(e.name) + '">' + escHtml(e.name) + (e.isCore ? ' [core]' : '') + '</option>';
+        }).join('') + '</select>'
+      : '') +
+    '<button onclick="editSessaoExerciciosAplicar()" style="display:block;width:100%;font-family:DM Mono,monospace;' +
+      'font-size:11px;padding:10px;border-radius:8px;border:none;background:var(--accent);color:#000;cursor:pointer">SALVAR</button>';
+}
+
+// Campo de texto NÃO re-renderiza: o input está em foco e redesenhar tiraria o cursor no meio da
+// digitação — mesmo motivo de `_projEditarCampo`.
+function _edSessaoCampo(i, campo, valor) {
+  if (_edSessao && _edSessao.exercises[i]) _edSessao.exercises[i][campo] = valor;
+}
+function _edSessaoStatus(i) {
+  if (!_edSessao || !_edSessao.exercises[i]) return;
+  var e = _edSessao.exercises[i];
+  e.status = e.status === 'done' ? 'skipped' : 'done';
+  _edSessaoRender();
+}
+function _edSessaoRemover(i) {
+  if (!_edSessao) return;
+  _edSessao.exercises.splice(i, 1);
+  _edSessaoRender();
+}
+function _edSessaoMover(i, dir) {
+  if (!_edSessao) return;
+  var j = i + dir;
+  if (j < 0 || j >= _edSessao.exercises.length) return;
+  var tmp = _edSessao.exercises[i];
+  _edSessao.exercises[i] = _edSessao.exercises[j];
+  _edSessao.exercises[j] = tmp;
+  _edSessaoRender();
+}
+function _edSessaoAdicionar(nome) {
+  if (!_edSessao || !nome) return;
+  var h = (state.history || []).find(function(x) { return x.id === _edSessao.id; });
+  var serie = h ? (state.series || []).find(function(s) { return s.label === h.serieLabel; }) : null;
+  var base = null;
+  (serie ? _catalogoDaSessao(serie) : []).forEach(function(e) {
+    if (String(e.name || '').trim().toLowerCase() === String(nome).trim().toLowerCase()) base = e;
+  });
+  if (!base) return;
+  // Carga de partida: a última EXECUTADA, com queda para o cadastro. Mesma regra do catálogo
+  // enviado à IA — a Biblioteca é réplica, o histórico é a fonte.
+  var exec = _cargaExecutada(base.name);
+  _edSessao.exercises.push({
+    name: base.name, sets: (exec && exec.sets) || base.sets || '',
+    weight: (exec && exec.weight) || base.weight || '', rest: base.rest || '',
+    status: 'done', isCore: !!base.isCore, musculo: base.musculo || ''
+  });
+  _edSessaoRender();
+}
+
+function editSessaoExerciciosAplicar() {
+  if (!_edSessao) return;
+  var h = (state.history || []).find(function(x) { return x.id === _edSessao.id; });
+  if (!h) { toast('Registro não encontrado'); return; }
+  var exercises = _edSessao.exercises.map(function(e) {
+    return { name: String(e.name || '').trim(), sets: e.sets || '', weight: e.weight || '',
+             rest: e.rest || '', status: e.status === 'done' ? 'done' : 'skipped',
+             isCore: !!e.isCore, musculo: e.musculo || '' };
+  }).filter(function(e) { return e.name; });
+
+  pushUndo('Editar exercícios do registro');
+  h.exercises = exercises;
+  h.done = exercises.filter(function(e) { return e.status === 'done'; }).length;
+  h.total = exercises.length;
+  // A Biblioteca replica o registro mais recente. Editar a sessão sem sincronizar deixaria o
+  // catálogo apontando para a carga que acabou de ser corrigida — a mesma divergência que
+  // congelou a série C antes da v0.9.2.13.
+  _sincronizarBiblioteca(exercises);
+  _edSessao = null;
+  saveState();
+  closeModal();
+  renderAgendaLinear();
+  renderHistory();
+  toast('Registro atualizado \u2713');
 }
 
 function editHistoryDataPrompt(id, tipo) {
@@ -5287,9 +5447,26 @@ function _painelProjecao(dec) {
       }).join('') + '</select>'
     : '';
 
+  // `value` e `oninput` fazem o texto sobreviver ao re-render: qualquer renderAgendaLinear()
+  // reconstrói este HTML, e sem isso o que estava sendo digitado sumia — inclusive ao trocar de
+  // aba e voltar. O campo é reconstruído, o rascunho não.
+  var nMsgs = ((state.proximoDecidido && state.proximoDecidido.chat) || []).length;
   var chat =
+    _projChatMsgsHTML() +
+    _projPendenteHTML() +
+    (nMsgs
+      ? '<div style="text-align:right;margin-top:4px"><button onclick="limparProjChat()" ' +
+        'style="font-family:DM Mono,monospace;font-size:9px;letter-spacing:1px;padding:3px 8px;' +
+        'border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--muted);' +
+        'cursor:pointer">\u21ba NOVA CONVERSA (' + nMsgs + ')</button></div>'
+      : '') +
+    '<div id="proj-chat-msg" style="display:' + (_projChatMsg ? 'block' : 'none') + ';margin-top:8px;' +
+      'padding:8px 10px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);' +
+      'font-family:DM Sans,sans-serif;font-size:11px;line-height:1.5;color:var(--muted)">' +
+      escHtml(_projChatMsg) + '</div>' +
     '<div style="display:flex;gap:6px;margin-top:8px">' +
-      '<input id="proj-chat" placeholder="Ex: tire o crucifixo e ponha supino inclinado" ' +
+      '<input id="proj-chat" placeholder="Pergunte ou peça um ajuste" ' +
+        'value="' + escHtml(_projChatDraft) + '" oninput="_projChatDraft=this.value" ' +
         'onkeydown="if(event.key===\'Enter\'){event.preventDefault();ajustarProjecaoChat();}" ' +
         'style="flex:1;min-width:0;padding:7px;border-radius:6px;border:1px solid var(--border);' +
         'background:var(--surface2);color:var(--text);font-family:DM Sans,sans-serif;font-size:12px">' +
@@ -5308,6 +5485,81 @@ function _painelProjecao(dec) {
 // Ajuste por conversa. Devolve a projecao INTEIRA em vez de acoes de diff: o modelo ja recebe a
 // lista atual, e reescrever tudo evita o caso em que uma acao "substituir" nao encontra o alvo e
 // falha em silencio.
+// Aviso persistente do chat da projeção. `toast` some em segundos e some junto com a razão de
+// nada ter mudado — quando o app se recusa a aplicar um pedido, a explicação tem que ficar na
+// tela até o próximo pedido.
+var _projChatMsg = '';
+var _projChatDraft = '';   // texto em digitação, sobrevive ao re-render e à troca de aba
+
+// Para cada nome recusado, diz ONDE ele está — saber que a hiperextensão mora na série D é a
+// diferença entre "o app recusou" e "o app recusou e eu sei o que fazer a respeito".
+function _ondeEstaNaBiblioteca(nomes) {
+  return (nomes || []).map(function(nome) {
+    var k = String(nome).trim().toLowerCase(), achou = null;
+    (state.series || []).forEach(function(sr) {
+      (sr.exercises || []).forEach(function(e) {
+        if (String(e.name || '').trim().toLowerCase() === k) achou = sr.label;
+      });
+    });
+    return nome + (achou ? ' (está na série ' + achou + ')' : ' (não está na Biblioteca)');
+  });
+}
+
+function _projChatAviso(txt) {
+  _projChatMsg = txt || '';
+  var el = document.getElementById('proj-chat-msg');
+  if (el) {
+    el.textContent = _projChatMsg;
+    el.style.display = _projChatMsg ? 'block' : 'none';
+  }
+}
+
+// ── CHAT DA PROJEÇÃO ────────────────────────────────────────────────────────
+// A conversa mora em `state.proximoDecidido.chat`, e não numa coleção própria. Duas
+// consequências, ambas desejadas: ela é sempre sobre a projeção que está na tela, e morre junto
+// com a decisão — `_aplicarRegistroTreino` já faz `delete state.proximoDecidido` ao registrar o
+// treino, e `limparDecisaoTreino` no REABRIR. Nunca há mais de uma conversa guardada, então o
+// custo de memória é limitado por construção, sem varredura nem expiração.
+//
+// Antes disto, `ajustarProjecaoChat` mandava UMA mensagem sem histórico e exigia JSON puro na
+// resposta; o texto era descartado e não havia onde exibi-lo. Era um comando com nome de chat:
+// impossível perguntar "por quê", impossível receber justificativa, impossível dar seguimento.
+var _PROJ_CHAT_MAX = 24;   // 12 idas e voltas; corta as mais antigas, preserva o pedido em curso
+
+function _projChatHist() {
+  var dec = _serieDecidida();
+  if (!dec || !dec.treino) return [];
+  if (!state.proximoDecidido.chat) state.proximoDecidido.chat = [];
+  return state.proximoDecidido.chat;
+}
+
+function limparProjChat() {
+  if (!state.proximoDecidido) return;
+  pushUndo('Limpar conversa da projeção');
+  state.proximoDecidido.chat = [];
+  _projChatAviso('');
+  saveState();
+  renderAgendaLinear();
+}
+
+function _projChatMsgsHTML() {
+  var hist = (state.proximoDecidido && state.proximoDecidido.chat) || [];
+  if (!hist.length) return '';
+  return '<div id="proj-chat-log" style="max-height:260px;overflow-y:auto;margin-top:8px;' +
+      'border:1px solid var(--border);border-radius:8px;padding:8px;background:var(--surface2)">' +
+    hist.map(function(m) {
+      var meu = m.role === 'user';
+      return '<div style="margin-bottom:8px;text-align:' + (meu ? 'right' : 'left') + '">' +
+        '<div style="display:inline-block;max-width:88%;text-align:left;padding:6px 9px;border-radius:8px;' +
+          'font-family:DM Sans,sans-serif;font-size:12px;line-height:1.5;white-space:pre-wrap;' +
+          (meu ? 'background:var(--accent);color:#000' : 'background:var(--surface);color:var(--text);border:1px solid var(--border)') +
+          '">' + escHtml(m.text || '') + '</div>' +
+        (m.aplicado ? '<div style="font-family:DM Mono,monospace;font-size:9px;color:var(--done);margin-top:2px">\u2713 APLICADO</div>' : '') +
+      '</div>';
+    }).join('') +
+    '</div>';
+}
+
 async function ajustarProjecaoChat() {
   var campo = document.getElementById('proj-chat');
   var pedido = campo ? campo.value.trim() : '';
@@ -5317,62 +5569,309 @@ async function ajustarProjecaoChat() {
   var serie = (state.series || []).find(function(x) { return x.label === dec.label; });
   if (!serie) return;
 
-  var atual = dec.treino.exercicios.map(function(x, i) {
-    return '  ' + (i + 1) + '. ' + x.nome + ' | ' + (x.sets || '') + ' | ' + (x.weight || '') +
-           (x.rest ? ' | ' + x.rest : '');
-  }).join('\n');
-  var catalogo = _catalogoDaSessao(serie).map(function(e) {
-    return '  - ' + e.name + (e.isCore ? ' [core]' : '');
-  }).join('\n');
-
+  var hist = _projChatHist();
+  hist.push({ role: 'user', text: pedido });
+  if (hist.length > _PROJ_CHAT_MAX) hist.splice(0, hist.length - _PROJ_CHAT_MAX);
   campo.value = '';
-  campo.disabled = true;
-  toast('Ajustando…');
+  _projChatDraft = '';
+  _projChatAviso('');
+  saveState();
+  renderAgendaLinear();
+  var campo2 = document.getElementById('proj-chat');
+  if (campo2) campo2.disabled = true;
+
   try {
-    var msg = 'Treino projetado de ' + dec.label + ' — ' + (serie.name || '') + ', na ordem de execução:\n' +
-      atual + '\n\nCatálogo completo da série (só estes nomes existem):\n' + catalogo + '\n\n' +
-      'Pedido do usuário: ' + pedido + '\n\n' +
-      'Aplique o pedido e devolva a projeção INTEIRA já ajustada, SOMENTE neste JSON, sem markdown:\n' +
-      '{"treinoProjetado":{"foco":"...","observacoes":"...","exercicios":[{"nome":"...","sets":"3x8","weight":"22kg","rest":"90s","obs":""}]}}\n' +
-      'Use apenas nomes do catálogo, idênticos. Mantenha o que o usuário não pediu para mudar.\n\n' +
+    var atual = dec.treino.exercicios.map(function(x, i) {
+      return '  ' + (i + 1) + '. ' + x.nome + ' | ' + (x.sets || '') + ' | ' + (x.weight || '') +
+             (x.rest ? ' | ' + x.rest : '');
+    }).join('\n');
+    var catalogo = _catalogoDaSessao(serie).map(function(e) {
+      return '  - ' + e.name + (e.isCore ? ' [core]' : '');
+    }).join('\n');
+
+    // O estado da projeção vai como PRIMEIRA mensagem e é reenviado inteiro a cada turno: a API
+    // não guarda nada entre chamadas, e sem isso o modelo responderia o segundo pedido às cegas.
+    var abertura = 'Você está ajustando o treino projetado de ' + dec.label + ' — ' + (serie.name || '') +
+      ', na ordem de execução:\n' + atual +
+      '\n\nCatálogo desta série + Core (o caminho normal):\n' + catalogo + '\n\n' +
+      'Exercício de OUTRA série também é aceito, desde que exista na Biblioteca — o usuário verá ' +
+      'de onde ele veio antes de confirmar. Nome que não existe na Biblioteca é recusado.' +
+      (_pedalHoje() && _serieDePernas()
+        ? ' HOJE TEM PEDAL: exercício da série ' + _serieDePernas().label + ' (pernas) é PROIBIDO — ' +
+          'histórico de tendão patelar, perna e bike não dividem o mesmo dia.'
+        : '') + '\n\n' +
+      'RESPONDA SEMPRE EM TEXTO, conversando normalmente: explique, justifique, discorde se for o ' +
+      'caso, faça perguntas se o pedido estiver ambíguo. Nem todo pedido é uma ordem de mudança — ' +
+      '"por que você pôs isso primeiro?" quer uma explicação, não um treino novo.\n\n' +
+      'QUANDO, E SÓ QUANDO, o usuário pedir uma alteração concreta e você tiver certeza do que ele ' +
+      'quer, acrescente ao FINAL da sua resposta um bloco de AÇÕES PONTUAIS — não reescreva o ' +
+      'treino inteiro, descreva só o que muda:\n' +
+      '<<<ACOES\n' +
+      '{"acoes":[\n' +
+      '  {"acao":"substituir","alvo":"nome ou parte do nome do exercício no treino","novo":"nome do novo","sets":"4x8","weight":"22kg","rest":"90s","obs":""},\n' +
+      '  {"acao":"adicionar","novo":"nome","sets":"3x10","weight":"20kg","posicao":3},\n' +
+      '  {"acao":"remover","alvo":"nome"},\n' +
+      '  {"acao":"alterar","alvo":"nome","sets":"4x6","weight":"30kg","obs":"..."},\n' +
+      '  {"acao":"mover","alvo":"nome","posicao":1}\n' +
+      '],"foco":"opcional","observacoes":"opcional"}\n' +
+      'ACOES>>>\n' +
+      'Só inclua os campos que mudam. O que você não citar fica exatamente como está. ' +
+      'Em "novo" use o nome como está na Biblioteca. O usuário ainda vai CONFIRMAR essas ações ' +
+      'antes de elas valerem, então explique em texto o que você está propondo e por quê.\n\n' +
       _notacaoCargas();
+
+    var messages = [{ role: 'user', content: abertura + '\n\nPedido do usuário: ' + hist[0].text }];
+    for (var i = 1; i < hist.length; i++) {
+      messages.push({ role: hist[i].role === 'user' ? 'user' : 'assistant', content: hist[i].text });
+    }
+
     var resp = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-api-key': getApiKey(),
                  'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
-      body: JSON.stringify({ model: 'claude-sonnet-4-5', max_tokens: 1500,
-                             system: getPLANO_SYSTEM(), messages: [{ role: 'user', content: msg }] })
+      body: JSON.stringify({ model: 'claude-sonnet-4-5', max_tokens: 2000,
+                             system: getPLANO_SYSTEM(), messages: messages })
     });
     var data = await resp.json();
-    var txt = (data.content && data.content[0] && data.content[0].text) || '';
-    var lim = txt.replace(/```json|```/g, '').trim();
-    var obj = null;
-    try { obj = JSON.parse(lim); } catch (e) {
-      var m = lim.match(/\{[\s\S]*\}/);
-      if (m) { try { obj = JSON.parse(m[0]); } catch (e2) {} }
-    }
-    var np = obj && obj.treinoProjetado;
-    var porNome = {};
-    _catalogoDaSessao(serie).forEach(function(e) { porNome[String(e.name || '').trim().toLowerCase()] = true; });
-    var itens = (np && np.exercicios ? np.exercicios : []).filter(function(x) {
-      return x && x.nome && porNome[String(x.nome).trim().toLowerCase()];
-    }).map(function(x) {
-      return { nome: String(x.nome).trim(), sets: x.sets || '', weight: x.weight || '',
-               rest: x.rest || '', obs: x.obs || '' };
-    });
-    if (!itens.length) { toast('Não consegui aplicar o ajuste'); return; }
-    _projMutar(function(tp) {
-      tp.exercicios = itens;
-      if (np.foco) tp.foco = np.foco;
-      if (np.observacoes) tp.observacoes = np.observacoes;
-    });
-    toast('Ajustado \u2713');
+    if (data && data.error) throw new Error(data.error.message || 'erro da API');
+    var txt = (data.content || []).filter(function(b) { return b.type === 'text'; })
+                                  .map(function(b) { return b.text || ''; }).join('\n');
+    if (!txt.trim()) throw new Error('resposta vazia');
+
+    var res = _projChatAplicarResposta(txt, serie, dec);
+    hist.push({ role: 'assistant', text: res.texto, aplicado: res.aplicado });
+    if (hist.length > _PROJ_CHAT_MAX) hist.splice(0, hist.length - _PROJ_CHAT_MAX);
+    saveState();
+    renderAgendaLinear();
+    if (res.aviso) _projChatAviso(res.aviso);
   } catch (e) {
-    toast('Erro: ' + (e && e.message ? e.message : 'desconhecido'));
+    hist.push({ role: 'assistant', text: '\u26a0 Erro: ' + (e && e.message ? e.message : 'desconhecido') });
+    saveState();
+    renderAgendaLinear();
   } finally {
     var c = document.getElementById('proj-chat');
     if (c) c.disabled = false;
+    var log = document.getElementById('proj-chat-log');
+    if (log) log.scrollTop = log.scrollHeight;
   }
+}
+
+// ── AÇÕES PONTUAIS ──────────────────────────────────────────────────────────
+// Antes o chat devolvia a projeção INTEIRA reescrita a cada pedido. Trocar um exercício obrigava
+// o modelo a reemitir os outros sete, e qualquer deslize num deles — uma carga que ele "arredondou",
+// uma observação que sumiu — entrava junto sem ninguém pedir. Agora ele descreve o que quer mudar,
+// e o app aplica; o que não foi citado não é tocado por construção, não por boa vontade do modelo.
+//
+// `alvo` casa por nome parcial: o modelo escreve "Crucifixo" e não "Crucifixo Inverso Unilateral
+// na Polia". Ambiguidade não é resolvida no chute — dois candidatos derrubam a ação.
+function _projAcaoAlvo(exercicios, alvo) {
+  var k = String(alvo || '').trim().toLowerCase();
+  if (!k) return { erro: 'sem alvo' };
+  var exatos = [], parciais = [];
+  exercicios.forEach(function(e, i) {
+    var n = String(e.nome || '').trim().toLowerCase();
+    if (n === k) exatos.push(i);
+    else if (n.indexOf(k) !== -1 || k.indexOf(n) !== -1) parciais.push(i);
+  });
+  if (exatos.length === 1) return { i: exatos[0] };
+  if (exatos.length > 1) return { erro: '"' + alvo + '" aparece mais de uma vez no treino' };
+  if (parciais.length === 1) return { i: parciais[0] };
+  if (parciais.length > 1) {
+    return { erro: '"' + alvo + '" é ambíguo: casa com ' +
+             parciais.map(function(i) { return exercicios[i].nome; }).join(' e ') };
+  }
+  return { erro: '"' + alvo + '" não está no treino projetado' };
+}
+
+// A TRAVA DE CATÁLOGO, reescrita de propósito.
+//
+// A regra antiga era uma só — "tem que estar na série decidida + Core" — e misturava três coisas
+// diferentes num único não. Separadas:
+//
+//   1. Nome que não existe na Biblioteca  -> BLOQUEIA. O registro grava o que existe na série; um
+//      nome solto viraria carga órfã, sem histórico e sem progressão.
+//   2. Exercício de PERNAS em dia de pedal -> BLOQUEIA. Não é preferência de catálogo, é a regra
+//      do tendão patelar: perna e bike não dividem o mesmo dia. Era isso que a trava antiga estava
+//      protegendo sem dizer, e é a única parte dela que não pode afrouxar.
+//   3. Exercício de OUTRA série, fora dos dois casos acima -> PASSA, e a confirmação diz de onde
+//      ele veio. Era esta a recusa que impedia pôr hiperextensão num dia de ombro.
+function _projExercicioPermitido(nome) {
+  var k = String(nome || '').trim().toLowerCase();
+  var achado = null, serieDele = null;
+  (state.series || []).forEach(function(sr) {
+    (sr.exercises || []).forEach(function(e) {
+      if (String(e.name || '').trim().toLowerCase() === k) { achado = e; serieDele = sr; }
+    });
+  });
+  if (!achado) return { ok: false, motivo: '"' + nome + '" não existe na Biblioteca' };
+
+  var pernas = _serieDePernas();
+  if (_pedalHoje() && pernas && serieDele && serieDele.id === pernas.id) {
+    return { ok: false, motivo: '"' + achado.name + '" é de ' + pernas.label +
+             ' (pernas) e hoje tem pedal — perna e bike não dividem o mesmo dia' };
+  }
+  return { ok: true, ex: achado, serie: serieDele };
+}
+
+// Traduz cada ação para uma frase em português e para a mutação correspondente. Devolve as duas
+// coisas separadas: a frase alimenta a confirmação, a mutação só roda depois do seu APLICAR.
+function _projInterpretarAcoes(acoes, dec) {
+  var base = (dec.treino.exercicios || []).map(function(e) {
+    return { nome: e.nome, sets: e.sets || '', weight: e.weight || '', rest: e.rest || '', obs: e.obs || '' };
+  });
+  var passos = [], erros = [];
+
+  (acoes || []).forEach(function(a) {
+    if (!a || !a.acao) { erros.push('ação sem tipo'); return; }
+    var tipo = String(a.acao).trim().toLowerCase();
+
+    if (tipo === 'remover') {
+      var r = _projAcaoAlvo(base, a.alvo);
+      if (r.erro) { erros.push(r.erro); return; }
+      passos.push({ txt: 'Remover ' + base[r.i].nome, aplicar: function(l) {
+        var x = _projAcaoAlvo(l, a.alvo); if (!x.erro) l.splice(x.i, 1); } });
+
+    } else if (tipo === 'adicionar' || tipo === 'substituir') {
+      var perm = _projExercicioPermitido(a.novo);
+      if (!perm.ok) { erros.push(perm.motivo); return; }
+      var exec = _cargaExecutada(perm.ex.name);
+      var novo = { nome: perm.ex.name,
+                   sets: a.sets || (exec && exec.sets) || perm.ex.sets || '',
+                   weight: a.weight || (exec && exec.weight) || perm.ex.weight || '',
+                   rest: a.rest || perm.ex.rest || '', obs: a.obs || '' };
+      var deOutraSerie = perm.serie && perm.serie.label !== dec.label && perm.serie.id !== 'score';
+      var origem = deOutraSerie ? ' [vem da série ' + perm.serie.label + ']' : '';
+
+      if (tipo === 'substituir') {
+        var s = _projAcaoAlvo(base, a.alvo);
+        if (s.erro) { erros.push(s.erro); return; }
+        var antigo = base[s.i].nome;
+        base[s.i] = novo;
+        passos.push({ txt: 'Trocar ' + antigo + ' por ' + novo.nome + ' (' + novo.sets + ' · ' +
+                           novo.weight + ')' + origem,
+                      aplicar: function(l) { var x = _projAcaoAlvo(l, a.alvo); if (!x.erro) l[x.i] = novo; } });
+      } else {
+        var pos = (typeof a.posicao === 'number' && a.posicao >= 1) ? Math.min(a.posicao - 1, base.length) : base.length;
+        base.splice(pos, 0, novo);
+        passos.push({ txt: 'Acrescentar ' + novo.nome + ' (' + novo.sets + ' · ' + novo.weight +
+                           ') na posição ' + (pos + 1) + origem,
+                      aplicar: function(l) { l.splice(Math.min(pos, l.length), 0, novo); } });
+      }
+
+    } else if (tipo === 'alterar') {
+      var al = _projAcaoAlvo(base, a.alvo);
+      if (al.erro) { erros.push(al.erro); return; }
+      var alvoEx = base[al.i], mudancas = [];
+      ['sets', 'weight', 'rest', 'obs'].forEach(function(campo) {
+        if (a[campo] !== undefined && a[campo] !== null && String(a[campo]) !== String(alvoEx[campo] || '')) {
+          mudancas.push(campo + ': ' + (alvoEx[campo] || '\u2014') + ' \u2192 ' + a[campo]);
+        }
+      });
+      if (!mudancas.length) { erros.push('nada a alterar em "' + alvoEx.nome + '"'); return; }
+      passos.push({ txt: alvoEx.nome + ' \u2014 ' + mudancas.join(', '), aplicar: function(l) {
+        var x = _projAcaoAlvo(l, a.alvo); if (x.erro) return;
+        ['sets', 'weight', 'rest', 'obs'].forEach(function(c) { if (a[c] !== undefined && a[c] !== null) l[x.i][c] = a[c]; });
+      } });
+      ['sets', 'weight', 'rest', 'obs'].forEach(function(c) { if (a[c] !== undefined && a[c] !== null) alvoEx[c] = a[c]; });
+
+    } else if (tipo === 'mover') {
+      var mv = _projAcaoAlvo(base, a.alvo);
+      if (mv.erro) { erros.push(mv.erro); return; }
+      var destino = (typeof a.posicao === 'number' && a.posicao >= 1) ? Math.min(a.posicao - 1, base.length - 1) : 0;
+      var nomeMv = base[mv.i].nome;
+      base.splice(destino, 0, base.splice(mv.i, 1)[0]);
+      passos.push({ txt: 'Mover ' + nomeMv + ' para a posição ' + (destino + 1), aplicar: function(l) {
+        var x = _projAcaoAlvo(l, a.alvo); if (x.erro) return;
+        l.splice(Math.min(destino, l.length - 1), 0, l.splice(x.i, 1)[0]);
+      } });
+
+    } else {
+      erros.push('ação desconhecida: ' + tipo);
+    }
+  });
+
+  return { passos: passos, erros: erros, previa: base };
+}
+
+// ── CONFIRMAÇÃO ─────────────────────────────────────────────────────────────
+// As ações ficam pendentes até você aprovar. `_projPendente` é de sessão, não do state: uma
+// proposta não aplicada não é dado do treino, e sobreviver a um fechamento do app significaria
+// reencontrar amanhã um "aplicar?" sem lembrar do que se tratava.
+var _projPendente = null;
+
+function _projPendenteHTML() {
+  if (!_projPendente || !_projPendente.passos.length) return '';
+  return '<div style="margin-top:8px;padding:10px;border:1px solid var(--accent);border-radius:8px;background:var(--surface2)">' +
+    '<div style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;color:var(--accent);margin-bottom:6px">ALTERAÇÕES PROPOSTAS</div>' +
+    _projPendente.passos.map(function(p) {
+      return '<div style="font-family:DM Sans,sans-serif;font-size:12px;color:var(--text);margin-bottom:4px">\u2022 ' + escHtml(p.txt) + '</div>';
+    }).join('') +
+    '<div style="display:flex;gap:6px;margin-top:8px">' +
+      '<button onclick="aplicarProjPendente()" style="flex:1;font-family:DM Mono,monospace;font-size:10px;' +
+        'letter-spacing:1px;padding:8px;border-radius:6px;border:none;background:var(--accent);color:#000;cursor:pointer">APLICAR</button>' +
+      '<button onclick="descartarProjPendente()" style="flex:1;font-family:DM Mono,monospace;font-size:10px;' +
+        'letter-spacing:1px;padding:8px;border-radius:6px;border:1px solid var(--border);background:transparent;' +
+        'color:var(--muted);cursor:pointer">DESCARTAR</button>' +
+    '</div></div>';
+}
+
+function aplicarProjPendente() {
+  if (!_projPendente) return;
+  var passos = _projPendente.passos, extras = _projPendente.extras || {};
+  _projMutar(function(tp) {
+    var lista = tp.exercicios;
+    passos.forEach(function(p) { p.aplicar(lista); });
+    tp.exercicios = lista;
+    if (extras.foco) tp.foco = extras.foco;
+    if (extras.observacoes) tp.observacoes = extras.observacoes;
+  });
+  var hist = (state.proximoDecidido && state.proximoDecidido.chat) || [];
+  for (var i = hist.length - 1; i >= 0; i--) {
+    if (hist[i].role === 'assistant') { hist[i].aplicado = true; break; }
+  }
+  _projPendente = null;
+  saveState();
+  renderAgendaLinear();
+  toast('Aplicado \u2713');
+}
+
+function descartarProjPendente() {
+  _projPendente = null;
+  renderAgendaLinear();
+  toast('Descartado');
+}
+
+// Separa a conversa da ação. O texto vai para a tela sempre; o bloco <<<ACOES só existe quando o
+// modelo decidiu propor mudanças, e é removido do texto exibido — JSON cru na conversa é ruído.
+// Nada é aplicado aqui: as ações viram uma proposta pendente, e quem aplica é você.
+function _projChatAplicarResposta(txt, serie, dec) {
+  var m = txt.match(/<<<ACOES([\s\S]*?)ACOES>>>/);
+  var texto = txt.replace(/<<<ACOES[\s\S]*?ACOES>>>/, '').trim();
+  if (!m) { _projPendente = null; return { texto: texto || txt.trim(), aplicado: false, aviso: '' }; }
+
+  var obj = null;
+  var bruto = m[1].replace(/```json|```/g, '').trim();
+  try { obj = JSON.parse(bruto); } catch (e) {
+    var mm = bruto.match(/[\[{][\s\S]*[\]}]/);
+    if (mm) { try { obj = JSON.parse(mm[0]); } catch (e2) {} }
+  }
+  var acoes = Array.isArray(obj) ? obj : (obj && obj.acoes);
+  if (!acoes || !acoes.length) {
+    _projPendente = null;
+    return { texto: texto, aplicado: false,
+             aviso: 'Veio um bloco de ações que eu não consegui ler — nada foi alterado.' };
+  }
+
+  var r = _projInterpretarAcoes(acoes, dec);
+  if (r.erros.length) {
+    // Uma ação inválida derruba o conjunto: aplicar metade de uma troca deixa o treino sem o
+    // exercício antigo e sem o novo, que foi exatamente o estrago de 17/08.
+    _projPendente = null;
+    return { texto: texto, aplicado: false,
+             aviso: 'Não apliquei nada. ' + r.erros.join('; ') + '.' };
+  }
+  _projPendente = { passos: r.passos, extras: { foco: obj && obj.foco, observacoes: obj && obj.observacoes } };
+  return { texto: texto || 'Proponho as alterações abaixo.', aplicado: false, aviso: '' };
 }
 
 function renderProximoTreino() {
@@ -5453,10 +5952,14 @@ function renderProximoTreino() {
       (cargaPedal ? linha('var(--bike-chuva)', '\ud83d\udeb2 ' + escHtml(cargaPedal)) : '') +
       (p.diasSemPernas !== null && p.labelPernas
         ? linha('var(--partial)', escHtml(p.labelPernas) + ' h\u00e1 ' + p.diasSemPernas + ' dia' + (p.diasSemPernas === 1 ? '' : 's')) : '');
+    // Sem REGISTRAR PEDAL aqui: a barra ACRESCENTAR do feed (v0.9.1.88) já abre o mesmo modal,
+    // com a mesma chamada e sem argumento nenhum de diferença. Este botão era a porta antiga,
+    // aberta quando o card era o único caminho, e ficou para trás quando a nova foi criada — e
+    // ainda só aparecia no ramo EM ABERTO, como se registrar um pedal dependesse de não ter
+    // série decidida. Duas portas para a mesma sala, uma delas intermitente.
     botoes =
       acao('avaliarProximoTreino()', '\u2726 AVALIAR', 'var(--accent)') +
-      acao('abrirEscolhaSerie()', 'ESCOLHER S\u00c9RIE') +
-      acao('abrirRegistroPedal()', '\ud83d\udeb2 REGISTRAR PEDAL', 'var(--bike-chuva)');
+      acao('abrirEscolhaSerie()', 'ESCOLHER S\u00c9RIE');
   }
 
   rodape += (p.ultimo
@@ -6395,15 +6898,32 @@ async function projetarTreino() {
 
     // Guarda so o que casa com a Biblioteca. Exercicio inventado pelo modelo nao entra: o
     // registro grava o que existe na serie, e um nome solto viraria carga orfa.
+    //
+    // Aqui o descarte CONTINUA (ao contrário do chat, que aborta): a projeção é uma proposta nova
+    // e inteira — jogar as oito fora porque uma não bateu deixaria você sem treino nenhum. O chat
+    // aborta porque lá o alvo é um treino que JÁ existe, e aplicar pela metade o mutila.
+    // O que muda é o silêncio: o descartado passa a ser nomeado na tela, com o lugar dele.
     var porNome = {};
     exs.forEach(function(e) { porNome[String(e.name || '').trim().toLowerCase()] = true; });   // exs já inclui core
+    var recusados = tp.exercicios.filter(function(x) {
+      return x && x.nome && !porNome[String(x.nome).trim().toLowerCase()];
+    }).map(function(x) { return String(x.nome).trim(); });
     var itens = tp.exercicios.filter(function(x) {
       return x && x.nome && porNome[String(x.nome).trim().toLowerCase()];
     }).map(function(x) {
       return { nome: String(x.nome).trim(), sets: x.sets || '', weight: x.weight || '',
                rest: x.rest || '', obs: x.obs || '' };
     });
-    if (!itens.length) { toast('A projeção não bateu com a Biblioteca'); return; }
+    if (!itens.length) {
+      _projChatAviso('A projeção não bateu com a Biblioteca. Nenhum destes existe no catálogo de ' +
+                     dec.label + ' + Core: ' + (recusados.join('; ') || '\u2014') + '.');
+      return;
+    }
+    if (recusados.length) {
+      _projChatAviso('Projetei ' + itens.length + ' exercício' + (itens.length === 1 ? '' : 's') +
+        '. Deixei de fora, por não estar' + (recusados.length === 1 ? '' : 'em') +
+        ' no catálogo de ' + dec.label + ' + Core: ' + _ondeEstaNaBiblioteca(recusados).join('; ') + '.');
+    }
     // Rede de seguranca visivel: se voltar o catalogo inteiro, o usuario fica sabendo na hora em
     // vez de descobrir abrindo um treino de 16 exercicios.
     if (itens.length > 10) toast('Atenção: projeção com ' + itens.length + ' exercícios');
@@ -15398,7 +15918,11 @@ function renderAgendaContinua(list) {
 
     var acoes = function(id, tipo) {
       return '<span style="display:flex;gap:4px;flex-shrink:0" onclick="event.stopPropagation()">' +
-        '<button class="ex-action-btn" onclick="editHistoryDataPrompt(\'' + id + '\',\'' + tipo + '\')" title="Editar">&#9998;</button>' +
+        // Só para treino: um ride não tem lista de exercícios para editar.
+        (tipo === 'gym'
+          ? '<button class="ex-action-btn" onclick="editSessaoExerciciosPrompt(\'' + id + '\')" title="Editar exercícios">&#9776;</button>'
+          : '') +
+        '<button class="ex-action-btn" onclick="editHistoryDataPrompt(\'' + id + '\',\'' + tipo + '\')" title="Editar data e hora">&#9998;</button>' +
         '<button class="ex-action-btn" onclick="' + (tipo === 'bike' ? 'removeBikeHistoryEntry' : 'removeHistoryEntry') +
           '(\'' + id + '\')" title="Remover">\u2715</button>' +
       '</span>';
@@ -19462,6 +19986,31 @@ loadPersistedState(function() {
       }
     });
     state._migracaoPowerlockEsperaV1 = true;
+    saveState();
+  }
+
+  // Migração: Hiperextensão no Banco sai de PERNAS (D) e vai para CORE.
+  //
+  // É exercício de lombar, e o Core é o único grupo que `_catalogoDaSessao` acrescenta a TODAS as
+  // séries. Enquanto ela morava em D, era invisível para qualquer outra série — foi por isso que
+  // a troca pedida ao chat em 17/08 recusou: a IA propôs um exercício que o filtro por catálogo
+  // não reconhecia. Move o objeto inteiro, preservando id, cargas e histórico (o histórico é por
+  // nome, não por id, então nada nele precisa mudar).
+  if (!state._migracaoHiperextensaoCoreV1) {
+    var _pernas = (state.series || []).find(function(s) { return s.label === 'D'; });
+    var _core = (state.series || []).find(function(s) { return s.id === 'score'; });
+    if (_pernas && _core) {
+      var _i = (_pernas.exercises || []).findIndex(function(e) {
+        return String(e.name || '').trim().toLowerCase() === 'hiperextensão no banco';
+      });
+      var _jaNoCore = (_core.exercises || []).some(function(e) {
+        return String(e.name || '').trim().toLowerCase() === 'hiperextensão no banco';
+      });
+      if (_i !== -1 && !_jaNoCore) {
+        _core.exercises.push(_pernas.exercises.splice(_i, 1)[0]);
+      }
+    }
+    state._migracaoHiperextensaoCoreV1 = true;
     saveState();
   }
 
