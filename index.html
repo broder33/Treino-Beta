@@ -1129,9 +1129,18 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
     border-radius: 12px;
     transition: border-color .2s;
   }
+  /* Os cartões do feed saem colados (`g.itens.map(montarCard).join('')`, sem separador) e a
+     classe não tinha margem: duas bordas de 1px encostadas formavam uma faixa de 2px com uma cor
+     de cada lado. Passou despercebido enquanto pedal e treino concluído eram o mesmo verde — a
+     faixa era verde contra verde. Ao pintar o pedal de azul, o verde do treino ao lado passou a
+     ler como uma terceira cor na costura. Não é a cor que mudou; é a costura que apareceu. */
+  .agenda-dia + .agenda-dia { margin-top: 6px; }
   .agenda-dia.hoje { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
   .agenda-dia.perdido { border-color: var(--danger); background: rgba(255,68,68,.03); }
-  .agenda-dia.bike-dia { border-color: rgba(57,255,133,.3); background: rgba(57,255,133,.03); }
+  /* Azul, nao verde: o verde e de `.agenda-dia.concluido`, e um pedal registrado ficava com
+     exatamente a mesma moldura de um treino concluido. O badge .tipo-bike ja era azul —
+     era so o cartao que destoava. Azul e a cor de bike no resto do app (--bike-chuva). */
+  .agenda-dia.bike-dia { border-color: rgba(91,143,255,.35); background: rgba(91,143,255,.04); }
   .agenda-dia.bike-chuva { border-color: var(--bike-chuva); background: rgba(91,143,255,.03); }
   .agenda-dia.bike-imprevisto { border-color: var(--bike-imprevisto); background: rgba(255,149,0,.03); }
   .agenda-dia.ausente-planejada { border-color: #ff9500; background: rgba(255,149,0,.03); }
@@ -1427,7 +1436,7 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
   <div class="header-brand">
     <div class="logo">TREINO</div>
     <div class="header-meta">
-      <span class="header-version">v0.9.2.27</span>
+      <span class="header-version">v0.9.2.30</span>
       <span id="dbStamp" title="Última atualização dos dados">⟳ —</span>
     </div>
   </div>
@@ -2452,7 +2461,7 @@ function renderHistory() {
       var dataFmt = bd.toLocaleDateString('pt-BR', {day:'2-digit',month:'2-digit',year:'2-digit'});
       var diaSemFmt = bd.toLocaleDateString('pt-BR', {weekday:'long'});
       diaSemFmt = diaSemFmt.charAt(0).toUpperCase() + diaSemFmt.slice(1);
-      var meta = [b.distancia ? b.distancia+'km' : '', b.tempoMov ? b.tempoMov+' mov.' : (b.tempo||''), b.tempoTotal ? b.tempoTotal+' total' : '', b.velocidade ? b.velocidade+' méd.' : '', b.elevacao ? b.elevacao+'m elev.' : '', b.kcal ? b.kcal+'kcal' : '', b.bpmMedio ? b.bpmMedio+'bpm' : '', b.percurso].filter(Boolean).join(' · ');
+      var meta = [b.distancia ? b.distancia+'km' : '', b.tempoMov ? b.tempoMov+' mov.' : (b.tempo||''), b.tempoTotal ? b.tempoTotal+' total' : '', b.velocidade ? b.velocidade+' méd.' : '', b.elevacao ? b.elevacao+'m elev.' : '', b.kcal ? b.kcal+'kcal' : '', b.bpmMedio ? b.bpmMedio+'bpm' : '', b.tempMedia ? b.tempMedia+'\u00b0C' : '', b.percurso].filter(Boolean).join(' · ');
       var regHora = bd.toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit'});
       var timing = b.timingReal ? ' · ' + b.timingReal + ' da musculação' : '';
       return '<div class="history-card" style="flex-direction:column;align-items:stretch;border-color:rgba(91,143,255,.35)">' +
@@ -2692,7 +2701,7 @@ function renderCiclos() {
         var dataFmt = bd.toLocaleDateString('pt-BR', {day:'2-digit',month:'2-digit',year:'2-digit'});
         var diaSem = bd.toLocaleDateString('pt-BR', {weekday:'long'});
         diaSem = diaSem.charAt(0).toUpperCase() + diaSem.slice(1);
-        var meta = [b.distancia ? b.distancia+'km' : '', b.tempoMov ? b.tempoMov+' mov.' : '', b.velocidade ? b.velocidade+' méd.' : '', b.elevacao ? b.elevacao+'m elev.' : '', b.kcal ? b.kcal+'kcal' : '', b.bpmMedio ? b.bpmMedio+'bpm' : ''].filter(Boolean).join(' · ');
+        var meta = [b.distancia ? b.distancia+'km' : '', b.tempoMov ? b.tempoMov+' mov.' : '', b.velocidade ? b.velocidade+' méd.' : '', b.elevacao ? b.elevacao+'m elev.' : '', b.kcal ? b.kcal+'kcal' : '', b.bpmMedio ? b.bpmMedio+'bpm' : '', b.tempMedia ? b.tempMedia+'\u00b0C' : ''].filter(Boolean).join(' · ');
         html += '<div class="history-card" style="flex-direction:column;align-items:stretch;border-color:rgba(91,143,255,.35);margin-bottom:8px">';
         html += '<div style="display:flex;align-items:baseline;gap:10px;margin-bottom:2px">';
         html += '<div class="history-serie" style="color:var(--bike-chuva)">&#128690; ' + escHtml(b.foco||'Ride') + '</div>';
@@ -2992,6 +3001,7 @@ function editHistoryDataPrompt(id, tipo) {
         _cb('ELEV. (m)', 'elevacao', 'm', 'numeric') +
         _cb('KCAL', 'kcal', 'kcal', 'numeric') +
         _cb('BPM MÉD.', 'bpmMedio', 'bpm', 'numeric') +
+        _cb('TEMP. MÉD.', 'tempMedia', '\u00b0C', 'decimal') +
       '</div>' +
       '<div style="margin-bottom:12px">' +
         '<label style="font-family:DM Mono,monospace;font-size:9px;letter-spacing:.5px;color:var(--muted)">PERCURSO</label>' +
@@ -3046,7 +3056,8 @@ function editHistoryDataAplicar(id, tipo) {
     var camposEd = {
       distancia: /\s*km\s*$/i, tempoMov: 'duracao', tempoTotal: 'duracao',
       velocidade: /\s*km\/?h\s*$/i, elevacao: /\s*m\s*$/i,
-      kcal: /\s*kcal\s*$/i, bpmMedio: /\s*bpm\s*$/i, percurso: null
+      kcal: /\s*kcal\s*$/i, bpmMedio: /\s*bpm\s*$/i,
+      tempMedia: /\s*(\u00b0\s*)?c\s*$/i, percurso: null
     };
     Object.keys(camposEd).forEach(function(c) {
       var el = document.getElementById('edbike-' + c);
@@ -5003,6 +5014,7 @@ function abrirRegistroPedal() {
       campo('ELEV. (m)', 'ped-elevacao', 'm', 'numeric') +
       campo('KCAL', 'ped-kcal', 'kcal', 'numeric') +
       campo('BPM MÉD.', 'ped-bpmMedio', 'bpm', 'numeric') +
+      campo('TEMP. MÉD.', 'ped-tempMedia', '\u00b0C', 'decimal') +
     '</div>' +
     '<div style="display:flex;gap:8px;flex-wrap:wrap">' +
       campo('FOCO', 'ped-foco', 'Z2, Z4…', null) +
@@ -5042,6 +5054,9 @@ function _aplicarRegistroPedal() {
     elevacao: v('ped-elevacao', /\s*m\s*$/i),
     kcal: v('ped-kcal', /\s*kcal\s*$/i),
     bpmMedio: v('ped-bpmMedio', /\s*bpm\s*$/i),
+    // Temperatura média DAQUELE pedal, informada pelo ciclocomputador. Free-text sanitizado como
+    // os demais: quem digita "24 °C" não deve ver a unidade duplicada na exibição.
+    tempMedia: v('ped-tempMedia', /\s*(\u00b0\s*)?c\s*$/i),
     percurso: v('ped-percurso')
   });
 
@@ -9381,6 +9396,7 @@ function updateBikeField(dayKey, field, value) {
     else if (field === 'elevacao') value = value.replace(/\s*m\s*$/i, '');
     else if (field === 'kcal') value = value.replace(/\s*kcal\s*$/i, '');
     else if (field === 'bpmMedio') value = value.replace(/\s*bpm\s*$/i, '');
+    else if (field === 'tempMedia') value = value.replace(/\s*(\u00b0\s*)?c\s*$/i, '');
     else if (field === 'tempoMov' || field === 'tempoTotal') value = _normalizaDuracao(value);
   }
   state.plano.diasBike[dayKey][field] = value;
@@ -9420,6 +9436,7 @@ function registrarBikeHistorico(dayKey) {
     elevacao: bikeInfo.elevacao || '',
     kcal: bikeInfo.kcal || '',
     bpmMedio: bikeInfo.bpmMedio || '',
+    tempMedia: bikeInfo.tempMedia || '',
     percurso: bikeInfo.percurso || '',
     timingReal: bikeInfo.timingReal || ''
   };
@@ -15752,6 +15769,7 @@ function _buildBikeSection(dayKey, bikeInfo, bikePlano, diaChegou) {
     var elev = (bikeInfo&&bikeInfo.elevacao)||'';
     var kcal = (bikeInfo&&bikeInfo.kcal)||'';
     var bpm = (bikeInfo&&bikeInfo.bpmMedio)||'';
+    var tempM = (bikeInfo&&bikeInfo.tempMedia)||'';
     var percurso = (bikeInfo&&bikeInfo.percurso)||'';
     var tr = (bikeInfo&&bikeInfo.timingReal)||'';
 
@@ -15774,6 +15792,7 @@ function _buildBikeSection(dayKey, bikeInfo, bikePlano, diaChegou) {
     html += '<div style="flex:1;min-width:60px"><div style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted);letter-spacing:0.5px">ELEV. (m)</div><input class="bike-field" value="' + escHtml(elev) + '" placeholder="m" onchange="updateBikeField(\'' + dayKey + '\',\'elevacao\',this.value)"></div>';
     html += '<div style="flex:1;min-width:60px"><div style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted);letter-spacing:0.5px">KCAL</div><input class="bike-field" value="' + escHtml(kcal) + '" placeholder="kcal" onchange="updateBikeField(\'' + dayKey + '\',\'kcal\',this.value)"></div>';
     html += '<div style="flex:1;min-width:60px"><div style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted);letter-spacing:0.5px">BPM MÉD.</div><input class="bike-field" value="' + escHtml(bpm) + '" placeholder="bpm" inputmode="numeric" onchange="updateBikeField(\'' + dayKey + '\',\'bpmMedio\',this.value)"></div>';
+    html += '<div style="flex:1;min-width:60px"><div style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted);letter-spacing:0.5px">TEMP. MÉD.</div><input class="bike-field" value="' + escHtml(tempM) + '" placeholder="°C" inputmode="decimal" onchange="updateBikeField(\'' + dayKey + '\',\'tempMedia\',this.value)"></div>';
     html += '</div>';
     html += '<div style="margin-bottom:8px"><div style="font-family:DM Mono,monospace;font-size:9px;color:var(--muted);letter-spacing:0.5px">PERCURSO</div><input class="bike-field" value="' + escHtml(percurso) + '" placeholder="percurso" onchange="updateBikeField(\'' + dayKey + '\',\'percurso\',this.value)"></div>';
 
@@ -15970,6 +15989,7 @@ function renderAgendaContinua(list) {
       var meta = [b.distancia ? b.distancia + 'km' : '', b.tempoMov ? b.tempoMov : '',
                   b.velocidade ? b.velocidade + 'km/h' : '', b.elevacao ? b.elevacao + 'm' : '',
                   b.bpmMedio ? b.bpmMedio + 'bpm' : '', b.kcal ? b.kcal + 'kcal' : '',
+                  b.tempMedia ? b.tempMedia + '\u00b0C' : '',
                   b.percurso || ''].filter(Boolean).join(' \u00b7 ');
       return '<div class="agenda-dia bike-dia">' +
         '<div class="agenda-dia-head" style="cursor:default">' +
