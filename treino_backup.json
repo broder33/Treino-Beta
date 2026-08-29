@@ -5,7 +5,7 @@
       "id": "s1",
       "name": "OMBROS",
       "label": "A",
-      "lastDone": "2026-08-18T00:02:33.665Z",
+      "lastDone": "2026-08-27T01:44:20.776Z",
       "planMode": false,
       "variants": [
         "Principal",
@@ -25,8 +25,8 @@
         {
           "id": "e2",
           "name": "Elevação Lateral com Halteres",
-          "rest": "60s",
-          "sets": "4x7",
+          "rest": "75s",
+          "sets": "4x8",
           "notes": "",
           "isCore": false,
           "status": "undone",
@@ -46,11 +46,11 @@
           "id": "e4",
           "name": "Crucifixo Inverso Unilateral na Polia",
           "rest": "60s",
-          "sets": "4x8",
+          "sets": "4x6",
           "notes": "",
           "isCore": false,
           "status": "undone",
-          "weight": "3 pesos"
+          "weight": "4 pesos"
         },
         {
           "id": "e5",
@@ -80,7 +80,7 @@
           "notes": "",
           "isCore": false,
           "status": "undone",
-          "weight": "6 pesos"
+          "weight": "3 pesos"
         },
         {
           "id": "e8",
@@ -100,7 +100,7 @@
           "notes": "",
           "isCore": false,
           "status": "undone",
-          "weight": "39-45kg"
+          "weight": "45kg"
         },
         {
           "id": "e10",
@@ -147,11 +147,11 @@
         {
           "id": "xaauxg3w",
           "name": "Overhead Press Sentado com Halteres",
-          "rest": "90s",
+          "rest": "120s",
           "sets": "4x5",
           "isCore": false,
           "status": "undone",
-          "weight": "20-22kg cada lado",
+          "weight": "22-24kg cada lado",
           "skippedLast": false
         }
       ],
@@ -161,7 +161,7 @@
       "id": "s2",
       "name": "COSTAS / BÍCEPS",
       "label": "B",
-      "lastDone": "2026-08-14T00:24:56.417Z",
+      "lastDone": "2026-08-21T23:01:06.122Z",
       "planMode": false,
       "variants": [
         "Principal"
@@ -171,7 +171,7 @@
           "id": "e12",
           "name": "Pull-up Aberto",
           "rest": "150s",
-          "sets": "3x5",
+          "sets": "4x5",
           "notes": "",
           "isCore": false,
           "status": "undone",
@@ -181,7 +181,7 @@
           "id": "e15",
           "name": "Chin-up",
           "rest": "2-3min",
-          "sets": "3x6",
+          "sets": "2x6",
           "notes": "",
           "isCore": false,
           "status": "undone",
@@ -191,11 +191,11 @@
           "id": "e14",
           "name": "Hammer Curl",
           "rest": "90s",
-          "sets": "4x7",
+          "sets": "3x7",
           "notes": "",
           "isCore": false,
           "status": "undone",
-          "weight": "20kg cada lado"
+          "weight": "18kg cada lado"
         },
         {
           "id": "e16",
@@ -210,12 +210,12 @@
         {
           "id": "e17",
           "name": "Remada Aberta na Polia",
-          "rest": "90s-2min",
+          "rest": "90s",
           "sets": "4x8",
           "notes": "",
           "isCore": false,
           "status": "undone",
-          "weight": "50kg"
+          "weight": "45kg"
         },
         {
           "id": "e18",
@@ -250,11 +250,11 @@
         {
           "id": "xxyupj1p",
           "name": "Puxada no Pulley com Pegada Neutra",
-          "rest": "60-90s",
-          "sets": "4x9",
+          "rest": "90s",
+          "sets": "3x9",
           "isCore": false,
           "status": "undone",
-          "weight": "60kg",
+          "weight": "62kg",
           "skippedLast": false
         },
         {
@@ -280,11 +280,11 @@
         {
           "id": "xxyfavtg",
           "name": "Remada cavalinho na máquina",
-          "rest": "60-90s",
+          "rest": "90s",
           "sets": "4x7",
           "isCore": false,
           "status": "undone",
-          "weight": "67kg",
+          "weight": "68kg",
           "skippedLast": false
         }
       ],
@@ -294,7 +294,7 @@
       "id": "s3",
       "name": "PEITO / TRÍCEPS",
       "label": "C",
-      "lastDone": "2026-08-14T23:41:26.516Z",
+      "lastDone": "2026-08-25T22:48:49.233Z",
       "planMode": false,
       "variants": [
         "Principal"
@@ -304,31 +304,31 @@
           "id": "e21",
           "name": "Supino Reto c/ Halteres",
           "rest": "2-3min",
-          "sets": "3x6",
+          "sets": "4x6",
           "notes": "",
           "isCore": false,
           "status": "undone",
-          "weight": "28kg"
+          "weight": "28-30kg"
         },
         {
           "id": "e22",
           "name": "Skull Crusher",
           "rest": "2min",
-          "sets": "3x5",
+          "sets": "4x6",
           "notes": "",
           "isCore": false,
           "status": "undone",
-          "weight": "10kg cada lado"
+          "weight": "10-12.5kg cada lado"
         },
         {
           "id": "e23",
           "name": "Fly com Halteres",
           "rest": "2min",
-          "sets": "4x8",
+          "sets": "4x6",
           "notes": "",
           "isCore": false,
           "status": "undone",
-          "weight": "16-18kg"
+          "weight": "18-20kg"
         },
         {
           "id": "e24",
@@ -467,7 +467,7 @@
       "id": "s4",
       "name": "PERNAS",
       "label": "D",
-      "lastDone": "2026-08-07T23:52:31.465Z",
+      "lastDone": "2026-08-25T23:32:13.042Z",
       "planMode": false,
       "variants": [
         "Principal",
@@ -482,7 +482,7 @@
           "notes": "Banco 3o pino",
           "isCore": false,
           "status": "undone",
-          "weight": "59kg"
+          "weight": "63kg"
         },
         {
           "id": "e36",
@@ -502,7 +502,7 @@
           "notes": "Perna p3, banco p5 / Joinville dist L alt 11",
           "isCore": false,
           "status": "undone",
-          "weight": "54kg"
+          "weight": "50kg"
         },
         {
           "id": "e38",
@@ -522,13 +522,13 @@
           "notes": "",
           "isCore": false,
           "status": "undone",
-          "weight": "80kg cada lado"
+          "weight": "80-100g cada lado"
         },
         {
           "id": "e40",
           "name": "Glúteo na Máquina (Kickback)",
           "rest": "60-90s",
-          "sets": "3x7",
+          "sets": "3x6",
           "notes": "",
           "isCore": false,
           "status": "undone",
@@ -651,7 +651,7 @@
           "id": "xtumf4le",
           "name": "Prancha",
           "rest": "60s",
-          "sets": "3x45s",
+          "sets": "3x30-45s",
           "notes": "",
           "isCore": true,
           "status": "undone",
@@ -777,6 +777,603 @@
   ],
   "history": [
     {
+      "id": "xhd1rhmh",
+      "date": "2026-08-27T01:14:00.000Z",
+      "done": 8,
+      "total": 8,
+      "serieId": "s1",
+      "variant": "Contínuo",
+      "exercises": [
+        {
+          "name": "Overhead Press Sentado com Halteres",
+          "rest": "120s",
+          "sets": "4x5",
+          "isCore": false,
+          "status": "done",
+          "weight": "22-24kg cada lado",
+          "musculo": ""
+        },
+        {
+          "name": "Elevação Lateral com Halteres",
+          "rest": "75s",
+          "sets": "4x8",
+          "isCore": false,
+          "status": "done",
+          "weight": "14kg cada lado",
+          "musculo": ""
+        },
+        {
+          "name": "Crucifixo Inverso Unilateral na Polia",
+          "rest": "60s",
+          "sets": "4x6",
+          "isCore": false,
+          "status": "done",
+          "weight": "4 pesos",
+          "musculo": ""
+        },
+        {
+          "name": "Elevação Lateral na Polia",
+          "rest": "75s",
+          "sets": "4x8",
+          "isCore": false,
+          "status": "done",
+          "weight": "2 pesos",
+          "musculo": ""
+        },
+        {
+          "name": "Rotação Externa com Cabo",
+          "rest": "60s",
+          "sets": "4x10",
+          "isCore": false,
+          "status": "done",
+          "weight": "2 pesos",
+          "musculo": ""
+        },
+        {
+          "name": "Reverse Fly na Máquina",
+          "rest": "60s",
+          "sets": "3x10",
+          "isCore": false,
+          "status": "done",
+          "weight": "45kg",
+          "musculo": ""
+        },
+        {
+          "name": "Hiperextensão no Banco",
+          "rest": "90s",
+          "sets": "4x10",
+          "isCore": true,
+          "status": "done",
+          "weight": "Anilha 10kg",
+          "musculo": ""
+        },
+        {
+          "name": "Prancha",
+          "rest": "60s",
+          "sets": "3x30-45s",
+          "isCore": true,
+          "status": "done",
+          "weight": "Peso corporal",
+          "musculo": ""
+        }
+      ],
+      "serieName": "OMBROS",
+      "serieLabel": "A"
+    },
+    {
+      "id": "xzylapcn",
+      "date": "2026-08-25T23:32:00.000Z",
+      "done": 6,
+      "total": 7,
+      "serieId": "s4",
+      "variant": "Contínuo",
+      "exercises": [
+        {
+          "name": "Leg Press Inclinado",
+          "rest": "2-3min",
+          "sets": "3x8",
+          "isCore": false,
+          "status": "done",
+          "weight": "80-100g cada lado",
+          "musculo": ""
+        },
+        {
+          "name": "Leg Extension",
+          "rest": "60-90s",
+          "sets": "3x10",
+          "isCore": false,
+          "status": "done",
+          "weight": "50kg",
+          "musculo": ""
+        },
+        {
+          "name": "Adutor na Máquina",
+          "rest": "60-90s",
+          "sets": "3x10",
+          "isCore": false,
+          "status": "done",
+          "weight": "68kg",
+          "musculo": ""
+        },
+        {
+          "name": "Glúteo na Máquina (Kickback)",
+          "rest": "60-90s",
+          "sets": "3x6",
+          "isCore": false,
+          "status": "done",
+          "weight": "40kg",
+          "musculo": ""
+        },
+        {
+          "name": "Abdutor na Máquina",
+          "rest": "60-90s",
+          "sets": "3x10",
+          "isCore": false,
+          "status": "done",
+          "weight": "63kg",
+          "musculo": ""
+        },
+        {
+          "name": "Calf Raise na Máquina",
+          "rest": "60s",
+          "sets": "3x15",
+          "isCore": false,
+          "status": "done",
+          "weight": "40kg",
+          "musculo": ""
+        },
+        {
+          "name": "Hiperextensão no Banco",
+          "rest": "90s",
+          "sets": "4x10",
+          "isCore": true,
+          "status": "skipped",
+          "weight": "Anilha 10kg",
+          "musculo": ""
+        }
+      ],
+      "serieName": "PERNAS",
+      "serieLabel": "D"
+    },
+    {
+      "id": "x00dxybv",
+      "date": "2026-08-25T00:15:00.000Z",
+      "done": 5,
+      "total": 8,
+      "serieId": "s3",
+      "variant": "Contínuo",
+      "exercises": [
+        {
+          "name": "Supino Reto c/ Halteres",
+          "rest": "2-3min",
+          "sets": "4x6",
+          "isCore": false,
+          "status": "done",
+          "weight": "28-30kg",
+          "musculo": ""
+        },
+        {
+          "name": "Skull Crusher",
+          "rest": "2min",
+          "sets": "4x6",
+          "isCore": false,
+          "status": "done",
+          "weight": "10-12.5kg cada lado",
+          "musculo": ""
+        },
+        {
+          "name": "Fly com Halteres",
+          "rest": "2min",
+          "sets": "4x6",
+          "isCore": false,
+          "status": "done",
+          "weight": "18-20kg",
+          "musculo": ""
+        },
+        {
+          "name": "Crossover",
+          "rest": "2min",
+          "sets": "4x8",
+          "isCore": false,
+          "status": "done",
+          "weight": "4 pesos na grande",
+          "musculo": ""
+        },
+        {
+          "name": "Tríceps Alternado na Polia",
+          "rest": "60-90s",
+          "sets": "3x10",
+          "isCore": false,
+          "status": "done",
+          "weight": "7 pesos",
+          "musculo": ""
+        },
+        {
+          "name": "French Press com Haltere",
+          "rest": "90s",
+          "sets": "3x9",
+          "isCore": false,
+          "status": "skipped",
+          "weight": "22kg",
+          "musculo": ""
+        },
+        {
+          "name": "Prancha",
+          "rest": "60s",
+          "sets": "3x50s",
+          "isCore": true,
+          "status": "skipped",
+          "weight": "Peso corporal",
+          "musculo": ""
+        },
+        {
+          "name": "Elevação de Joelhos no Roman Chair",
+          "rest": "60s",
+          "sets": "3x15",
+          "isCore": true,
+          "status": "skipped",
+          "weight": "Peso corporal",
+          "musculo": ""
+        }
+      ],
+      "serieName": "PEITO / TRÍCEPS",
+      "serieLabel": "C"
+    },
+    {
+      "id": "xdta7ala",
+      "date": "2026-08-21T23:01:00.000Z",
+      "done": 4,
+      "total": 10,
+      "serieId": "s2",
+      "variant": "Contínuo",
+      "exercises": [
+        {
+          "name": "Pull-up Aberto",
+          "rest": "150s",
+          "sets": "4x5",
+          "isCore": false,
+          "status": "done",
+          "weight": "Peso corporal",
+          "musculo": ""
+        },
+        {
+          "name": "Chin-up",
+          "rest": "2-3min",
+          "sets": "2x6",
+          "isCore": false,
+          "status": "done",
+          "weight": "Peso corporal",
+          "musculo": ""
+        },
+        {
+          "name": "Puxada no Pulley com Pegada Neutra",
+          "rest": "90s",
+          "sets": "3x9",
+          "isCore": false,
+          "status": "done",
+          "weight": "62kg",
+          "musculo": ""
+        },
+        {
+          "name": "Hammer Curl",
+          "rest": "90s",
+          "sets": "3x7",
+          "isCore": false,
+          "status": "done",
+          "weight": "18kg cada lado",
+          "musculo": ""
+        },
+        {
+          "name": "Remada Unilateral com Haltere",
+          "rest": "90s",
+          "sets": "4x7",
+          "isCore": false,
+          "status": "skipped",
+          "weight": "34kg cada lado",
+          "musculo": ""
+        },
+        {
+          "name": "Remada cavalinho na máquina",
+          "rest": "90s",
+          "sets": "4x7",
+          "isCore": false,
+          "status": "skipped",
+          "weight": "68kg",
+          "musculo": ""
+        },
+        {
+          "name": "Rosca com Corda na Polia",
+          "rest": "60s",
+          "sets": "3x12",
+          "isCore": false,
+          "status": "skipped",
+          "weight": "32kg",
+          "musculo": ""
+        },
+        {
+          "name": "Remada Aberta na Polia",
+          "rest": "90s",
+          "sets": "4x8",
+          "isCore": false,
+          "status": "skipped",
+          "weight": "47kg",
+          "musculo": ""
+        },
+        {
+          "name": "Elevação de Joelhos no Roman Chair",
+          "rest": "60s",
+          "sets": "3x15",
+          "isCore": true,
+          "status": "skipped",
+          "weight": "Peso corporal",
+          "musculo": ""
+        },
+        {
+          "name": "Hiperextensão no Banco",
+          "rest": "90s",
+          "sets": "4x10",
+          "isCore": true,
+          "status": "skipped",
+          "weight": "Anilha 10kg",
+          "musculo": ""
+        }
+      ],
+      "serieName": "COSTAS / BÍCEPS",
+      "serieLabel": "B"
+    },
+    {
+      "id": "xnnrydj9",
+      "date": "2026-08-21T00:12:00.000Z",
+      "done": 8,
+      "total": 8,
+      "serieId": "s1",
+      "variant": "Contínuo",
+      "exercises": [
+        {
+          "name": "Overhead Press Sentado com Halteres",
+          "rest": "120s",
+          "sets": "3x5",
+          "isCore": false,
+          "status": "done",
+          "weight": "22-24kg cada lado",
+          "musculo": ""
+        },
+        {
+          "name": "Elevação Lateral com Halteres",
+          "rest": "60s",
+          "sets": "4x7",
+          "isCore": false,
+          "status": "done",
+          "weight": "14kg cada lado",
+          "musculo": ""
+        },
+        {
+          "name": "Crucifixo Inverso Unilateral na Polia",
+          "rest": "60s",
+          "sets": "4x8",
+          "isCore": false,
+          "status": "done",
+          "weight": "4 pesos",
+          "musculo": ""
+        },
+        {
+          "name": "Elevação Lateral na Polia",
+          "rest": "75s",
+          "sets": "4x8",
+          "isCore": false,
+          "status": "done",
+          "weight": "2 pesos",
+          "musculo": ""
+        },
+        {
+          "name": "Reverse Fly na Máquina",
+          "rest": "60s",
+          "sets": "3x10",
+          "isCore": false,
+          "status": "done",
+          "weight": "45kg",
+          "musculo": ""
+        },
+        {
+          "name": "Levantamento Frontal Bilateral (Corda) na Polia",
+          "rest": "60s",
+          "sets": "3x10",
+          "isCore": false,
+          "status": "done",
+          "weight": "3 pesos",
+          "musculo": ""
+        },
+        {
+          "name": "Rotação Externa com Cabo",
+          "rest": "60s",
+          "sets": "4x10",
+          "isCore": false,
+          "status": "done",
+          "weight": "2 pesos",
+          "musculo": ""
+        },
+        {
+          "name": "Hiperextensão no Banco",
+          "rest": "90s",
+          "sets": "4x10",
+          "isCore": true,
+          "status": "done",
+          "weight": "Anilha 10kg",
+          "musculo": ""
+        }
+      ],
+      "serieName": "OMBROS",
+      "serieLabel": "A"
+    },
+    {
+      "id": "xaw75r0x",
+      "date": "2026-08-19T23:45:00.000Z",
+      "done": 3,
+      "total": 7,
+      "serieId": "s3",
+      "variant": "Contínuo",
+      "exercises": [
+        {
+          "name": "Supino Reto c/ Halteres",
+          "rest": "2-3min",
+          "sets": "4x6",
+          "isCore": false,
+          "status": "done",
+          "weight": "28-30kg",
+          "musculo": ""
+        },
+        {
+          "name": "Skull Crusher",
+          "rest": "2min",
+          "sets": "4x6",
+          "isCore": false,
+          "status": "done",
+          "weight": "10-12.5kg cada lado",
+          "musculo": ""
+        },
+        {
+          "name": "Fly com Halteres",
+          "rest": "2min",
+          "sets": "4x7",
+          "isCore": false,
+          "status": "done",
+          "weight": "18-20kg",
+          "musculo": ""
+        },
+        {
+          "name": "Crossover",
+          "rest": "2min",
+          "sets": "4x8",
+          "isCore": false,
+          "status": "skipped",
+          "weight": "4 pesos na grande",
+          "musculo": ""
+        },
+        {
+          "name": "Tríceps Alternado na Polia",
+          "rest": "60-90s",
+          "sets": "3x10",
+          "isCore": false,
+          "status": "skipped",
+          "weight": "7 pesos",
+          "musculo": ""
+        },
+        {
+          "name": "French Press com Haltere",
+          "rest": "90s",
+          "sets": "3x9",
+          "isCore": false,
+          "status": "skipped",
+          "weight": "22kg",
+          "musculo": ""
+        },
+        {
+          "name": "Elevação de Joelhos no Roman Chair",
+          "rest": "60s",
+          "sets": "3x15",
+          "isCore": true,
+          "status": "skipped",
+          "weight": "Peso corporal",
+          "musculo": ""
+        }
+      ],
+      "serieName": "PEITO / TRÍCEPS",
+      "serieLabel": "C"
+    },
+    {
+      "id": "xkk9jjbi",
+      "date": "2026-08-19T00:15:00.000Z",
+      "done": 7,
+      "total": 9,
+      "serieId": "s2",
+      "variant": "Contínuo",
+      "exercises": [
+        {
+          "name": "Pull-up Aberto",
+          "rest": "150s",
+          "sets": "3x6",
+          "isCore": false,
+          "status": "done",
+          "weight": "Peso corporal",
+          "musculo": ""
+        },
+        {
+          "name": "Chin-up",
+          "rest": "2-3min",
+          "sets": "3x6",
+          "isCore": false,
+          "status": "done",
+          "weight": "Peso corporal",
+          "musculo": ""
+        },
+        {
+          "name": "Remada Unilateral com Haltere",
+          "rest": "90s",
+          "sets": "4x7",
+          "isCore": false,
+          "status": "done",
+          "weight": "32kg cada lado",
+          "musculo": ""
+        },
+        {
+          "name": "Puxada no Pulley com Pegada Neutra",
+          "rest": "90s",
+          "sets": "4x9",
+          "isCore": false,
+          "status": "done",
+          "weight": "60kg",
+          "musculo": ""
+        },
+        {
+          "name": "Remada Aberta na Polia",
+          "rest": "90s",
+          "sets": "4x8",
+          "isCore": false,
+          "status": "done",
+          "weight": "45kg",
+          "musculo": ""
+        },
+        {
+          "name": "Rosca com Corda na Polia",
+          "rest": "60s",
+          "sets": "3x12",
+          "isCore": false,
+          "status": "done",
+          "weight": "32kg",
+          "musculo": ""
+        },
+        {
+          "name": "Remada cavalinho na máquina",
+          "rest": "90s",
+          "sets": "4x7",
+          "isCore": false,
+          "status": "done",
+          "weight": "68kg",
+          "musculo": ""
+        },
+        {
+          "name": "Hammer Curl",
+          "rest": "90s",
+          "sets": "4x7",
+          "isCore": false,
+          "status": "skipped",
+          "weight": "18-20kg cada lado",
+          "musculo": ""
+        },
+        {
+          "name": "Elevação de Joelhos no Roman Chair",
+          "rest": "60s",
+          "sets": "3x15",
+          "isCore": true,
+          "status": "skipped",
+          "weight": "Peso corporal",
+          "musculo": ""
+        }
+      ],
+      "serieName": "COSTAS / BÍCEPS",
+      "serieLabel": "B"
+    },
+    {
       "id": "x14y8799",
       "date": "2026-08-18T00:02:00.000Z",
       "done": 6,
@@ -786,74 +1383,74 @@
       "exercises": [
         {
           "name": "Overhead Press Sentado com Halteres",
-          "sets": "4x5",
-          "weight": "20-22kg cada lado",
           "rest": "90s",
-          "status": "done",
+          "sets": "4x5",
           "isCore": false,
+          "status": "done",
+          "weight": "20-22kg cada lado",
           "musculo": ""
         },
         {
           "name": "Elevação Lateral com Halteres",
-          "sets": "4x7",
-          "weight": "14kg cada lado",
           "rest": "60s",
-          "status": "done",
+          "sets": "4x7",
           "isCore": false,
+          "status": "done",
+          "weight": "14kg cada lado",
           "musculo": ""
         },
         {
           "name": "Crucifixo Inverso Unilateral na Polia",
-          "sets": "4x8",
-          "weight": "3 pesos",
           "rest": "60s",
-          "status": "done",
+          "sets": "4x8",
           "isCore": false,
+          "status": "done",
+          "weight": "3 pesos",
           "musculo": ""
         },
         {
           "name": "Elevação Lateral na Polia",
-          "sets": "4x8",
-          "weight": "2 pesos",
           "rest": "75s",
-          "status": "done",
+          "sets": "4x8",
           "isCore": false,
+          "status": "done",
+          "weight": "2 pesos",
           "musculo": ""
         },
         {
           "name": "Rotação Externa com Cabo",
-          "sets": "4x10",
-          "weight": "2 pesos",
           "rest": "60s",
-          "status": "done",
+          "sets": "4x10",
           "isCore": false,
+          "status": "done",
+          "weight": "2 pesos",
           "musculo": ""
         },
         {
           "name": "Hiperextensão no Banco",
-          "sets": "4x10",
-          "weight": "Anilha 10kg",
           "rest": "90s",
-          "status": "done",
+          "sets": "4x10",
           "isCore": true,
+          "status": "done",
+          "weight": "Anilha 10kg",
           "musculo": ""
         },
         {
           "name": "Reverse Fly na Máquina",
-          "sets": "3x10",
-          "weight": "45kg",
           "rest": "60s",
-          "status": "skipped",
+          "sets": "3x10",
           "isCore": false,
+          "status": "skipped",
+          "weight": "45kg",
           "musculo": ""
         },
         {
           "name": "Prancha",
-          "sets": "3x50s",
-          "weight": "Peso corporal",
           "rest": "60s",
-          "status": "skipped",
+          "sets": "3x50s",
           "isCore": true,
+          "status": "skipped",
+          "weight": "Peso corporal",
           "musculo": ""
         }
       ],
@@ -5081,6 +5678,7 @@
         "percurso": "Igapó",
         "tempoMov": "1:00:55",
         "distancia": "20.51",
+        "tempMedia": "20",
         "registrado": true,
         "tempoTotal": "1:47:19",
         "velocidade": "20.2"
@@ -5101,11 +5699,14 @@
         "kcal": "646",
         "_open": true,
         "status": "feito",
+        "bpmMedio": "",
         "elevacao": "181",
-        "tempoMov": "00:56:41",
+        "percurso": "",
+        "tempoMov": "0:56:41",
         "distancia": "20.77",
+        "tempMedia": "26",
         "registrado": true,
-        "tempoTotal": "01:08:26",
+        "tempoTotal": "1:08:26",
         "velocidade": "22.0"
       },
       "sem9_Quinta": {
@@ -5117,6 +5718,7 @@
         "percurso": "Igapó - Classic",
         "tempoMov": "0:56:51",
         "distancia": "21.82",
+        "tempMedia": "19",
         "registrado": true,
         "tempoTotal": "1:01:27",
         "velocidade": "23"
@@ -5130,6 +5732,7 @@
         "percurso": "Igapó Extendido",
         "tempoMov": "1:02:29",
         "distancia": "24.61",
+        "tempMedia": "22",
         "registrado": true,
         "tempoTotal": "1:05:28",
         "velocidade": "23.6"
@@ -5155,24 +5758,28 @@
         "kcal": "754",
         "_open": true,
         "status": "feito",
+        "bpmMedio": "",
         "elevacao": "314",
         "percurso": "Botânico - Igapó",
-        "tempoMov": "01:15:04",
+        "tempoMov": "1:15:04",
         "distancia": "25.39",
+        "tempMedia": "24",
         "registrado": true,
-        "tempoTotal": "01:29:44",
+        "tempoTotal": "1:29:44",
         "velocidade": "20.3"
       },
       "sem8_Sábado": {
         "kcal": "718",
         "_open": true,
         "status": "feito",
+        "bpmMedio": "",
         "elevacao": "276",
         "percurso": "Botânico - Igapó",
-        "tempoMov": "01:07:44",
+        "tempoMov": "1:07:44",
         "distancia": "23.89",
+        "tempMedia": "19",
         "registrado": true,
-        "tempoTotal": "01:26:43",
+        "tempoTotal": "1:26:43",
         "velocidade": "21.2"
       },
       "sem9_Domingo": {
@@ -5184,6 +5791,7 @@
         "percurso": "Igapó",
         "tempoMov": "1:09:19",
         "distancia": "26.30",
+        "tempMedia": "21",
         "registrado": true,
         "tempoTotal": "1:34:33",
         "velocidade": "22.8"
@@ -5192,12 +5800,14 @@
         "kcal": "1072",
         "_open": true,
         "status": "feito",
+        "bpmMedio": "",
         "elevacao": "256",
         "percurso": "Igapó - Extended",
-        "tempoMov": "01:34:56",
+        "tempoMov": "1:34:56",
         "distancia": "34.64",
+        "tempMedia": "22",
         "registrado": true,
-        "tempoTotal": "02:36:29",
+        "tempoTotal": "2:36:29",
         "velocidade": "22.6"
       },
       "sem9_Sábado": {
@@ -5209,6 +5819,7 @@
         "percurso": "Igapó - Botânico",
         "tempoMov": "1:01:56",
         "distancia": "20.64",
+        "tempMedia": "26",
         "registrado": true,
         "tempoTotal": "1:38:06",
         "velocidade": "20"
@@ -5222,6 +5833,7 @@
         "percurso": "Igapó",
         "tempoMov": "1:12:16",
         "distancia": "28.97",
+        "tempMedia": "22",
         "registrado": true,
         "tempoTotal": "1:18:46",
         "velocidade": "24.1"
@@ -17267,6 +17879,12 @@
           "obs": "Após SRAM RED",
           "data": "2026-08-14T03:00:00.000Z",
           "pesoTotal": 377
+        },
+        {
+          "id": "xahdntqw",
+          "obs": "",
+          "data": "2026-08-23T03:00:00.000Z",
+          "pesoTotal": 373
         }
       ],
       "topUpsPote": [],
@@ -17291,7 +17909,7 @@
         }
       ]
     },
-    "total": 716.9,
+    "total": 950.2,
     "usada": true,
     "freios": {
       "traseiro": {
@@ -17304,6 +17922,13 @@
               "data": "2026-08-01T03:00:00.000Z",
               "espessuraMm": 3.8,
               "kmIndividual": 3263.1
+            },
+            {
+              "id": "x5irpdgq",
+              "obs": "",
+              "data": "2026-08-21T03:00:00.000Z",
+              "espessuraMm": 3.6,
+              "kmIndividual": 3818.5
             }
           ],
           "anteriores": [],
@@ -17323,6 +17948,13 @@
               "data": "2026-08-11T03:00:00.000Z",
               "espessuraMm": 4,
               "kmIndividual": 0
+            },
+            {
+              "id": "xk6hkpss",
+              "obs": "",
+              "data": "2026-08-22T03:00:00.000Z",
+              "espessuraMm": 3.9,
+              "kmIndividual": 315.4
             }
           ],
           "anteriores": [
@@ -17354,7 +17986,7 @@
         }
       }
     },
-    "parcial": 206,
+    "parcial": 439.3,
     "selante": {
       "pesagens": [],
       "garrafaAtual": {
@@ -17366,13 +17998,76 @@
     },
     "leituras": [
       {
-        "id": "xb8fpb75",
+        "id": "x92jvt9z",
         "tipo": "ride",
+        "data": "2026-08-27T21:36:00.000Z",
+        "parcial": 439.3,
+        "delta": 33.01,
+        "totalApos": 950.2,
+        "rideId": "x8afaat9"
+      },
+      {
+        "id": "xhiwqmtb",
+        "data": "2026-08-24T21:55:00.000Z",
+        "tipo": "ride",
+        "delta": 30.86,
+        "rideId": "xg9pcnwr",
+        "parcial": 406.3,
+        "totalApos": 917.2
+      },
+      {
+        "id": "xapmszcl",
+        "data": "2026-08-23T22:17:00.000Z",
+        "tipo": "ride",
+        "delta": 34.67,
+        "rideId": "x61cm20l",
+        "parcial": 375.4,
+        "totalApos": 886.3
+      },
+      {
+        "id": "x4rj2l5t",
+        "data": "2026-08-22T22:06:00.000Z",
+        "tipo": "ride",
+        "delta": 33.06,
+        "rideId": "x02jcq11",
+        "parcial": 340.7,
+        "totalApos": 851.6
+      },
+      {
+        "id": "x2hi82sc",
+        "data": "2026-08-21T13:29:00.000Z",
+        "tipo": "ride",
+        "delta": 32.29,
+        "rideId": "xqb1cm42",
+        "parcial": 307.6,
+        "totalApos": 818.5
+      },
+      {
+        "id": "xz1h4rtn",
+        "data": "2026-08-20T13:07:00.000Z",
+        "tipo": "ride",
+        "delta": 33.04,
+        "rideId": "x2093g8x",
+        "parcial": 275.3,
+        "totalApos": 786.2
+      },
+      {
+        "id": "xbjyw6vl",
+        "data": "2026-08-19T13:14:00.000Z",
+        "tipo": "ride",
+        "delta": 36.28,
+        "rideId": "xp7csi83",
+        "parcial": 242.3,
+        "totalApos": 753.2
+      },
+      {
+        "id": "xb8fpb75",
         "data": "2026-08-18T13:28:00.000Z",
-        "parcial": 206,
+        "tipo": "ride",
         "delta": 32.58,
-        "totalApos": 716.9,
-        "rideId": "xrrlisiz"
+        "rideId": "xrrlisiz",
+        "parcial": 206,
+        "totalApos": 716.9
       },
       {
         "id": "x9twvfp2",
@@ -17643,8 +18338,15 @@
       {
         "id": "x9152731",
         "nome": "SRAM Rival D1 Flattop",
-        "status": "ativa",
+        "status": "espera",
         "imersoes": [
+          {
+            "id": "x8vud5qy",
+            "obs": "",
+            "data": "2026-08-23T03:00:00.000Z",
+            "tipoImersao": "limpo",
+            "kmIndividual": 818.5
+          },
           {
             "id": "xc24ovu6",
             "obs": "",
@@ -17684,18 +18386,26 @@
             "degrau": 0,
             "ferramentaId": "cc42",
             "kmIndividual": 510.9
+          },
+          {
+            "id": "xiw79osx",
+            "obs": "",
+            "data": "2026-08-21T03:00:00.000Z",
+            "degrau": 0,
+            "ferramentaId": "cc42",
+            "kmIndividual": 818.5
           }
         ],
-        "kmAcumulado": 81.1,
+        "kmAcumulado": 818.5,
         "kmInstalacao": 3000,
         "dataInstalacao": "2026-07-13T03:00:00.000Z",
         "powerlockContador": 5,
-        "kmInicioSessaoAtual": 81.1
+        "kmInicioSessaoAtual": null
       },
       {
         "id": "xfspfhwd",
         "nome": "SRAM RED E1 Flattop Rainbow",
-        "status": "espera",
+        "status": "ativa",
         "imersoes": [
           {
             "id": "x6sbg3ej",
@@ -17705,16 +18415,26 @@
             "kmIndividual": 0
           }
         ],
+        "medicoes": [
+          {
+            "id": "xtrwabvq",
+            "obs": "",
+            "data": "2026-08-22T03:00:00.000Z",
+            "degrau": 0,
+            "ferramentaId": "cc42",
+            "kmIndividual": 0
+          }
+        ],
         "kmAcumulado": 0,
-        "kmInstalacao": null,
+        "kmInstalacao": 818.5,
         "expectativaKm": 10000,
-        "dataInstalacao": null,
-        "powerlockContador": 0,
-        "kmInicioSessaoAtual": null
+        "dataInstalacao": "2026-08-21T21:04:15.833Z",
+        "powerlockContador": 1,
+        "kmInicioSessaoAtual": 818.5
       }
     ],
     "dataCompra": "2026-07-13T03:00:00.000Z",
-    "dataUltima": "2026-08-18T13:28:00.000Z",
+    "dataUltima": "2026-08-27T21:36:00.000Z",
     "rolamentos": {
       "bb": {
         "nome": "BB SRAM DUB BSA",
@@ -17813,6 +18533,13 @@
                 "data": "2026-07-27T03:00:00.000Z",
                 "espessuraMm": 1.9,
                 "kmIndividual": 3140.9
+              },
+              {
+                "id": "xx4a66bw",
+                "obs": "",
+                "data": "2026-08-22T03:00:00.000Z",
+                "espessuraMm": 1.8,
+                "kmIndividual": 3818.5
               }
             ],
             "anteriores": [],
@@ -17879,6 +18606,13 @@
                 "data": "2026-07-27T03:00:00.000Z",
                 "espessuraMm": 1.9,
                 "kmIndividual": 3140.9
+              },
+              {
+                "id": "x52sk11k",
+                "obs": "",
+                "data": "2026-08-22T03:00:00.000Z",
+                "espessuraMm": 1.9,
+                "kmIndividual": 3818.5
               }
             ],
             "anteriores": [],
@@ -17975,24 +18709,130 @@
     "_migracaoCuboManutencaoEstimativaV1": true
   },
   "pedalHoje": false,
-  "_updatedAt": "2026-08-18T19:30:28.497Z",
+  "_updatedAt": "2026-08-27T22:41:49.137Z",
   "_migrations": {
     "bikeFocoCleared": true
   },
   "bikeHistory": [
     {
-      "id": "xrrlisiz",
+      "id": "x8afaat9",
       "type": "bike",
+      "date": "2026-08-27T21:36:00.000Z",
+      "foco": "Pedal",
+      "distancia": "33.01",
+      "tempoMov": "1:20:42",
+      "tempoTotal": "1:34:09",
+      "velocidade": "24.5",
+      "elevacao": "248",
+      "kcal": "1042",
+      "bpmMedio": "136",
+      "tempMedia": "26",
+      "percurso": "Igapó"
+    },
+    {
+      "id": "xg9pcnwr",
+      "date": "2026-08-24T21:55:00.000Z",
+      "foco": "Pedal",
+      "kcal": "978",
+      "type": "bike",
+      "bpmMedio": "139",
+      "elevacao": "242",
+      "percurso": "Igapó",
+      "tempoMov": "1:13:56",
+      "distancia": "30.86",
+      "tempMedia": "22",
+      "tempoTotal": "1:34:51",
+      "velocidade": "25"
+    },
+    {
+      "id": "x61cm20l",
+      "date": "2026-08-23T22:17:00.000Z",
+      "foco": "Pedal",
+      "kcal": "1121",
+      "type": "bike",
+      "bpmMedio": "127",
+      "elevacao": "330",
+      "percurso": "Botânico - Igapó",
+      "tempoMov": "1:36:43",
+      "distancia": "34.67",
+      "tempMedia": "22",
+      "tempoTotal": "1:54:55",
+      "velocidade": "21.5"
+    },
+    {
+      "id": "x02jcq11",
+      "date": "2026-08-22T22:06:00.000Z",
+      "foco": "Pedal",
+      "kcal": "1067",
+      "type": "bike",
+      "bpmMedio": "132",
+      "elevacao": "254",
+      "percurso": "Igapó",
+      "tempoMov": "1:23:50",
+      "distancia": "33.06",
+      "tempMedia": "22",
+      "tempoTotal": "1:43:23",
+      "velocidade": "23.7"
+    },
+    {
+      "id": "xqb1cm42",
+      "date": "2026-08-21T13:29:00.000Z",
+      "foco": "Pedal",
+      "kcal": "986",
+      "type": "bike",
+      "bpmMedio": "127",
+      "elevacao": "274",
+      "percurso": "Igapó - Frio",
+      "tempoMov": "1:25:47",
+      "distancia": "32.29",
+      "tempMedia": "16",
+      "tempoTotal": "1:44:54",
+      "velocidade": "22.6"
+    },
+    {
+      "id": "x2093g8x",
+      "date": "2026-08-20T13:07:00.000Z",
+      "foco": "Pedal",
+      "kcal": "1040",
+      "type": "bike",
+      "bpmMedio": "136",
+      "elevacao": "242",
+      "percurso": "Igapó",
+      "tempoMov": "1:20:42",
+      "distancia": "33.04",
+      "tempMedia": "24",
+      "tempoTotal": "1:26:55",
+      "velocidade": "24.6"
+    },
+    {
+      "id": "xp7csi83",
+      "date": "2026-08-19T13:14:00.000Z",
+      "foco": "Pedal",
+      "kcal": "1113",
+      "type": "bike",
+      "bpmMedio": "137",
+      "elevacao": "268",
+      "percurso": "Igapó",
+      "tempoMov": "1:25:42",
+      "distancia": "36.28",
+      "tempMedia": "25",
+      "tempoTotal": "1:29:36",
+      "velocidade": "25.4"
+    },
+    {
+      "id": "xrrlisiz",
       "date": "2026-08-18T13:28:00.000Z",
       "foco": "Pedal",
-      "distancia": "32.58",
-      "tempoMov": "1:24:05",
-      "tempoTotal": "1:29:35",
-      "velocidade": "23.2",
-      "elevacao": "252",
       "kcal": "1000",
+      "type": "bike",
       "bpmMedio": "130",
-      "percurso": "Igapó"
+      "elevacao": "252",
+      "percurso": "Igapó",
+      "tempoMov": "1:24:05",
+      "distancia": "32.58",
+      "tempMedia": "26",
+      "tempoTotal": "1:29:35",
+      "velocidade": "23.2"
     },
     {
       "id": "xo36bebt",
@@ -18005,6 +18845,7 @@
       "percurso": "Igapó",
       "tempoMov": "1:25:15",
       "distancia": "34.24",
+      "tempMedia": "26",
       "tempoTotal": "1:29:14",
       "velocidade": "24.1"
     },
@@ -18019,6 +18860,7 @@
       "percurso": "Igapó",
       "tempoMov": "1:43:27",
       "distancia": "34.86",
+      "tempMedia": "27",
       "tempoTotal": "1:57:21",
       "velocidade": "20.2"
     },
@@ -18033,6 +18875,7 @@
       "percurso": "Igapó",
       "tempoMov": "1:22:56",
       "distancia": "30.40",
+      "tempMedia": "23",
       "tempoTotal": "1:38:33",
       "velocidade": "22"
     },
@@ -18047,6 +18890,7 @@
       "percurso": "Igapó",
       "tempoMov": "1:38:31",
       "distancia": "38.77",
+      "tempMedia": "24",
       "tempoTotal": "1:43:42",
       "velocidade": "23.6"
     },
@@ -18061,6 +18905,7 @@
       "percurso": "Igapó",
       "tempoMov": "1:30:08",
       "distancia": "35.09",
+      "tempMedia": "23",
       "tempoTotal": "1:35:26",
       "velocidade": "23.4"
     },
@@ -18075,6 +18920,7 @@
       "percurso": "Brake Bed-In - Igapó",
       "tempoMov": "0:28:10",
       "distancia": "7.83",
+      "tempMedia": "21",
       "tempoTotal": "1:06:30",
       "velocidade": "16.7"
     },
@@ -18089,6 +18935,7 @@
       "percurso": "Ida - Loja S2",
       "tempoMov": "0:13:46",
       "distancia": "4.47",
+      "tempMedia": "22",
       "tempoTotal": "0:30:25",
       "velocidade": "19.5"
     },
@@ -18103,6 +18950,7 @@
       "percurso": "Pesquisa DOT 5.1",
       "tempoMov": "0:30:28",
       "distancia": "8.38",
+      "tempMedia": "23",
       "tempoTotal": "1:13:45",
       "velocidade": "16.5"
     },
@@ -18117,6 +18965,7 @@
       "percurso": "Igapó",
       "tempoMov": "1:00:12",
       "distancia": "21.76",
+      "tempMedia": "18",
       "tempoTotal": "1:22:05",
       "velocidade": "21.7"
     },
@@ -18131,6 +18980,7 @@
       "percurso": "Igapó",
       "tempoMov": "1:17:09",
       "distancia": "31.56",
+      "tempMedia": "25",
       "tempoTotal": "1:22:41",
       "velocidade": "24.5"
     },
@@ -18145,6 +18995,7 @@
       "percurso": "Aeroporto - Botânico - Igapó",
       "tempoMov": "2:14:23",
       "distancia": "50.10",
+      "tempMedia": "27",
       "tempoTotal": "2:30:02",
       "velocidade": "22.4"
     },
@@ -18159,6 +19010,7 @@
       "percurso": "Igapó - Chuva",
       "tempoMov": "0:38:46",
       "distancia": "11.56",
+      "tempMedia": "24",
       "tempoTotal": "1:18:02",
       "velocidade": "17.9"
     },
@@ -18173,6 +19025,7 @@
       "percurso": "Igapó Extended",
       "tempoMov": "1:18:54",
       "distancia": "30.10",
+      "tempMedia": "24",
       "tempoTotal": "1:35:10",
       "velocidade": "22.9"
     },
@@ -18187,6 +19040,7 @@
       "percurso": "Igapó",
       "tempoMov": "1:15:22",
       "distancia": "25.13",
+      "tempMedia": "22",
       "tempoTotal": "1:22:43",
       "velocidade": "25.13"
     },
@@ -18205,6 +19059,7 @@
       "percurso": "Igapó",
       "tempoMov": "1:12:16",
       "distancia": "28.97",
+      "tempMedia": "22",
       "tempoTotal": "1:18:46",
       "timingReal": "",
       "velocidade": "24.1"
@@ -18224,6 +19079,7 @@
       "percurso": "Igapó",
       "tempoMov": "1:09:19",
       "distancia": "26.30",
+      "tempMedia": "21",
       "tempoTotal": "1:34:33",
       "timingReal": "",
       "velocidade": "22.8"
@@ -18243,6 +19099,7 @@
       "percurso": "Igapó - Botânico",
       "tempoMov": "1:01:56",
       "distancia": "20.64",
+      "tempMedia": "26",
       "tempoTotal": "1:38:06",
       "timingReal": "",
       "velocidade": "20"
@@ -18262,6 +19119,7 @@
       "percurso": "Igapó",
       "tempoMov": "1:00:55",
       "distancia": "20.51",
+      "tempMedia": "20",
       "tempoTotal": "1:47:19",
       "timingReal": "",
       "velocidade": "20.2"
@@ -18281,6 +19139,7 @@
       "percurso": "Igapó - Classic",
       "tempoMov": "0:56:51",
       "distancia": "21.82",
+      "tempMedia": "19",
       "tempoTotal": "1:01:27",
       "timingReal": "",
       "velocidade": "23"
@@ -18300,6 +19159,7 @@
       "percurso": "Igapó Extendido",
       "tempoMov": "1:02:29",
       "distancia": "24.61",
+      "tempMedia": "22",
       "tempoTotal": "1:05:28",
       "timingReal": "",
       "velocidade": "23.6"
@@ -18307,18 +19167,20 @@
     {
       "id": "x9r7e21j",
       "dia": "Segunda",
-      "date": "2026-07-27T23:45:10.000Z",
+      "date": "2026-07-27T23:45:00.000Z",
       "foco": "",
       "kcal": "1072",
       "type": "bike",
       "dayKey": "sem9_Segunda",
       "semana": "9",
       "duracao": "",
+      "bpmMedio": "",
       "elevacao": "256",
       "percurso": "Igapó - Extended",
-      "tempoMov": "01:34:56",
+      "tempoMov": "1:34:56",
       "distancia": "34.64",
-      "tempoTotal": "02:36:29",
+      "tempMedia": "22",
+      "tempoTotal": "2:36:29",
       "timingReal": "",
       "velocidade": "22.6"
     },
@@ -18332,11 +19194,13 @@
       "dayKey": "sem8_Sábado",
       "semana": "8",
       "duracao": "",
+      "bpmMedio": "",
       "elevacao": "276",
       "percurso": "Botânico - Igapó",
-      "tempoMov": "01:07:44",
+      "tempoMov": "1:07:44",
       "distancia": "23.89",
-      "tempoTotal": "01:26:43",
+      "tempMedia": "19",
+      "tempoTotal": "1:26:43",
       "timingReal": "",
       "velocidade": "21.2"
     },
@@ -18350,11 +19214,13 @@
       "dayKey": "sem8_Terça",
       "semana": "8",
       "duracao": "",
+      "bpmMedio": "",
       "elevacao": "181",
       "percurso": "",
-      "tempoMov": "00:56:41",
+      "tempoMov": "0:56:41",
       "distancia": "20.77",
-      "tempoTotal": "01:08:26",
+      "tempMedia": "26",
+      "tempoTotal": "1:08:26",
       "timingReal": "",
       "velocidade": "22.0"
     },
@@ -18368,11 +19234,13 @@
       "dayKey": "sem7_Sábado",
       "semana": "7",
       "duracao": "",
+      "bpmMedio": "",
       "elevacao": "314",
       "percurso": "Botânico - Igapó",
-      "tempoMov": "01:15:04",
+      "tempoMov": "1:15:04",
       "distancia": "25.39",
-      "tempoTotal": "01:29:44",
+      "tempMedia": "24",
+      "tempoTotal": "1:29:44",
       "timingReal": "",
       "velocidade": "20.3"
     },
@@ -18805,5 +19673,74 @@
       "biblioteca": null,
       "nomeOficial": "Pullover com Haltere"
     }
-  ]
+  ],
+  "proximoDecidido": {
+    "label": "B",
+    "motivo": "PEDAL HOJE = SIM (33km, 136bpm) bloqueia D por regra absoluta. B está há 6 dias sem treino (último: 21/08, com 6 skips significativos), é a vez da fila e não há conflito muscular com ciclismo — costas e bíceps não são carregados pelo pedal.",
+    "origem": "ia",
+    "em": "2026-08-27T22:41:19.974Z",
+    "treino": {
+      "foco": "Costas volume pleno — remo e puxada com progressão de carga; bíceps isolado ao final",
+      "observacoes": "AUMENTA volume em relação à última sessão de B (21/08, que foi curta com 4 exercícios principais por falta de tempo/energia). O histórico mostra que sessões completas de B têm 7–8 exercícios — essa é a referência. Puxada no Pulley chegou a 62kg na última vez (subiu de 60kg); mantém 62kg e tenta fechar 3x9 limpos antes de subir. Remada Unilateral estava em 34kg na última sessão (pulada) e em 32kg nas três anteriores — retorna a 32kg para confirmar execução, sem tentar 34kg de imediato. Remada cavalinho subiu para 68kg nas duas últimas sessões executadas; mantém e observa qualidade. Hammer Curl oscilou entre 18 e 20kg — prescreve 18kg para garantir pegada neutra limpa em todas as reps. Ficaram de fora: Chin-up (já está no início como aquecimento neural junto ao Pull-up; incluir os dois completos tornaria o volume de calistenics excessivo para uma sessão com remo pesado — optou-se por 2 séries apenas), Rosca com Corda na Polia (bíceps já coberto pelo Hammer Curl; dois isoladores de bíceps no mesmo dia seria redundante dado o histórico), Remo Alternado na Polia e Remada Baixa na Polia (nunca ou raramente executados — evitados para não introduzir variáveis em sessão de volume pleno). Core: último core foi ontem (26/08, Hiperextensão + Prancha na série A) — frequência global alta, 1 dia de intervalo apenas; inclui-se apenas Elevação de Joelhos no Roman Chair (lombar poupada, abdômen anterior que ficou sem estímulo ontem) e suprime-se Hiperextensão e Prancha para não sobrecarregar lombar em dia consecutivo.",
+      "exercicios": [
+        {
+          "nome": "Pull-up Aberto",
+          "sets": "4x5",
+          "weight": "Peso corporal",
+          "rest": "150s",
+          "obs": "Explosivo na subida, controlado na descida. Referência: 4x5 em 21/08."
+        },
+        {
+          "nome": "Chin-up",
+          "sets": "2x6",
+          "weight": "Peso corporal",
+          "rest": "120s",
+          "obs": "Pegada supinada — verificar conforto no tendão distal. Duas séries apenas para preservar energia para os remos."
+        },
+        {
+          "nome": "Remada cavalinho na máquina",
+          "sets": "4x7",
+          "weight": "68kg",
+          "rest": "90s",
+          "obs": "Mantém 68kg (mesmo das duas últimas sessões executadas). Sobe para 70kg se as 4 séries fecharem sem perda de amplitude."
+        },
+        {
+          "nome": "Remada Unilateral com Haltere",
+          "sets": "4x7",
+          "weight": "32kg cada lado",
+          "rest": "90s",
+          "obs": "Retorna a 32kg — última execução foi 34kg (pulado em 21/08); consolida técnica antes de tentar 34kg."
+        },
+        {
+          "nome": "Puxada no Pulley com Pegada Neutra",
+          "sets": "3x9",
+          "weight": "62kg",
+          "rest": "90s",
+          "obs": "Mantém 62kg atingido em 21/08. Se 3x9 fechar com boa forma, próxima sessão sobe para 64kg."
+        },
+        {
+          "nome": "Remada Aberta na Polia",
+          "sets": "4x8",
+          "weight": "47kg",
+          "rest": "90s",
+          "obs": "Estava em 47kg na última sessão (21/08, pulada) e em 45kg nas anteriores executadas. Tenta 47kg; retorna a 45kg se a forma quebrar."
+        },
+        {
+          "nome": "Hammer Curl",
+          "sets": "3x7",
+          "weight": "18kg cada lado",
+          "rest": "90s",
+          "obs": "Pegada neutra obrigatória. Mantém 18kg para garantir execução limpa — oscilação recente entre 18 e 20kg sugere que 20kg ainda não está consolidado."
+        },
+        {
+          "nome": "Elevação de Joelhos no Roman Chair",
+          "sets": "3x15",
+          "weight": "Peso corporal",
+          "rest": "60s",
+          "obs": "Único core desta sessão — lombar poupada por ter sido trabalhada ontem (Hiperextensão na série A)."
+        }
+      ],
+      "em": "2026-08-27T22:41:49.132Z"
+    }
+  }
 }
