@@ -1436,7 +1436,7 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
   <div class="header-brand">
     <div class="logo">TREINO</div>
     <div class="header-meta">
-      <span class="header-version">v0.9.2.30</span>
+      <span class="header-version">v0.9.2.33</span>
       <span id="dbStamp" title="Última atualização dos dados">⟳ —</span>
     </div>
   </div>
@@ -4958,6 +4958,7 @@ function _aplicarRegistroTreino() {
     total: exercises.length,
     exercises: exercises
   });
+  _ordenarPorData(state.history);      // treino lançado com data passada volta ao lugar dele
   s.lastDone = new Date().toISOString();
   _sincronizarBiblioteca(exercises);
   _registroPendente = null;
@@ -5059,6 +5060,7 @@ function _aplicarRegistroPedal() {
     tempMedia: v('ped-tempMedia', /\s*(\u00b0\s*)?c\s*$/i),
     percurso: v('ped-percurso')
   });
+  _ordenarPorData(state.bikeHistory);   // pedal lançado com data passada volta ao lugar dele
 
   saveState();
   closeModal();
@@ -5099,8 +5101,8 @@ function _ofereceOdometro(rideId) {
     '<p style="font-family:DM Sans,sans-serif;font-size:13px;color:var(--text);margin:0 0 12px;line-height:1.5">' +
       'Somar os <b>' + km + ' km</b> deste pedal ao odômetro?</p>' +
     '<div style="font-family:DM Mono,monospace;font-size:12px;color:var(--muted);margin-bottom:14px;line-height:1.7">' +
-      'Total: ' + o.total + ' \u2192 <span style="color:var(--accent)">' + novoTotal + ' km</span><br>' +
-      'Parcial: ' + (o.parcial || 0) + ' \u2192 <span style="color:var(--accent)">' + novoParcial + ' km</span>' +
+      'Total: ' + _km1(o.total) + ' \u2192 <span style="color:var(--accent)">' + _km1(novoTotal) + ' km</span><br>' +
+      'Parcial: ' + _km1(o.parcial || 0) + ' \u2192 <span style="color:var(--accent)">' + _km1(novoParcial) + ' km</span>' +
     '</div>' +
     '<div style="display:flex;gap:8px">' +
       '<button onclick="_aplicarOdometroDoRide()" style="flex:1;font-family:DM Mono,monospace;font-size:11px;' +
@@ -5114,6 +5116,9 @@ function _ofereceOdometro(rideId) {
   document.getElementById('modal').classList.add('open');
 }
 
+// Uma casa decimal para exibição. O state guarda duas; a tela nunca precisou de mais de uma.
+function _km1(v) { return Math.round((Number(v) || 0) * 10) / 10; }
+
 function _aplicarOdometroDoRide() {
   var p = window._odoPendente;
   var o = state.bikeOdo;
@@ -5121,8 +5126,12 @@ function _aplicarOdometroDoRide() {
   if (_odometroJaAplicado(p.rideId)) { closeModal(); return; }
 
   pushUndo('Atualizar odômetro pelo pedal');
-  o.total = Math.round((o.total + p.km) * 10) / 10;
-  o.parcial = Math.round(((o.parcial || 0) + p.km) * 10) / 10;
+  // Soma com precisão, arredonda só na exibição. Arredondar o ACUMULADO a cada pedal e usar o
+  // resultado como base da soma seguinte empilha o erro em vez de cancelá-lo: 25 pedais levaram o
+  // total a +0.27km e o parcial a +0.17km de desvio. As duas casas apenas descartam o ruído de
+  // ponto flutuante — os deltas do ciclocomputador não têm mais que isso.
+  o.total = Math.round((o.total + p.km) * 100) / 100;
+  o.parcial = Math.round(((o.parcial || 0) + p.km) * 100) / 100;
   o.dataUltima = p.data || new Date().toISOString();
   // `data` da leitura é a DO RIDE, não a de agora: lançar um pedal de ontem não pode inserir um
   // ponto de hoje na série que alimenta o motor de estimativa de km/dia.
@@ -5132,7 +5141,7 @@ function _aplicarOdometroDoRide() {
   saveState();
   closeModal();
   if (typeof renderBikeTab === 'function') renderBikeTab();
-  toast('Odômetro: total ' + o.total + ' km \u2713');
+  toast('Odômetro: total ' + _km1(o.total) + ' km \u2713');
 }
 
 // ═══ AJUSTE DA TELA AO MODELO EM VIGOR (v0.9.1.78 → .84) ═══
@@ -9442,6 +9451,7 @@ function registrarBikeHistorico(dayKey) {
   };
   if (!state.bikeHistory) state.bikeHistory = [];
   state.bikeHistory.unshift(entry);
+  _ordenarPorData(state.bikeHistory);
   bikeInfo.registrado = true;
   bikeInfo.status = 'feito';
   saveState();
@@ -9496,10 +9506,31 @@ function _bikeKmDisplay(kmExato, dataInstalacaoISO, kmAncora) {
   return _bikeKmTxt(kmExato, kmAncora);
 }
 
+// Reordena por data, do mais recente para o mais antigo. `unshift` põe o registro novo na frente
+// independentemente da data que ele carrega, então lançar um pedal esquecido de sábado deixava a
+// lista fora de ordem — e tudo que depende de ordem (média km/dia, "última leitura", o próprio
+// feed) passava a ler uma sequência que não aconteceu. Ordenar no ato do lançamento resolve na
+// origem, em vez de exigir que cada consumidor se defenda.
+function _ordenarPorData(lista) {
+  if (!Array.isArray(lista)) return lista;
+  lista.sort(function(a, b) { return new Date(b.date || b.data || 0) - new Date(a.date || a.data || 0); });
+  return lista;
+}
+
 function _bikeOdoLog(tipo, dados) {
   var o = state.bikeOdo;
   if (!o.leituras) o.leituras = [];
   var entry = Object.assign({ id: uid(), tipo: tipo, data: new Date().toISOString() }, dados || {});
+  // Sem ordenar por data: `leituras` é um LOG DE OPERAÇÕES, e `parcial`/`totalApos` são
+  // acumuladores que só fazem sentido na ordem em que foram aplicados.
+  //
+  // ATENÇÃO ao significado de `data`, que MUDA conforme o tipo. Num 'ride' é a hora do PEDAL —
+  // real, do mundo. Em 'reset', 'parcial', 'setup' e 'edicao-total' é a hora em que o usuário
+  // MEXEU NO APP, que pode ser muito depois do ato físico: zerar o computador de bordo antes de
+  // sair e só registrar isso à noite produz um reset carimbado horas depois de um pedal que na
+  // verdade veio depois dele. Ordenar por data misturaria esses dois relógios e reescreveria a
+  // sequência de acumuladores. Quem precisa de cronologia é `_bikeOdoPontosReais`, e lá só os
+  // pontos de km importam — ele ordena por conta própria.
   o.leituras.unshift(entry);
   return entry;
 }
@@ -9508,11 +9539,31 @@ function _bikeOdoLog(tipo, dados) {
 function _bikeOdoPontosReais() {
   var o = state.bikeOdo;
   if (!o) return [];
-  var pontos = [];
-  (o.leituras || []).slice().reverse().forEach(function(l) {
-    if (l.totalApos !== undefined && l.totalApos !== null) {
-      pontos.push({ data: new Date(l.data).getTime(), total: l.totalApos });
+
+  // Reconstrói os totais na ordem CRONOLÓGICA em vez de reusar o `totalApos` gravado.
+  //
+  // `totalApos` é um acumulador da ordem de APLICAÇÃO: um pedal lançado com atraso recebe o total
+  // do dia em que foi lançado, não o da data que carrega. Ordenar por data e ler esse campo produz
+  // uma série em que o odômetro anda para trás — o pedal esquecido de 29/08 aparecia com 1140km
+  // entre um 28/08 de 983km e um 30/08 de 1016km. Qualquer estimativa tirada dali é lixo.
+  //
+  // Aqui os 'ride' entram somando o delta na linha do tempo real, e as leituras absolutas
+  // (setup, leitura do guidão, edição manual) reancoram o acumulado — elas são medições diretas
+  // e valem mais que qualquer soma. Inserir o pedal esquecido passa a corrigir a série sozinho.
+  var cron = (o.leituras || []).slice().sort(function(a, b) {
+    return new Date(a.data || 0) - new Date(b.data || 0);
+  });
+  var pontos = [], acum = null;
+  cron.forEach(function(l) {
+    if (l.tipo === 'ride' && typeof l.delta === 'number') {
+      if (acum === null) return;                        // sem âncora anterior, não há de onde somar
+      acum = Math.round((acum + l.delta) * 100) / 100;
+    } else if (l.totalApos !== undefined && l.totalApos !== null) {
+      acum = l.totalApos;
+    } else {
+      return;                                           // reset zera o parcial, não mexe no total
     }
+    pontos.push({ data: new Date(l.data).getTime(), total: acum });
   });
   return pontos;
 }
@@ -11367,7 +11418,7 @@ function bikeAtualizarParcialPrompt() {
   var confirmBtn = document.getElementById('modal-confirm');
   if (title) title.textContent = 'ATUALIZAR PARCIAL';
   if (body) body.innerHTML =
-    '<p style="font-family:DM Sans,sans-serif;font-size:13px;color:var(--text);margin:0 0 10px">Leitura atual do odômetro parcial do GPS (atual: ' + state.bikeOdo.parcial + 'km):</p>' +
+    '<p style="font-family:DM Sans,sans-serif;font-size:13px;color:var(--text);margin:0 0 10px">Leitura atual do odômetro parcial do GPS (atual: ' + _km1(state.bikeOdo.parcial) + 'km):</p>' +
     '<input id="bike-novo-parcial" type="number" step="0.1" min="0" style="display:block;width:100%;box-sizing:border-box;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:DM Mono,monospace;margin-bottom:10px">' +
     '<input id="bike-obs-parcial" type="text" placeholder="Observação (opcional — ex: imersão da corrente)" style="display:block;width:100%;box-sizing:border-box;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:DM Sans,sans-serif;font-size:12px;margin-bottom:10px">' +
     '<button onclick="bikeAtualizarParcialCalcular()" style="display:block;width:100%;font-family:DM Mono,monospace;font-size:11px;padding:10px;border-radius:8px;border:none;background:var(--accent);color:#000;cursor:pointer">CALCULAR</button>';
@@ -11488,7 +11539,7 @@ function bikeResetParcial() {
   var confirmBtn = document.getElementById('modal-confirm');
   if (title) title.textContent = 'RESET PARCIAL';
   if (body) body.innerHTML =
-    '<p style="font-family:DM Sans,sans-serif;font-size:13px;color:var(--text);margin:0 0 10px">Isso irá zerar o odômetro parcial (atual: ' + state.bikeOdo.parcial + 'km). O total não muda.</p>' +
+    '<p style="font-family:DM Sans,sans-serif;font-size:13px;color:var(--text);margin:0 0 10px">Isso irá zerar o odômetro parcial (atual: ' + _km1(state.bikeOdo.parcial) + 'km). O total não muda.</p>' +
     '<input id="bike-obs-reset" type="text" placeholder="Observação (opcional — ex: troca de corrente)" style="display:block;width:100%;box-sizing:border-box;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:DM Sans,sans-serif;font-size:12px;margin-bottom:10px">' +
     '<button onclick="bikeResetParcialAplicar()" style="display:block;width:100%;font-family:DM Mono,monospace;font-size:11px;padding:10px;border-radius:8px;border:none;background:var(--accent);color:#000;cursor:pointer">CONFIRMAR RESET</button>';
   if (confirmBtn) confirmBtn.style.display = 'none';
@@ -20031,6 +20082,62 @@ loadPersistedState(function() {
       }
     }
     state._migracaoHiperextensaoCoreV1 = true;
+    saveState();
+  }
+
+  // Migração: desfaz a deriva de arredondamento do odômetro e reordena as listas.
+  //
+  // Até a v0.9.2.31, cada pedal somava seu km ao acumulado JÁ ARREDONDADO e arredondava de novo,
+  // usando o resultado como base da soma seguinte. O erro não se cancelava: 25 somas automáticas
+  // levaram o total a +0.27km e o parcial a +0.17km acima da soma real dos deltas.
+  //
+  // Reconstrói ancorando na última leitura NÃO automática — a última vez que o número veio do
+  // guidão ou da sua mão. Só o trecho somado pelo app é recalculado; leituras manuais, `setup` e
+  // `edicao-total` são fatos que você registrou e permanecem intactos.
+  if (!state._migracaoOdoPrecisaoV1) {
+    var _o = state.bikeOdo;
+    if (_o && _o.leituras && _o.leituras.length) {
+      // Ordem de APLICAÇÃO (o array, invertido), não ordem de data — ver comentário em
+      // `_bikeOdoLog`. É nessa ordem que os acumuladores foram construídos e é nela que a
+      // reconstrução tem que andar, senão o pedal de 13/08 cairia antes do reset das 13:49 e
+      // sumiriam 35km do parcial.
+      var _cron = _o.leituras.slice().reverse();
+
+      // TOTAL: âncora = última leitura não-'ride' que carrega um totalApos.
+      var _iT = -1;
+      for (var _k = _cron.length - 1; _k >= 0; _k--) {
+        var _l = _cron[_k];
+        if (_l.tipo !== 'ride' && _l.totalApos !== undefined && _l.totalApos !== null) { _iT = _k; break; }
+      }
+      if (_iT !== -1) {
+        var _tot = _cron[_iT].totalApos;
+        for (var _a = _iT + 1; _a < _cron.length; _a++) {
+          if (_cron[_a].tipo !== 'ride' || typeof _cron[_a].delta !== 'number') continue;
+          _tot = Math.round((_tot + _cron[_a].delta) * 100) / 100;
+          _cron[_a].totalApos = _tot;                     // o log também carregava a deriva
+        }
+        _o.total = _tot;
+      }
+
+      // PARCIAL: âncora = último 'reset' (zera) ou a última leitura manual com parcial.
+      var _iP = -1, _base = 0;
+      for (var _k2 = _cron.length - 1; _k2 >= 0; _k2--) {
+        if (_cron[_k2].tipo === 'reset') { _iP = _k2; _base = 0; break; }
+        if (_cron[_k2].tipo !== 'ride' && typeof _cron[_k2].parcial === 'number') { _iP = _k2; _base = _cron[_k2].parcial; break; }
+      }
+      if (_iP !== -1) {
+        var _par = _base;
+        for (var _b = _iP + 1; _b < _cron.length; _b++) {
+          if (_cron[_b].tipo !== 'ride' || typeof _cron[_b].delta !== 'number') continue;
+          _par = Math.round((_par + _cron[_b].delta) * 100) / 100;
+          _cron[_b].parcial = _par;
+        }
+        _o.parcial = _par;
+      }
+    }
+    _ordenarPorData(state.bikeHistory);
+    _ordenarPorData(state.history);
+    state._migracaoOdoPrecisaoV1 = true;
     saveState();
   }
 
