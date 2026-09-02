@@ -5,7 +5,7 @@
       "id": "s1",
       "name": "OMBROS",
       "label": "A",
-      "lastDone": "2026-08-27T01:44:20.776Z",
+      "lastDone": "2026-09-01T23:55:12.527Z",
       "planMode": false,
       "variants": [
         "Principal",
@@ -26,7 +26,7 @@
           "id": "e2",
           "name": "Elevação Lateral com Halteres",
           "rest": "75s",
-          "sets": "4x8",
+          "sets": "4x9",
           "notes": "",
           "isCore": false,
           "status": "undone",
@@ -36,7 +36,7 @@
           "id": "e3",
           "name": "Elevação Frontal com Halteres",
           "rest": "60s",
-          "sets": "3x10",
+          "sets": "3x6",
           "notes": "",
           "isCore": false,
           "status": "undone",
@@ -50,7 +50,7 @@
           "notes": "",
           "isCore": false,
           "status": "undone",
-          "weight": "4 pesos"
+          "weight": "5 pesos"
         },
         {
           "id": "e5",
@@ -138,10 +138,10 @@
           "id": "xvqd2g0j",
           "name": "Elevação Lateral na Polia",
           "rest": "75s",
-          "sets": "4x8",
+          "sets": "4x6",
           "isCore": false,
           "status": "undone",
-          "weight": "2 pesos",
+          "weight": "2.5 pesos",
           "skippedLast": false
         },
         {
@@ -776,6 +776,81 @@
     }
   ],
   "history": [
+    {
+      "id": "xpg0qh6u",
+      "date": "2026-09-01T23:55:00.000Z",
+      "done": 5,
+      "total": 7,
+      "serieId": "s1",
+      "variant": "Contínuo",
+      "exercises": [
+        {
+          "name": "Overhead Press Sentado com Halteres",
+          "rest": "120s",
+          "sets": "4x5",
+          "isCore": false,
+          "status": "done",
+          "weight": "22-24kg cada lado",
+          "musculo": ""
+        },
+        {
+          "name": "Elevação Lateral com Halteres",
+          "rest": "75s",
+          "sets": "4x9",
+          "isCore": false,
+          "status": "done",
+          "weight": "14kg cada lado",
+          "musculo": ""
+        },
+        {
+          "name": "Crucifixo Inverso Unilateral na Polia",
+          "rest": "60s",
+          "sets": "4x6",
+          "isCore": false,
+          "status": "done",
+          "weight": "5 pesos",
+          "musculo": ""
+        },
+        {
+          "name": "Elevação Lateral na Polia",
+          "rest": "75s",
+          "sets": "4x6",
+          "isCore": false,
+          "status": "done",
+          "weight": "2.5 pesos",
+          "musculo": ""
+        },
+        {
+          "name": "Elevação Frontal com Halteres",
+          "rest": "60s",
+          "sets": "3x6",
+          "isCore": false,
+          "status": "done",
+          "weight": "12kg cada lado",
+          "musculo": ""
+        },
+        {
+          "name": "Prancha",
+          "rest": "60s",
+          "sets": "3x45s",
+          "isCore": true,
+          "status": "skipped",
+          "weight": "Peso corporal",
+          "musculo": ""
+        },
+        {
+          "name": "Hiperextensão no Banco",
+          "rest": "90s",
+          "sets": "4x10",
+          "isCore": true,
+          "status": "skipped",
+          "weight": "Anilha 10kg",
+          "musculo": ""
+        }
+      ],
+      "serieName": "OMBROS",
+      "serieLabel": "A"
+    },
     {
       "id": "xcosg1bu",
       "date": "2026-09-01T00:09:00.000Z",
@@ -18170,7 +18245,7 @@
         }
       ]
     },
-    "total": 1077,
+    "total": 1140.23,
     "usada": true,
     "freios": {
       "traseiro": {
@@ -18247,7 +18322,7 @@
         }
       }
     },
-    "parcial": 566.1,
+    "parcial": 629.43,
     "selante": {
       "pesagens": [],
       "garrafaAtual": {
@@ -18259,13 +18334,31 @@
     },
     "leituras": [
       {
-        "id": "xpgl5rkw",
+        "id": "xew2fpmo",
         "tipo": "ride",
+        "data": "2026-08-29T14:00:00.000Z",
+        "parcial": 629.43,
+        "delta": 33.02,
+        "totalApos": 1140.23,
+        "rideId": "xvwr8vsx"
+      },
+      {
+        "id": "xnlq9c2l",
+        "tipo": "ride",
+        "data": "2026-09-02T21:23:00.000Z",
+        "parcial": 596.41,
+        "delta": 30.48,
+        "totalApos": 1107.21,
+        "rideId": "xkg5klzy"
+      },
+      {
+        "id": "xpgl5rkw",
         "data": "2026-09-01T21:23:00.000Z",
-        "parcial": 566.1,
+        "tipo": "ride",
         "delta": 30.54,
-        "totalApos": 1077,
-        "rideId": "x2z1audy"
+        "rideId": "x2z1audy",
+        "parcial": 565.93,
+        "totalApos": 1076.73
       },
       {
         "id": "xq2wg259",
@@ -18273,8 +18366,8 @@
         "tipo": "ride",
         "delta": 30.4,
         "rideId": "x06vy15w",
-        "parcial": 535.6,
-        "totalApos": 1046.5
+        "parcial": 535.39,
+        "totalApos": 1046.19
       },
       {
         "id": "xqjet281",
@@ -18282,8 +18375,8 @@
         "tipo": "ride",
         "delta": 33.06,
         "rideId": "x32id5mt",
-        "parcial": 505.2,
-        "totalApos": 1016.1
+        "parcial": 504.99,
+        "totalApos": 1015.79
       },
       {
         "id": "xrb8yppb",
@@ -18291,8 +18384,8 @@
         "tipo": "ride",
         "delta": 32.78,
         "rideId": "xljr5nr9",
-        "parcial": 472.1,
-        "totalApos": 983
+        "parcial": 471.93,
+        "totalApos": 982.73
       },
       {
         "id": "x92jvt9z",
@@ -18300,8 +18393,8 @@
         "tipo": "ride",
         "delta": 33.01,
         "rideId": "x8afaat9",
-        "parcial": 439.3,
-        "totalApos": 950.2
+        "parcial": 439.15,
+        "totalApos": 949.95
       },
       {
         "id": "xhiwqmtb",
@@ -18309,8 +18402,8 @@
         "tipo": "ride",
         "delta": 30.86,
         "rideId": "xg9pcnwr",
-        "parcial": 406.3,
-        "totalApos": 917.2
+        "parcial": 406.14,
+        "totalApos": 916.94
       },
       {
         "id": "xapmszcl",
@@ -18318,8 +18411,8 @@
         "tipo": "ride",
         "delta": 34.67,
         "rideId": "x61cm20l",
-        "parcial": 375.4,
-        "totalApos": 886.3
+        "parcial": 375.28,
+        "totalApos": 886.08
       },
       {
         "id": "x4rj2l5t",
@@ -18327,8 +18420,8 @@
         "tipo": "ride",
         "delta": 33.06,
         "rideId": "x02jcq11",
-        "parcial": 340.7,
-        "totalApos": 851.6
+        "parcial": 340.61,
+        "totalApos": 851.41
       },
       {
         "id": "x2hi82sc",
@@ -18336,8 +18429,8 @@
         "tipo": "ride",
         "delta": 32.29,
         "rideId": "xqb1cm42",
-        "parcial": 307.6,
-        "totalApos": 818.5
+        "parcial": 307.55,
+        "totalApos": 818.35
       },
       {
         "id": "xz1h4rtn",
@@ -18345,8 +18438,8 @@
         "tipo": "ride",
         "delta": 33.04,
         "rideId": "x2093g8x",
-        "parcial": 275.3,
-        "totalApos": 786.2
+        "parcial": 275.26,
+        "totalApos": 786.06
       },
       {
         "id": "xbjyw6vl",
@@ -18354,8 +18447,8 @@
         "tipo": "ride",
         "delta": 36.28,
         "rideId": "xp7csi83",
-        "parcial": 242.3,
-        "totalApos": 753.2
+        "parcial": 242.22,
+        "totalApos": 753.02
       },
       {
         "id": "xb8fpb75",
@@ -18363,8 +18456,8 @@
         "tipo": "ride",
         "delta": 32.58,
         "rideId": "xrrlisiz",
-        "parcial": 206,
-        "totalApos": 716.9
+        "parcial": 205.94,
+        "totalApos": 716.74
       },
       {
         "id": "x9twvfp2",
@@ -18372,8 +18465,8 @@
         "tipo": "ride",
         "delta": 34.24,
         "rideId": "xo36bebt",
-        "parcial": 173.4,
-        "totalApos": 684.3
+        "parcial": 173.36,
+        "totalApos": 684.16
       },
       {
         "id": "x1uk2mco",
@@ -18381,8 +18474,8 @@
         "tipo": "ride",
         "delta": 34.86,
         "rideId": "x3prqem3",
-        "parcial": 139.2,
-        "totalApos": 650.1
+        "parcial": 139.12,
+        "totalApos": 649.92
       },
       {
         "id": "x9m45gwl",
@@ -18390,8 +18483,8 @@
         "tipo": "ride",
         "delta": 30.4,
         "rideId": "x4cfo6kd",
-        "parcial": 104.3,
-        "totalApos": 615.2
+        "parcial": 104.26,
+        "totalApos": 615.06
       },
       {
         "id": "x2o6tbsh",
@@ -18399,8 +18492,8 @@
         "tipo": "ride",
         "delta": 38.77,
         "rideId": "xgyqj513",
-        "parcial": 73.9,
-        "totalApos": 584.8
+        "parcial": 73.86,
+        "totalApos": 584.66
       },
       {
         "id": "xg5578jk",
@@ -18408,8 +18501,8 @@
         "tipo": "ride",
         "delta": 35.09,
         "rideId": "xzav180e",
-        "parcial": 35.1,
-        "totalApos": 546
+        "parcial": 35.09,
+        "totalApos": 545.89
       },
       {
         "id": "x2wkrelg",
@@ -18425,7 +18518,7 @@
         "delta": 7.83,
         "rideId": "x9tih3id",
         "parcial": 247.8,
-        "totalApos": 510.9
+        "totalApos": 510.8
       },
       {
         "id": "xklh207k",
@@ -18434,7 +18527,7 @@
         "delta": 4.47,
         "rideId": "xblq0e8g",
         "parcial": 240,
-        "totalApos": 503.1
+        "totalApos": 502.97
       },
       {
         "id": "x2hwtw2t",
@@ -18443,7 +18536,7 @@
         "delta": 8.38,
         "rideId": "xb59rv1p",
         "parcial": 235.5,
-        "totalApos": 498.6
+        "totalApos": 498.5
       },
       {
         "id": "xwpp9htu",
@@ -18452,7 +18545,7 @@
         "delta": 21.76,
         "rideId": "xno963nq",
         "parcial": 227.1,
-        "totalApos": 490.2
+        "totalApos": 490.12
       },
       {
         "id": "xw239516",
@@ -18461,7 +18554,7 @@
         "delta": 31.56,
         "rideId": "xbtxk5o0",
         "parcial": 205.3,
-        "totalApos": 468.4
+        "totalApos": 468.36
       },
       {
         "id": "x22tgotv",
@@ -18731,7 +18824,7 @@
       }
     ],
     "dataCompra": "2026-07-13T03:00:00.000Z",
-    "dataUltima": "2026-09-01T21:23:00.000Z",
+    "dataUltima": "2026-08-29T14:00:00.000Z",
     "rolamentos": {
       "bb": {
         "nome": "BB SRAM DUB BSA",
@@ -19006,25 +19099,40 @@
     "_migracaoCuboManutencaoEstimativaV1": true
   },
   "pedalHoje": false,
-  "_updatedAt": "2026-09-01T22:47:06.318Z",
+  "_updatedAt": "2026-09-02T22:38:10.133Z",
   "_migrations": {
     "bikeFocoCleared": true
   },
   "bikeHistory": [
     {
-      "id": "x2z1audy",
+      "id": "xkg5klzy",
       "type": "bike",
-      "date": "2026-09-01T21:23:00.000Z",
+      "date": "2026-09-02T21:23:00.000Z",
       "foco": "Pedal",
-      "distancia": "30.54",
-      "tempoMov": "1:12:49",
-      "tempoTotal": "1:24:26",
-      "velocidade": "25.2",
-      "elevacao": "232",
-      "kcal": "907",
-      "bpmMedio": "133",
+      "distancia": "30.48",
+      "tempoMov": "1:14:08",
+      "tempoTotal": "1:23:24",
+      "velocidade": "24.7",
+      "elevacao": "228",
+      "kcal": "856",
+      "bpmMedio": "127",
       "tempMedia": "24",
       "percurso": "Igapó"
+    },
+    {
+      "id": "x2z1audy",
+      "date": "2026-09-01T21:23:00.000Z",
+      "foco": "Pedal",
+      "kcal": "907",
+      "type": "bike",
+      "bpmMedio": "133",
+      "elevacao": "232",
+      "percurso": "Igapó",
+      "tempoMov": "1:12:49",
+      "distancia": "30.54",
+      "tempMedia": "24",
+      "tempoTotal": "1:24:26",
+      "velocidade": "25.2"
     },
     {
       "id": "x06vy15w",
@@ -19055,6 +19163,21 @@
       "tempMedia": "28",
       "tempoTotal": "1:41:22",
       "velocidade": "22.7"
+    },
+    {
+      "id": "xvwr8vsx",
+      "type": "bike",
+      "date": "2026-08-29T14:00:00.000Z",
+      "foco": "Pedal",
+      "distancia": "33.02",
+      "tempoMov": "1:25:22",
+      "tempoTotal": "1:40:00",
+      "velocidade": "23.2",
+      "elevacao": "229",
+      "kcal": "1134",
+      "bpmMedio": "139",
+      "tempMedia": "29",
+      "percurso": "Igapó"
     },
     {
       "id": "xljr5nr9",
@@ -20031,66 +20154,74 @@
       "nomeOficial": "Pullover com Haltere"
     }
   ],
+  "_migracaoOdoPrecisaoV1": true,
   "proximoDecidido": {
-    "label": "A",
-    "motivo": "PEDAL HOJE = SIM bloqueia D. A fila aponta A (6 dias sem treinar), B e C ficaram em 5 e 4 dias respectivamente — A tem a espera mais longa entre as séries de membros superiores e não há nenhum conflito de recuperação muscular com o ride de hoje (133bpm, 30km).",
+    "label": "B",
+    "motivo": "Pedal hoje já registrado (30.48km, 127bpm) — descarta D. B está há 6 dias sem treino, é a vez da fila e não tem conflito com ciclismo; A foi ontem (1 dia), C há 5 dias — B é a escolha sem ambiguidade.",
     "origem": "ia",
-    "em": "2026-09-01T22:46:43.184Z",
+    "em": "2026-09-02T22:37:35.010Z",
     "treino": {
-      "foco": "Deltóide anterior e medial — pressão composta + isolados controlados",
-      "observacoes": "Volume MANTIDO em relação à sessão anterior (26/08: 8 exercícios, 6 de ombros + 2 de core). O Overhead Press Sentado com Halteres chegou a 22-24kg nas últimas duas sessões — o teto de 24kg ainda está sendo consolidado, então mantém faixa com possibilidade de tentar 26kg no último set se a execução estiver limpa. Elevação Lateral com Halteres subiu de 12 para 14kg e se estabilizou em 4 sessões consecutivas — neste ciclo aumenta reps para 4x9 antes de subir carga. Crucifixo Inverso na Polia e Elevação Lateral na Polia estão estáveis em 4 pesos e 2 pesos, respectivamente — mantenha e observe a qualidade da contração. Ficaram de fora desta sessão: Rotação Externa com Cabo (foi em 26/08, pode voltar no próximo A), Reverse Fly na Máquina (foi em 26/08 também — posterizado para descansar o deltóide posterior), e Levantamento Frontal Bilateral (Corda) na Polia (apareceu em 20/08, ausente em 26/08 — retorna no próximo A para alternar com esta sessão). Core incluído: último core realizado há 6 dias, frequência global baixa (63% de realização) — inclui dois exercícios complementares.",
+      "foco": "Costas e bíceps — volume mantido, com retomada de exercícios ausentes na última sessão",
+      "observacoes": "Última sessão de B (27/08) foi incompleta: Remada cavalinho e Elevação de Joelhos ficaram pulados, e o volume total ficou abaixo do habitual. Esta sessão MANTÉM o volume em relação às sessões completas (7–8 exercícios principais), retomando o que ficou de fora. Remada Aberta na Polia apareceu estagnada em 45kg nas últimas três execuções — sobe para 47kg como teste de progressão. Remada cavalinho retoma após duas sessões pulada, mantendo 68kg. Ficaram de fora: Chin-up (Pull-up e Puxada neutra já cobrem amplitude de puxada vertical com volume suficiente) e Rosca com Corda na Polia (bíceps já coberto pelo Hammer). Core incluso: último realizado há 7 dias, frequência abaixo do esperado — justifica encaixar dois exercícios complementares.",
       "exercicios": [
         {
-          "nome": "Overhead Press Sentado com Halteres",
+          "nome": "Pull-up Aberto",
           "sets": "4x5",
-          "weight": "22-24kg cada lado",
-          "rest": "120s",
-          "obs": "Tente fechar as 4 séries em 24kg; se necessário, use 22kg nas primeiras e 24kg nas últimas. Ombro direito seguro para overhead."
+          "weight": "Peso corporal",
+          "rest": "150s",
+          "obs": "Abertura do treino como de costume; peso corporal estabilizado — considere colete com carga extra se mantiver todas as reps."
         },
         {
-          "nome": "Elevação Lateral com Halteres",
-          "sets": "4x9",
-          "weight": "14kg cada lado",
-          "rest": "75s",
-          "obs": "Aumento de reps (de 4x8 para 4x9) para consolidar a carga antes de subir para 16kg. Cotovelo levemente fletido, sem balanço."
+          "nome": "Puxada no Pulley com Pegada Neutra",
+          "sets": "3x9",
+          "weight": "60kg",
+          "rest": "90s",
+          "obs": "Mantém 60kg; últimas três execuções oscilaram entre 60 e 62kg sem progressão clara — priorize qualidade de execução e complete todas as reps antes de subir."
         },
         {
-          "nome": "Crucifixo Inverso Unilateral na Polia",
-          "sets": "4x6",
-          "weight": "4 pesos",
-          "rest": "60s",
-          "obs": "Estável em 4 pesos há duas sessões — mantenha e foque em contração total no deltóide posterior."
+          "nome": "Remada cavalinho na máquina",
+          "sets": "4x7",
+          "weight": "68kg",
+          "rest": "90s",
+          "obs": "Retoma após duas sessões pulada; última execução realizada em 18/08 a 68kg — mantém carga."
         },
         {
-          "nome": "Elevação Lateral na Polia",
+          "nome": "Remada Unilateral com Haltere",
+          "sets": "4x7",
+          "weight": "32kg cada lado",
+          "rest": "90s",
+          "obs": "Tentativa de 34kg em 21/08 ficou pulada; mantém 32kg e prioriza execução completa antes de nova tentativa de progressão."
+        },
+        {
+          "nome": "Remada Aberta na Polia",
           "sets": "4x8",
-          "weight": "2 pesos",
-          "rest": "75s",
-          "obs": "Estável. Priorize amplitude completa e controle excêntrico."
+          "weight": "47kg",
+          "rest": "90s",
+          "obs": "Estagnada em 45kg nas últimas três sessões realizadas — sobe para 47kg como estímulo de progressão."
         },
         {
-          "nome": "Elevação Frontal com Halteres",
-          "sets": "3x12",
-          "weight": "8kg cada lado",
+          "nome": "Hammer Curl",
+          "sets": "3x7",
+          "weight": "20kg cada lado",
+          "rest": "90s",
+          "obs": "Pegada neutra obrigatória pelo tendão distal; 20kg já confirmado em 27/08 — mantém."
+        },
+        {
+          "nome": "Elevação de Joelhos no Roman Chair",
+          "sets": "3x15",
+          "weight": "Peso corporal",
           "rest": "60s",
-          "obs": "Ausente desde abril — retorna nesta sessão para cobrir deltóide anterior com isolado específico. Carga de cadastro mantida para reintrodução."
+          "obs": "Core — pulado na última sessão de B e ausente há 7 dias globalmente; retoma aqui."
         },
         {
           "nome": "Prancha",
           "sets": "3x45s",
           "weight": "Peso corporal",
           "rest": "60s",
-          "obs": "Core prioritário após 6 dias sem realizar. Manter tensão de glúteo e escápula."
-        },
-        {
-          "nome": "Hiperextensão no Banco",
-          "sets": "4x10",
-          "weight": "Anilha 10kg",
-          "rest": "90s",
-          "obs": "Lombar como complemento — foi pulada em D ontem, boa oportunidade para incluir hoje."
+          "obs": "Core — última realização em 26/08; complementa o lombar já ativado pela remada."
         }
       ],
-      "em": "2026-09-01T22:47:06.312Z"
+      "em": "2026-09-02T22:38:10.129Z"
     }
   }
 }
