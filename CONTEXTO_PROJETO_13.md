@@ -2,7 +2,7 @@
 
 > # ⛔ LEIA ISTO ANTES DE QUALQUER SEÇÃO
 >
-> ## O app está NO MEIO de uma reescrita de arquitetura. Documento cumulativo v11 — app v0.9.1.73 / SW treino-v540.
+> ## Documento cumulativo v13 — app **v0.9.2.33** / SW **treino-v600**. A reescrita de arquitetura ESTÁ CONCLUÍDA no que importa.
 >
 > **O modelo de CICLOS foi eliminado.** Existe uma migração irreversível (`state._migracaoContinuoV1`)
 > que funde os ciclos arquivados num histórico único. **O app se comporta de duas formas
@@ -23,9 +23,11 @@
 >
 > ### O que a próxima sessão precisa saber, em ordem
 >
-> 1. Leia **"SESSÃO 14"** (fim do documento). É o estado atual. A Sessão 13 descreve a
->    migração; a 14 descreve o app que existe hoje.
-> 2. Leia **"PENDÊNCIAS — FIM DA SESSÃO 14"**.
+> 1. Leia **"SESSÃO 15"** (fim do documento). É o estado atual. A 13 descreve a migração, a 14
+>    descreve a arquitetura contínua, e a 15 descreve o app que existe hoje.
+> 2. Leia **"PENDÊNCIAS — FIM DA SESSÃO 15"** e **"APRENDIZADOS DE PROCESSO (Sessão 15)"** — a
+>    segunda lista os erros de método que mais custaram tempo, e todos são repetíveis.
+> 3. "PENDÊNCIAS — FIM DA SESSÃO 14" já está incorporada à lista da Sessão 15.
 > 3. **A suíte de 439 testes NÃO EXISTE mais** — vivia em `/home/claude` e o ambiente é
 >    recriado a cada sessão. A seção "SUÍTE DE TESTES" descreve como reconstruí-la. Na Sessão 14
 >    o método foi extrair funções do `index.html` com Python e exercitá-las em Node/jsdom, caso
@@ -2910,3 +2912,462 @@ pega `_bikeCorrenteSelecionada()` quando o nome real é `_bikeCorrenteSel()`.
 Anexar `index.html`, `sw.js` e `CONTEXTO_PROJETO_12.md`.
 Nunca trocar de janela no meio de uma conversa — causa perda de contexto.
 
+---
+
+# SESSÃO 15 — v0.9.2.14 → v0.9.2.33 (SW `treino-v581` → `treino-v600`)
+
+## VERSÃO ATUAL (fim da Sessão 15)
+
+- `index.html` — **v0.9.2.33**
+- `sw.js` — **`treino-v600`**
+- Modelo contínuo (`_migracaoContinuoV1`) em vigor. Nada da arquitetura central mudou nesta sessão.
+- **Todas as versões desta sessão rodaram no aparelho** — o usuário usa o app em produção
+  (GitHub Pages, `https://broder33.github.io/Treino-Beta/`) e confirmou as migrações pelo JSON.
+
+---
+
+## MIGRAÇÕES NOVAS (todas rodam no INIT, todas já aplicadas no aparelho)
+
+| Flag | O que faz | Escopo/proteção |
+|---|---|---|
+| `_migracaoBibSyncV1` | Reaplica `_sincronizarBiblioteca` sobre as sessões já registradas | **Só `variant === 'Contínuo'`.** Registros do modelo de ciclos nasceram quando a Biblioteca era FONTE; reaplicá-los sobrescreveria edições manuais |
+| `_migracaoPowerlockEsperaV1` | Zera `powerlockContador` de corrente nunca montada | **Só `dataInstalacao == null`.** Corrente nunca instalada não pode ter gasto montagem — é demonstrável |
+| `_migracaoHiperextensaoCoreV1` | Move "Hiperextensão no Banco" de PERNAS (D) para CORE | Preserva id/cargas. O histórico casa por NOME, não por id, então nada nele muda |
+| `_migracaoOdoPrecisaoV1` | Desfaz a deriva de arredondamento do odômetro + reordena `history`/`bikeHistory` | Ancorada na última leitura NÃO automática; `setup`, leituras manuais e `edicao-total` ficam intactos |
+
+**Padrão que se repetiu e vale manter:** toda migração corretiva foi restrita ao subconjunto em que
+a afirmação é *demonstrável*. Nunca "recalcular tudo do zero" — isso apagaria correções manuais
+deliberadas do usuário. O escopo estreito foi verificado rodando a migração contra o JSON real
+antes de entregar (ex.: a `_migracaoBibSyncV1` alterou **exatamente 6 entradas**, todas da série C).
+
+---
+
+## BIBLIOTECA × HISTÓRICO — FONTE ÚNICA (v.16)
+
+**O problema.** A IA recomendou voltar "Tríceps Alternado na Polia" de `7 pesos` para `27kg`,
+dizendo que a conversão para pesos em 05/08 "foi pontual" — contrariando a `REGRA GERAL` de
+`_notacaoCargas()`, que manda seguir a notação do registro mais recente.
+
+**A causa NÃO era o prompt.** O catálogo enviado à IA trazia `atual: 3x10 | 27kg` vindo da
+**Biblioteca**, rotulado como valor corrente. `_sincronizarBiblioteca` só nasceu na v0.9.2.13
+(Sessão 14) e a sessão C de 05/08 é anterior — a Biblioteca nunca soube da mudança. A IA leu
+corretamente um dado errado.
+
+**A correção.** Novo helper:
+
+```js
+_cargaExecutada(nome)   // varre _historicoCompleto() do mais recente para trás,
+                        // só status === 'done', devolve {sets, weight, data}
+```
+
+`projetarTreino()` passou a montar o catálogo assim:
+
+```
+- Tríceps Alternado na Polia | atual: 4x10 | 7 pesos | executado em 05/08/2026 | descanso 60-90s
+- Supino na Máquina Sentado  | atual: 3x7 | 50kg | nunca registrado — valor de cadastro
+```
+
+A data junto elimina a necessidade de a IA cruzar o catálogo com o histórico. **Não se mexeu no
+texto de `_notacaoCargas()`** — o defeito era o dado.
+
+> **Princípio consolidado:** a Biblioteca é uma **RÉPLICA** do último registro, não a fonte. Entre
+> registro e réplica cabe uma versão antiga do app, um exercício pulado, um aparelho que não
+> sincronizou. Quando discordam, vale o histórico.
+
+---
+
+## MÓDULO BIKE — CORRENTES E PREVISÕES (v.17 → v.22)
+
+### Corrente em espera não tem instalação (v.17)
+
+- Modal NOVA CORRENTE: com "DEIXAR EM ESPERA" (padrão), o bloco DATA DE INSTALAÇÃO + KM DA BIKE
+  **some** (wrapper `display:none`, inputs seguem no DOM; o `Aplicar` só os lê quando visíveis).
+- Corrente em espera nasce com `dataInstalacao: null` e `kmInstalacao: null` — o mesmo `null` que o
+  resto do app já usa para "não instalado".
+- `bikeCorrenteAtivarAplicar` **carimba** data e km do odômetro, mas **só se ainda forem nulos**:
+  numa rotação a corrente volta a entrar, e a instalação original é a primeira.
+- Cartão mostra "Nunca instalada — carimba ao ativar" em vez de data falsa.
+
+> `dataInstalacao == null` virou o sinal canônico de "nunca esteve na bike" e é usado pela
+> `_migracaoPowerlockEsperaV1`.
+
+### A matemática do rodízio, refeita do zero (v.18 → v.22)
+
+**O erro original.** `_bikeCorrenteDataEstimada` multiplicava por `_bikeRodizioN()` **internamente**,
+aplicando o fator do rodízio aos cinco cálculos que a chamam. Cadastrar a segunda corrente dobrou
+todas as previsões, inclusive a de imersão da corrente ativa.
+
+**A correção conceitual (do usuário, literal):** *"cada corrente roda 300km POR VEZ até a próxima
+imersão. Ter uma corrente em espera não dobra esse tempo para 600km."* O ciclo de imersão **é o
+turno**: a corrente montada roda os 300km dela seguidos, no ritmo cheio da bike.
+
+Funções resultantes:
+
+```js
+_bikeCorrenteDataEstimada(c, kmBike)   // ARGUMENTO JÁ EM KM DE BICICLETA — sem fator interno
+_bikeTurnoKm()                         // intervalo + maxTopoffs × extensão
+_bikeCorrenteKmBike(c, kmInd)          // DENTRO do turno: ativa 1:1; espera = resto do turno
+                                       //   da ativa + o dela (contagem SEQUENCIAL, não fator)
+_bikeCorrenteKmBikeLongo(c, kmInd)     // ATRAVESSA turnos: parte no turno corrente sem fator,
+                                       //   o excedente × N
+```
+
+Quem usa o quê:
+
+| Cálculo | Horizonte | Conversão |
+|---|---|---|
+| `_bikeCorrenteProximaImersao` | um turno | `_bikeCorrenteKmBike` |
+| `_bikeCorrenteProximoTopoff` | dentro do turno | `_bikeCorrenteKmBike` |
+| `_bikeCorrentePowerlockRestante` | vários turnos | `_bikeCorrenteKmBikeLongo` |
+| `_bikeCorrenteFixo` (vida útil) | milhares de km | `_bikeCorrenteKmBikeLongo` |
+| `_bikeCorrenteDinamica` (degrau de folga) | milhares de km | `_bikeCorrenteKmBikeLongo` |
+
+### Powerlock — modelo definitivo
+
+Regra do usuário, literal: *"cada uso do powerlock vale 300km na corrente. Se existem duas
+correntes, cada novo uso dura 600km na bicicleta."*
+
+```js
+restantes  = limite - contador
+restoTurno = (c.status === 'ativa') ? kmRestante da próxima imersão : 0
+kmRestante = restoTurno + restantes × turno          // NA CORRENTE
+kmBike     = _bikeCorrenteKmBikeLongo(c, kmRestante) // NA BICICLETA
+```
+
+Dois erros corrigidos no caminho:
+
+1. **`- 1` indevido.** A fórmula antiga era `restoTurno + (restantes - 1) × turno`. O uso do turno
+   corrente já foi somado ao contador quando a corrente foi montada; os `restantes` são todos futuros.
+2. **Resto de turno somado para corrente não montada.** Para uma corrente em espera não existe turno
+   em curso — o próximo turno dela **começa** com uma montagem, que já está entre as `restantes`.
+   Somar um turno contava 11 turnos para 10 usos.
+
+### Contagem de montagens do Powerlock
+
+O Powerlock **não é usado na imersão** — ele nem entra na cera. O que gasta um uso é remover a
+corrente da bike e montá-la de volta.
+
+```js
+// bikeCorrenteImersaoAplicar
+if (c.status === 'ativa' && _bikeRodizioN() === 1) {
+  c.powerlockContador = (c.powerlockContador || 0) + 1;
+}
+// bikeCorrenteAtivarAplicar: sempre incrementa
+```
+
+- **Sem rodízio**: a imersão É tirar-encerar-recolocar — uma montagem real que nenhuma ativação
+  registraria.
+- **Com rodízio**: a corrente sai na imersão e volta na ativação; incrementar nos dois dobraria a
+  contagem por volta.
+- `status === 'ativa'` é necessário porque `_bikeRodizioN()` também devolve 1 com o rodízio
+  aposentado, e aí pode haver uma segunda corrente na prateleira.
+
+### Exibição dos dois números
+
+`_bikeVidaUtilLinhaHTML` mostra o km de bicicleta entre parênteses **quando difere** do km da
+corrente: `faltam 1726km (3226km de bicicleta) · ≈ 29/01/2027`. Com rodízio aposentado os dois
+coincidem e o parêntese some.
+
+---
+
+## ODÔMETRO — PRECISÃO E CRONOLOGIA (v.31 → v.33)
+
+### A deriva de arredondamento
+
+```js
+// ANTES (errado): soma sobre o acumulado JÁ ARREDONDADO, resultado vira base da soma seguinte
+o.total = Math.round((o.total + p.km) * 10) / 10;
+// DEPOIS
+o.total   = Math.round((o.total + p.km) * 100) / 100;
+o.parcial = Math.round(((o.parcial || 0) + p.km) * 100) / 100;
+```
+
+25 pedais tinham levado o total a **+0.27km** e o parcial a **+0.17km**. As duas casas só descartam
+ruído de ponto flutuante — os deltas do ciclocomputador não têm mais que isso. Exibição arredonda
+com `_km1(v)`.
+
+Correção aplicada: `total 1140.5 → 1140.23`, `parcial 629.6 → 629.43`.
+
+### `data` em `leituras` significa coisas DIFERENTES conforme o tipo
+
+**Isto é a armadilha central do módulo e custou uma entrega errada nesta sessão.**
+
+| tipo | o que `data` significa |
+|---|---|
+| `ride` | **hora do pedal** — tempo real, do mundo |
+| `reset`, `parcial`, `setup`, `edicao-total` | **hora em que o usuário mexeu no app** |
+
+O usuário zera o computador de bordo antes de sair e registra isso à noite: um `reset` carimbado
+às 13:49 pode ser posterior, no relógio, a um `ride` das 13:33 que na prática veio **depois** dele.
+
+Consequências, todas implementadas:
+
+- **`leituras` NÃO é ordenada por data.** É um LOG DE OPERAÇÕES; `parcial`/`totalApos` são
+  acumuladores que só fazem sentido na ordem de APLICAÇÃO. Ordenar por data derrubava 35.09km do
+  parcial (o pedal de 13/08 caía antes do reset).
+- **`_migracaoOdoPrecisaoV1` reconstrói na ordem de aplicação** (array invertido), não por data.
+- **`history` e `bikeHistory` SÃO ordenados por data**, via `_ordenarPorData(lista)`, chamado nos
+  três pontos de inserção. Um treino ou pedal esquecido volta sozinho ao lugar.
+
+### `_bikeOdoPontosReais` — reconstrução cronológica
+
+`totalApos` é acumulador da ordem de aplicação: um pedal lançado com atraso recebe o total do dia em
+que foi lançado. Ordenar por data e ler esse campo produzia uma série **não monotônica** — o pedal
+esquecido de 29/08 aparecia com 1140km entre um 28/08 de 983km e um 30/08 de 1016km.
+
+A função agora ignora o `totalApos` dos rides e reconstrói:
+
+```js
+// em ordem de DATA:
+//   'ride' com delta numérico -> acum += delta
+//   leitura absoluta (totalApos) -> acum = totalApos   (reancora; medição direta vale mais)
+//   'reset' -> ignorado (zera o parcial, não o total)
+```
+
+Resultado: 43 pontos, **0 recuos**, último ponto = `o.total`. Inserir o pedal esquecido passa a
+corrigir a média sozinho (26.42 → 27.48 km/dia no teste com o dado real).
+
+---
+
+## CHAT DA PROJEÇÃO — REESCRITO (v.23 → v.27)
+
+### O que havia antes
+
+`ajustarProjecaoChat` mandava **uma** mensagem sem histórico, exigia JSON puro na resposta,
+descartava o texto e não tinha onde exibi-lo. Era um comando com nome de chat: impossível perguntar
+"por quê", receber justificativa ou dar seguimento. O chat rico (`enviarChatInline`, com histórico e
+`[PRONTO PARA APLICAR]`) existe mas pertence ao **caminho do modelo de ciclos** — inalcançável com
+`_migracaoContinuoV1` ligada, e mantido de propósito para quem importa backup antigo.
+
+### Etapa 1 — conversa de verdade
+
+- Histórico em **`state.proximoDecidido.chat`** (teto `_PROJ_CHAT_MAX = 24`).
+  Morre junto com a projeção: `_aplicarRegistroTreino` já faz `delete state.proximoDecidido`, e
+  `limparDecisaoTreino` também. **Memória limitada por construção**, sem varredura nem expiração.
+- Botão **↺ NOVA CONVERSA (n)** zera antes disso.
+- Painel de mensagens acima do campo; marca ✓ APLICADO no turno que mudou a projeção.
+- O estado da projeção viaja na primeira mensagem e é remontado a cada envio (a API não guarda nada).
+- `_projChatDraft` + `oninput` fazem o texto sobreviver ao re-render e à troca de aba.
+- `_projChatAviso()` — caixa persistente acima do campo. Substituiu `toast` para recusas: a
+  explicação de por que nada mudou não pode sumir em três segundos.
+
+### Etapa 2 — ações pontuais
+
+O modelo devolve `<<<ACOES ... ACOES>>>` com `substituir | adicionar | remover | alterar | mover`.
+O que ele não citar fica intacto **por construção**.
+
+- `_projAcaoAlvo(exercicios, alvo)` casa por nome parcial ("Crucifixo" acha o nome completo).
+  Ambiguidade **derruba** a ação em vez de chutar.
+- `_projInterpretarAcoes` devolve `{passos, erros, previa}`, com cada passo em português + a mutação.
+
+### Etapa 3 — confirmação + trava reescrita
+
+- `_projPendente` (variável de sessão, **não** vai para o state) guarda a proposta; painel com
+  APLICAR / DESCARTAR.
+- **Uma ação inválida derruba o conjunto inteiro** — aplicar metade de uma troca deixa o treino sem
+  o exercício antigo e sem o novo. Foi esse o estrago de 17/08.
+
+**A trava de catálogo, separada em três regras** (antes era um "tem que estar na série + Core" que
+misturava tudo):
+
+| Situação | Antes | Agora |
+|---|---|---|
+| Nome não existe na Biblioteca | recusa | **recusa** — viraria carga órfã |
+| Exercício de PERNAS em dia de pedal | recusa (por acidente) | **recusa** — regra do tendão patelar, explicitada no prompt |
+| Exercício de OUTRA série, sem pedal | recusa | **passa**, marcado `[vem da série D]` na confirmação |
+
+`_projExercicioPermitido(nome)` implementa isso; `_ondeEstaNaBiblioteca(nomes)` traduz a recusa
+("está na série D" / "não está na Biblioteca") e é compartilhado com `projetarTreino`.
+
+### `projetarTreino` — descarte deixou de ser silencioso (v.27)
+
+Ali o descarte **continua** (a projeção é proposta nova e inteira; abortar deixaria o usuário sem
+treino), mas o descartado é nomeado: *"Projetei 7 exercícios. Deixei de fora, por não estar no
+catálogo de C + Core: Agachamento Livre (está na série D)."*
+
+> Assimetria proposital: **o chat aborta** (o alvo já existe e mutilá-lo é pior), **a projeção avisa**.
+
+---
+
+## EDIÇÃO DE SESSÃO JÁ REGISTRADA (v.24)
+
+Até aqui um treino gravado era imutável — o lápis só editava data/hora e corrigir um exercício
+exigia desfazer a conclusão inteira.
+
+- Ícone **☰** ao lado do lápis, **só em cards de treino** (um ride não tem exercícios).
+- `editSessaoExerciciosPrompt(id)` trabalha sobre cópia (`_edSessao`); só escreve no `SALVAR`.
+- Marcar feito/pulado, corrigir séries e carga, remover, reordenar (▲▼), acrescentar do catálogo.
+- Ao acrescentar, carga de partida vem de `_cargaExecutada` (queda para o cadastro).
+- Ao salvar: recalcula `done`/`total` e chama `_sincronizarBiblioteca`.
+- Campos de texto **não** re-renderizam (o input está em foco) — mesmo motivo de `_projEditarCampo`.
+
+---
+
+## AJUSTES MENORES
+
+- **v.15** — histórico de leituras do odômetro: acrescentado o ramo `'ride'` na cadeia de descrição.
+  Seis entradas apareciam só com a data porque `_bikeOdoLog('ride', …)` não tinha ramo. Os dados
+  estavam íntegros; só faltava a linha de texto. Formato: `Parcial X (+Ykm) — total Z · via agenda`.
+- **v.25** — removido o botão `🚲 REGISTRAR PEDAL` do card PRÓXIMO TREINO. A barra ACRESCENTAR do
+  feed (v0.9.1.88) já abre o mesmo modal; o do card era porta antiga e só aparecia no ramo EM ABERTO.
+- **v.28/.29** — cor do pedal no feed: `.agenda-dia.bike-dia` era `rgba(57,255,133,…)`, **a mesma
+  cor** de `.agenda-dia.concluido`. Passou para azul `rgba(91,143,255,…)`. Ao fazer isso apareceu um
+  defeito **antigo**: os cards saem colados (`.map().join('')` sem separador) e `.agenda-dia` não
+  tinha margem — duas bordas de 1px encostadas formavam uma faixa de 2px com uma cor de cada lado.
+  Corrigido com `.agenda-dia + .agenda-dia { margin-top: 6px; }`.
+- **v.30** — **temperatura média por pedal** (`tempMedia`), modelada no `bpmMedio`. Oito pontos:
+  modal REGISTRAR PEDAL, seção PEDAL DO DIA inline, editar pedal (✎), gravação do pedal autônomo,
+  snapshot `bikeInfo → bikeHistory`, card do feed contínuo e dois cards do histórico. Sanitização
+  `/\s*(°\s*)?c\s*$/i` — digitar "24 °C" não duplica a unidade. **Não entra em `_contextoTreino()`.**
+
+---
+
+## LOGIN GOOGLE QUEBRADO — DIAGNÓSTICO COMPLETO (fora do código)
+
+Sintoma: numa máquina nova, a janela do Google abria, a conta era escolhida, e o app seguia offline.
+Funcionava nos outros aparelhos.
+
+**Nada disso era defeito do app.** O `index.html` estava correto o tempo todo.
+
+Cadeia de diagnóstico (a parte que funcionou):
+
+1. Network com **Preserve log** → o retorno vinha `?error=server_error&error_description=Unable+to+exchange+external+code`.
+2. **Supabase → Logs → Auth Logs** (`/dashboard/project/<ref>/logs/auth-logs`) → JSON completo:
+   `"oauth2: \"invalid_client\" \"The provided client secret is invalid.\""`
+3. Intervalos autorizar→erro de **4 a 6 segundos** mataram a hipótese de código expirado.
+
+**Causa:** o Client Secret guardado no Supabase deixou de ser aceito pelo Google. Treino e o app
+**Faturas** dividiam o mesmo OAuth client ("Web client 1", projeto `controle-de-faturas-491923`).
+
+**Por que só aquela máquina falhava:** o secret só é usado em **login novo**. Os outros aparelhos já
+tinham sessão e renovavam por **refresh token**, caminho que não toca o secret. Estavam igualmente
+quebrados, só não tinham precisado.
+
+**Solução aplicada:** OAuth client novo, exclusivo do Treino, com
+`https://exhajkhacgnsrnnmeism.supabase.co/auth/v1/callback` em Authorized redirect URIs
+(JavaScript origins **vazio** — o navegador nunca fala direto com o Google neste fluxo). Client ID +
+secret novos em Supabase → Authentication → Sign In / Providers → Google. **Funcionou.**
+
+Fatos para uma próxima vez:
+- Projeto Supabase do Treino: `exhajkhacgnsrnnmeism`.
+- Client ID em uso: `962292865944-h5nes6ku0j9h63ffemijj1pg5lfoteqr.apps.googleusercontent.com`.
+- Trocar o client OAuth **não afeta** usuários, dados nem sessões — é a credencial Supabase↔Google.
+- Um OAuth client do Google aceita no máximo **2 secrets**.
+- O usuário colou um secret no chat durante o processo; foi alertado e o secret foi descartado.
+  **Nunca pedir nem aceitar secrets no chat.**
+
+---
+
+## APRENDIZADOS DE PROCESSO (Sessão 15) — os erros que custaram caro
+
+### 1. Medir antes de argumentar
+Ao trocar a cor do pedal, o usuário relatou que o **verde do treino** também tinha mudado.
+Verifiquei o CSS, vi que a regra estava byte a byte igual, e **argumentei por dedução** ("efeito de
+contraste simultâneo"). Estava errado: os cards se sobrepunham. Eu tinha me oferecido para comparar
+os pixels e não fiz. *"O código diz que a regra é a mesma" respondia à pergunta errada.*
+
+### 2. Pedir o dado antes de construir hipótese
+No caso da importação que perdia o pedal, construí uma teoria elaborada sobre a nuvem sobrescrever
+a importação — sem pedir os JSONs. O usuário: *"você nem sequer pediu o JSON do treino, o que me leva
+a entender que você não sabe o que está fazendo."* Tinha razão. A própria sequência dele derrubava a
+hipótese (se o pedal nasceu no aparelho logado, a nuvem também o teria).
+
+### 3. Executar a tarefa, não só construir a ferramenta
+O usuário pediu "insira a Hiperextensão no treino de ontem" e escolheu a opção (c) = construir o
+editor. Construí o editor e **deixei a inserção para ele**. A opção (c) era sobre *como* aplicar, não
+sobre quem aplica.
+
+### 4. Não inventar ressalvas genéricas
+Escrevi "o único cenário em que algo quebraria é se o Web client 1 estivesse sendo usado por outro
+sistema seu que você não mencionou". Resposta: *"Que outro sistema?"* Era hedge vazio para não
+afirmar demais — não ajudou em nada.
+
+### 5. Não afirmar mecanismo sem saber
+Disse que o secret "venceu". O log só dizia que não era aceito. As causas possíveis eram várias
+(rotação, remoção, par errado, colagem). Afirmar o mecanismo sem evidência gerou desconfiança
+justificada.
+
+### 6. Testar a própria entrega contra o dado real, sempre
+Duas entregas foram salvas por isso:
+- A primeira versão de `_migracaoOdoPrecisaoV1` ordenava `leituras` por data e produzia parcial
+  **594.34** em vez de 629.43 — descoberto rodando a migração contra o `treino_backup.json`.
+- Ao inserir o editor de sessão, consumi a linha de declaração de `editHistoryDataPrompt` e o arquivo
+  ficou com um `}` órfão — pego pelo `node --check`.
+
+### 7. Interpretar o relato literalmente
+"O botão REPROJETAR não está funcionando" gerou várias mensagens de investigação. A resposta do
+usuário: *"Ele faz exatamente o que o botão diz; reprojeta."* Confirmar o sintoma antes de investigar
+teria custado uma linha.
+
+---
+
+## MÉTODO DE TESTE (inalterado, funcionou bem)
+
+```bash
+# extrai funções nomeadas do index.html e monta um harness Node
+python3 - <<'EOF' > t.js
+s=open('index.html').read()
+def fn(n):
+    i=s.index('\nfunction '+n+'('); j=s.index('\n}\n', i)+3; return s[i:j]
+print("var state = require('/mnt/user-data/uploads/treino_backup.json');")
+for f in ['_historicoCompleto','_cargaExecutada', ...]: print(fn(f))
+EOF
+node t.js
+
+# validação obrigatória antes de entregar
+python3 -c "import re; s=open('index.html').read(); b=re.findall(r'<script[^>]*>(.*?)</script>', s, re.S); open('check.js','w').write(';\n'.join(b))"
+node --check check.js && node --check sw.js
+grep -oE "^function [A-Za-z_]+" index.html | sort | uniq -c | sort -rn | awk '$1>1'
+```
+
+Dois acréscimos úteis desta sessão:
+
+- **Rodar migrações contra o `treino_backup.json` real** antes de entregar, e listar exatamente
+  quais registros mudam. Foi isso que pegou o erro do parcial 594.34.
+- **Ao editar por script Python**, usar `assert s.count(a)==1` antes de cada `replace`, e aplicar
+  todas as substituições em memória gravando o arquivo **só no fim** — se um `assert` falha, nada é
+  escrito e o arquivo não fica meio editado.
+
+---
+
+## PENDÊNCIAS — FIM DA SESSÃO 15
+
+### Confirmadas nesta sessão, sem tratamento
+1. **`_syncLog` / conflito multi-aparelho** — o caso "arquivo mais novo que o local, porém mais
+   velho que a nuvem" não é tratado em `importData`: o carimbo compara arquivo × local, nunca ×
+   nuvem. **Levantado como hipótese e NÃO confirmado** — o usuário achou outra causa para o problema
+   que estava investigando e não disse qual. Vale confirmar antes de mexer.
+2. **Triângulo de aviso amarelo** no "Web client 1" do Google Cloud — nunca lido.
+3. **Temperatura não entra em `_contextoTreino()`** — a IA não vê o clima ao projetar o pedal.
+   Decidir se vale, dado que poucos pedais têm o campo preenchido.
+
+### Herdadas
+4. **Derivar o modelo do dado em vez da flag** (`state.ciclos` ausente = contínuo).
+5. **A série adiada perde a vez** — fila linear; pular D custa uma volta inteira.
+6. **Rodízio de correntes nunca exercitado com duas correntes reais em rotação** — a segunda
+   corrente (SRAM RED) está cadastrada e em espera, mas nunca foi ativada.
+7. `enviarMensagemPlano` / `renderPlanoMacro` ainda alcançáveis (inofensivos).
+8. Câmara alternativa — escopo nunca especificado.
+9. GitHub Pages: **atualizado** nesta sessão (o usuário roda v0.9.2.33 em produção).
+10. Suíte de testes a reconstruir.
+
+### Anotações de dados
+- **Crunch de 10/08 gravado como `1x77`** — o usuário confirmou que **está correto**. Não corrigir.
+- A Hiperextensão no Banco **ainda precisa ser inserida** no treino A de 18/08 pelo editor ☰ — foi
+  gerado um `treino_backup.json` corrigido, mas o usuário optou por outro caminho e o assunto ficou
+  em aberto. Verificar se a sessão de 18/08 está 5/7 ou 6/8.
+
+---
+
+## ARQUIVOS DE TRABALHO (fim da Sessão 15)
+
+- `index.html` — **v0.9.2.33**
+- `sw.js` — **treino-v600**
+- `CONTEXTO_PROJETO_13.md` — este documento
+
+## REGRA PARA NOVA SESSÃO
+
+Anexar `index.html`, `sw.js` e `CONTEXTO_PROJETO_13.md`.
+Anexar também o `treino_backup.json` atual sempre que a conversa envolver dados — foi o que mais
+acelerou o diagnóstico nesta sessão, e o que faltou nas vezes em que errei.
+Nunca trocar de janela no meio de uma conversa — causa perda de contexto.

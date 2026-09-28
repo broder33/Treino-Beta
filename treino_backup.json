@@ -5,7 +5,7 @@
       "id": "s1",
       "name": "OMBROS",
       "label": "A",
-      "lastDone": "2026-09-01T23:55:12.527Z",
+      "lastDone": "2026-09-25T23:41:20.087Z",
       "planMode": false,
       "variants": [
         "Principal",
@@ -26,21 +26,21 @@
           "id": "e2",
           "name": "Elevação Lateral com Halteres",
           "rest": "75s",
-          "sets": "4x9",
+          "sets": "4x10",
           "notes": "",
           "isCore": false,
           "status": "undone",
-          "weight": "14kg cada lado"
+          "weight": "12.5kg cada lado"
         },
         {
           "id": "e3",
           "name": "Elevação Frontal com Halteres",
-          "rest": "60s",
+          "rest": "75s",
           "sets": "3x6",
           "notes": "",
           "isCore": false,
           "status": "undone",
-          "weight": "12kg cada lado"
+          "weight": "12.5kg cada lado"
         },
         {
           "id": "e4",
@@ -50,7 +50,7 @@
           "notes": "",
           "isCore": false,
           "status": "undone",
-          "weight": "5 pesos"
+          "weight": "4 pesos"
         },
         {
           "id": "e5",
@@ -120,7 +120,7 @@
           "notes": "",
           "isCore": false,
           "status": "undone",
-          "weight": "2 pesos",
+          "weight": "2.5pesos",
           "skippedLast": false
         },
         {
@@ -138,7 +138,7 @@
           "id": "xvqd2g0j",
           "name": "Elevação Lateral na Polia",
           "rest": "75s",
-          "sets": "4x6",
+          "sets": "4x10",
           "isCore": false,
           "status": "undone",
           "weight": "2.5 pesos",
@@ -148,10 +148,10 @@
           "id": "xaauxg3w",
           "name": "Overhead Press Sentado com Halteres",
           "rest": "120s",
-          "sets": "4x5",
+          "sets": "4x6",
           "isCore": false,
           "status": "undone",
-          "weight": "22-24kg cada lado",
+          "weight": "22.5kg cada lado",
           "skippedLast": false
         }
       ],
@@ -161,7 +161,7 @@
       "id": "s2",
       "name": "COSTAS / BÍCEPS",
       "label": "B",
-      "lastDone": "2026-08-28T00:16:20.491Z",
+      "lastDone": "2026-09-17T23:18:00.314Z",
       "planMode": false,
       "variants": [
         "Principal"
@@ -171,7 +171,7 @@
           "id": "e12",
           "name": "Pull-up Aberto",
           "rest": "150s",
-          "sets": "4x5",
+          "sets": "4x6",
           "notes": "",
           "isCore": false,
           "status": "undone",
@@ -181,7 +181,7 @@
           "id": "e15",
           "name": "Chin-up",
           "rest": "120s",
-          "sets": "3x6",
+          "sets": "4x5",
           "notes": "",
           "isCore": false,
           "status": "undone",
@@ -254,7 +254,7 @@
           "sets": "3x9",
           "isCore": false,
           "status": "undone",
-          "weight": "60kg",
+          "weight": "62kg",
           "skippedLast": false
         },
         {
@@ -294,7 +294,7 @@
       "id": "s3",
       "name": "PEITO / TRÍCEPS",
       "label": "C",
-      "lastDone": "2026-08-28T22:21:38.300Z",
+      "lastDone": "2026-09-18T23:25:37.885Z",
       "planMode": false,
       "variants": [
         "Principal"
@@ -308,7 +308,7 @@
           "notes": "",
           "isCore": false,
           "status": "undone",
-          "weight": "26-30kg"
+          "weight": "28kg"
         },
         {
           "id": "e22",
@@ -324,11 +324,11 @@
           "id": "e23",
           "name": "Fly com Halteres",
           "rest": "2min",
-          "sets": "4x5",
+          "sets": "4x6",
           "notes": "",
           "isCore": false,
           "status": "undone",
-          "weight": "16-18kg"
+          "weight": "18-20kg"
         },
         {
           "id": "e24",
@@ -348,7 +348,7 @@
           "notes": "Joinville: banco 8, dist 1",
           "isCore": false,
           "status": "undone",
-          "weight": "52-59-66kg"
+          "weight": "73-79kg"
         },
         {
           "id": "e26",
@@ -374,11 +374,11 @@
           "id": "e28",
           "name": "French Press com Haltere",
           "rest": "90s",
-          "sets": "3x9",
+          "sets": "4x8",
           "notes": "",
           "isCore": false,
           "status": "undone",
-          "weight": "22kg"
+          "weight": "24kg"
         },
         {
           "id": "e29",
@@ -467,7 +467,7 @@
       "id": "s4",
       "name": "PERNAS",
       "label": "D",
-      "lastDone": "2026-09-01T00:10:00.441Z",
+      "lastDone": "2026-09-25T22:30:44.209Z",
       "planMode": false,
       "variants": [
         "Principal",
@@ -478,17 +478,17 @@
           "id": "e35",
           "name": "Abdutor na Máquina",
           "rest": "60-90s",
-          "sets": "3x10",
+          "sets": "4x10",
           "notes": "Banco 3o pino",
           "isCore": false,
           "status": "undone",
-          "weight": "63kg"
+          "weight": "63-68kg"
         },
         {
           "id": "e36",
           "name": "Adutor na Máquina",
           "rest": "60-90s",
-          "sets": "3x10",
+          "sets": "4x10",
           "notes": "",
           "isCore": false,
           "status": "undone",
@@ -498,11 +498,11 @@
           "id": "e37",
           "name": "Leg Extension",
           "rest": "60-90s",
-          "sets": "3x10",
+          "sets": "4x10",
           "notes": "Perna p3, banco p5 / Joinville dist L alt 11",
           "isCore": false,
           "status": "undone",
-          "weight": "50kg"
+          "weight": "50-59-68kg"
         },
         {
           "id": "e38",
@@ -518,11 +518,11 @@
           "id": "e39",
           "name": "Leg Press Inclinado",
           "rest": "2-3min",
-          "sets": "3x8",
+          "sets": "4x8",
           "notes": "",
           "isCore": false,
           "status": "undone",
-          "weight": "80-100kg cada lado"
+          "weight": "80kg cada lado"
         },
         {
           "id": "e40",
@@ -776,6 +776,939 @@
     }
   ],
   "history": [
+    {
+      "id": "xkw1ucp9",
+      "date": "2026-09-25T23:41:00.000Z",
+      "done": 6,
+      "total": 8,
+      "serieId": "s1",
+      "variant": "Contínuo",
+      "exercises": [
+        {
+          "name": "Overhead Press Sentado com Halteres",
+          "rest": "120s",
+          "sets": "4x6",
+          "isCore": false,
+          "status": "done",
+          "weight": "22.5kg cada lado",
+          "musculo": ""
+        },
+        {
+          "name": "Elevação Lateral com Halteres",
+          "rest": "75s",
+          "sets": "4x10",
+          "isCore": false,
+          "status": "done",
+          "weight": "12.5kg cada lado",
+          "musculo": ""
+        },
+        {
+          "name": "Elevação Frontal com Halteres",
+          "rest": "75s",
+          "sets": "3x6",
+          "isCore": false,
+          "status": "done",
+          "weight": "12.5kg cada lado",
+          "musculo": ""
+        },
+        {
+          "name": "Elevação Lateral na Polia",
+          "rest": "75s",
+          "sets": "4x10",
+          "isCore": false,
+          "status": "done",
+          "weight": "2.5 pesos",
+          "musculo": ""
+        },
+        {
+          "name": "Rotação Externa com Cabo",
+          "rest": "60s",
+          "sets": "4x10",
+          "isCore": false,
+          "status": "done",
+          "weight": "2.5pesos",
+          "musculo": ""
+        },
+        {
+          "name": "Crucifixo Inverso Unilateral na Polia",
+          "rest": "60s",
+          "sets": "4x6",
+          "isCore": false,
+          "status": "done",
+          "weight": "4 pesos",
+          "musculo": ""
+        },
+        {
+          "name": "Hiperextensão no Banco",
+          "rest": "90s",
+          "sets": "4x10",
+          "isCore": true,
+          "status": "skipped",
+          "weight": "Anilha 10kg",
+          "musculo": ""
+        },
+        {
+          "name": "Prancha",
+          "rest": "60s",
+          "sets": "3x45s",
+          "isCore": true,
+          "status": "skipped",
+          "weight": "Peso corporal",
+          "musculo": ""
+        }
+      ],
+      "serieName": "OMBROS",
+      "serieLabel": "A"
+    },
+    {
+      "id": "xai0p0ww",
+      "date": "2026-09-22T22:30:00.000Z",
+      "done": 5,
+      "total": 7,
+      "serieId": "s4",
+      "variant": "Contínuo",
+      "exercises": [
+        {
+          "name": "Leg Press Inclinado",
+          "rest": "2-3min",
+          "sets": "4x8",
+          "isCore": false,
+          "status": "done",
+          "weight": "80kg cada lado",
+          "musculo": ""
+        },
+        {
+          "name": "Leg Extension",
+          "rest": "60-90s",
+          "sets": "4x10",
+          "isCore": false,
+          "status": "done",
+          "weight": "50-59-68kg",
+          "musculo": ""
+        },
+        {
+          "name": "Adutor na Máquina",
+          "rest": "60-90s",
+          "sets": "4x10",
+          "isCore": false,
+          "status": "done",
+          "weight": "68kg",
+          "musculo": ""
+        },
+        {
+          "name": "Abdutor na Máquina",
+          "rest": "60-90s",
+          "sets": "4x10",
+          "isCore": false,
+          "status": "done",
+          "weight": "63-68kg",
+          "musculo": ""
+        },
+        {
+          "name": "Glúteo na Máquina (Kickback)",
+          "rest": "60-90s",
+          "sets": "4x7",
+          "isCore": false,
+          "status": "skipped",
+          "weight": "40kg",
+          "musculo": ""
+        },
+        {
+          "name": "Calf Raise na Máquina",
+          "rest": "60s",
+          "sets": "4x15",
+          "isCore": false,
+          "status": "done",
+          "weight": "40kg",
+          "musculo": ""
+        },
+        {
+          "name": "Hiperextensão no Banco",
+          "rest": "90s",
+          "sets": "4x10",
+          "isCore": true,
+          "status": "skipped",
+          "weight": "Anilha 10kg",
+          "musculo": ""
+        }
+      ],
+      "serieName": "PERNAS",
+      "serieLabel": "D"
+    },
+    {
+      "id": "xtopkwy2",
+      "date": "2026-09-18T23:25:00.000Z",
+      "done": 5,
+      "total": 8,
+      "serieId": "s3",
+      "variant": "Contínuo",
+      "exercises": [
+        {
+          "name": "Supino Reto c/ Halteres",
+          "rest": "2-3min",
+          "sets": "4x6",
+          "isCore": false,
+          "status": "done",
+          "weight": "28kg",
+          "musculo": ""
+        },
+        {
+          "name": "Skull Crusher",
+          "rest": "2min",
+          "sets": "4x6",
+          "isCore": false,
+          "status": "done",
+          "weight": "10-12.5kg cada lado",
+          "musculo": ""
+        },
+        {
+          "name": "Fly com Halteres",
+          "rest": "2min",
+          "sets": "4x6",
+          "isCore": false,
+          "status": "done",
+          "weight": "18-20kg",
+          "musculo": ""
+        },
+        {
+          "name": "French Press com Haltere",
+          "rest": "90s",
+          "sets": "4x8",
+          "isCore": false,
+          "status": "done",
+          "weight": "24kg",
+          "musculo": ""
+        },
+        {
+          "name": "Tríceps na Barra (Calistenia)",
+          "rest": "90s-2min",
+          "sets": "3x6",
+          "isCore": false,
+          "status": "done",
+          "weight": "---",
+          "musculo": ""
+        },
+        {
+          "name": "Fly na Máquina",
+          "rest": "90s",
+          "sets": "4x8",
+          "isCore": false,
+          "status": "skipped",
+          "weight": "73-79kg",
+          "musculo": ""
+        },
+        {
+          "name": "Crossover",
+          "rest": "2min",
+          "sets": "4x8",
+          "isCore": false,
+          "status": "skipped",
+          "weight": "4 pesos na grande",
+          "musculo": ""
+        },
+        {
+          "name": "Hiperextensão no Banco",
+          "rest": "90s",
+          "sets": "4x10",
+          "isCore": true,
+          "status": "skipped",
+          "weight": "Anilha 10kg",
+          "musculo": ""
+        }
+      ],
+      "serieName": "PEITO / TRÍCEPS",
+      "serieLabel": "C"
+    },
+    {
+      "id": "x6z1tu1l",
+      "date": "2026-09-17T23:17:00.000Z",
+      "done": 4,
+      "total": 7,
+      "serieId": "s2",
+      "variant": "Contínuo",
+      "exercises": [
+        {
+          "name": "Pull-up Aberto",
+          "rest": "150s",
+          "sets": "4x6",
+          "isCore": false,
+          "status": "done",
+          "weight": "Peso corporal",
+          "musculo": ""
+        },
+        {
+          "name": "Chin-up",
+          "rest": "120s",
+          "sets": "4x5",
+          "isCore": false,
+          "status": "done",
+          "weight": "Peso corporal",
+          "musculo": ""
+        },
+        {
+          "name": "Remada cavalinho na máquina",
+          "rest": "90s",
+          "sets": "4x7",
+          "isCore": false,
+          "status": "done",
+          "weight": "68kg",
+          "musculo": ""
+        },
+        {
+          "name": "Hammer Curl",
+          "rest": "90s",
+          "sets": "3x7",
+          "isCore": false,
+          "status": "done",
+          "weight": "20kg cada lado",
+          "musculo": ""
+        },
+        {
+          "name": "Puxada no Pulley com Pegada Neutra",
+          "rest": "90s",
+          "sets": "3x9",
+          "isCore": false,
+          "status": "skipped",
+          "weight": "62kg",
+          "musculo": ""
+        },
+        {
+          "name": "Remada Aberta na Polia",
+          "rest": "90s",
+          "sets": "4x8",
+          "isCore": false,
+          "status": "skipped",
+          "weight": "47kg",
+          "musculo": ""
+        },
+        {
+          "name": "Hiperextensão no Banco",
+          "rest": "90s",
+          "sets": "4x10",
+          "isCore": true,
+          "status": "skipped",
+          "weight": "Anilha 10kg",
+          "musculo": ""
+        }
+      ],
+      "serieName": "COSTAS / BÍCEPS",
+      "serieLabel": "B"
+    },
+    {
+      "id": "xovix9ef",
+      "date": "2026-09-15T23:48:00.000Z",
+      "done": 6,
+      "total": 7,
+      "serieId": "s1",
+      "variant": "Contínuo",
+      "exercises": [
+        {
+          "name": "Overhead Press Sentado com Halteres",
+          "rest": "120s",
+          "sets": "4x6",
+          "isCore": false,
+          "status": "done",
+          "weight": "24-26kg cada lado",
+          "musculo": ""
+        },
+        {
+          "name": "Elevação Lateral com Halteres",
+          "rest": "75s",
+          "sets": "4x10",
+          "isCore": false,
+          "status": "done",
+          "weight": "14kg cada lado",
+          "musculo": ""
+        },
+        {
+          "name": "Elevação Frontal com Halteres",
+          "rest": "60s",
+          "sets": "3x6",
+          "isCore": false,
+          "status": "done",
+          "weight": "16kg cada lado",
+          "musculo": ""
+        },
+        {
+          "name": "Crucifixo Inverso Unilateral na Polia",
+          "rest": "60s",
+          "sets": "4x6",
+          "isCore": false,
+          "status": "done",
+          "weight": "5 pesos",
+          "musculo": ""
+        },
+        {
+          "name": "Elevação Lateral na Polia",
+          "rest": "75s",
+          "sets": "4x8",
+          "isCore": false,
+          "status": "done",
+          "weight": "2.5 pesos",
+          "musculo": ""
+        },
+        {
+          "name": "Rotação Externa com Cabo",
+          "rest": "60s",
+          "sets": "4x10",
+          "isCore": false,
+          "status": "done",
+          "weight": "2.5pesos",
+          "musculo": ""
+        },
+        {
+          "name": "Prancha",
+          "rest": "60s",
+          "sets": "3x45s",
+          "isCore": true,
+          "status": "skipped",
+          "weight": "Peso corporal",
+          "musculo": ""
+        }
+      ],
+      "serieName": "OMBROS",
+      "serieLabel": "A"
+    },
+    {
+      "id": "xt4qjrlp",
+      "date": "2026-09-14T23:43:00.000Z",
+      "done": 7,
+      "total": 8,
+      "serieId": "s4",
+      "variant": "Contínuo",
+      "exercises": [
+        {
+          "name": "Leg Press Inclinado",
+          "rest": "2-3min",
+          "sets": "4x8",
+          "isCore": false,
+          "status": "done",
+          "weight": "80-100-120kg cada lado",
+          "musculo": ""
+        },
+        {
+          "name": "Leg Extension",
+          "rest": "60-90s",
+          "sets": "4x10",
+          "isCore": false,
+          "status": "done",
+          "weight": "50-59-63kg",
+          "musculo": ""
+        },
+        {
+          "name": "Adutor na Máquina",
+          "rest": "60-90s",
+          "sets": "3x10",
+          "isCore": false,
+          "status": "done",
+          "weight": "68kg",
+          "musculo": ""
+        },
+        {
+          "name": "Abdutor na Máquina",
+          "rest": "60-90s",
+          "sets": "3x10",
+          "isCore": false,
+          "status": "done",
+          "weight": "63-68kg",
+          "musculo": ""
+        },
+        {
+          "name": "Glúteo na Máquina (Kickback)",
+          "rest": "60-90s",
+          "sets": "4x7",
+          "isCore": false,
+          "status": "done",
+          "weight": "36kg",
+          "musculo": ""
+        },
+        {
+          "name": "Calf Raise na Máquina",
+          "rest": "60s",
+          "sets": "4x15",
+          "isCore": false,
+          "status": "done",
+          "weight": "40kg",
+          "musculo": ""
+        },
+        {
+          "name": "Hiperextensão no Banco",
+          "rest": "90s",
+          "sets": "4x10",
+          "isCore": true,
+          "status": "done",
+          "weight": "Anilha 10kg",
+          "musculo": ""
+        },
+        {
+          "name": "Prancha",
+          "rest": "60s",
+          "sets": "3x45s",
+          "isCore": true,
+          "status": "skipped",
+          "weight": "Peso corporal",
+          "musculo": ""
+        }
+      ],
+      "serieName": "PERNAS",
+      "serieLabel": "D"
+    },
+    {
+      "id": "xvaf9gp1",
+      "date": "2026-09-10T23:37:00.000Z",
+      "done": 4,
+      "total": 9,
+      "serieId": "s3",
+      "variant": "Contínuo",
+      "exercises": [
+        {
+          "name": "Supino Reto c/ Halteres",
+          "rest": "2-3min",
+          "sets": "4x6",
+          "isCore": false,
+          "status": "done",
+          "weight": "28-30kg",
+          "musculo": ""
+        },
+        {
+          "name": "Fly na Máquina",
+          "rest": "90s",
+          "sets": "4x8",
+          "isCore": false,
+          "status": "done",
+          "weight": "73-79kg",
+          "musculo": ""
+        },
+        {
+          "name": "Crossover",
+          "rest": "2min",
+          "sets": "4x8",
+          "isCore": false,
+          "status": "done",
+          "weight": "4 pesos na grande",
+          "musculo": ""
+        },
+        {
+          "name": "Tríceps na Barra (Calistenia)",
+          "rest": "90s-2min",
+          "sets": "3x6",
+          "isCore": false,
+          "status": "done",
+          "weight": "---",
+          "musculo": ""
+        },
+        {
+          "name": "Skull Crusher",
+          "rest": "2min",
+          "sets": "4x6",
+          "isCore": false,
+          "status": "skipped",
+          "weight": "10-12.5kg cada lado",
+          "musculo": ""
+        },
+        {
+          "name": "Fly com Halteres",
+          "rest": "2min",
+          "sets": "4x6",
+          "isCore": false,
+          "status": "skipped",
+          "weight": "18-20kg",
+          "musculo": ""
+        },
+        {
+          "name": "French Press com Haltere",
+          "rest": "90s",
+          "sets": "4x8",
+          "isCore": false,
+          "status": "skipped",
+          "weight": "24kg",
+          "musculo": ""
+        },
+        {
+          "name": "Hiperextensão no Banco",
+          "rest": "90s",
+          "sets": "4x10",
+          "isCore": true,
+          "status": "skipped",
+          "weight": "Anilha 10kg",
+          "musculo": ""
+        },
+        {
+          "name": "Elevação de Joelhos no Roman Chair",
+          "rest": "60s",
+          "sets": "3x15",
+          "isCore": true,
+          "status": "skipped",
+          "weight": "Peso corporal",
+          "musculo": ""
+        }
+      ],
+      "serieName": "PEITO / TRÍCEPS",
+      "serieLabel": "C"
+    },
+    {
+      "id": "x2yxi5ds",
+      "date": "2026-09-09T23:29:00.000Z",
+      "done": 5,
+      "total": 9,
+      "serieId": "s2",
+      "variant": "Contínuo",
+      "exercises": [
+        {
+          "name": "Pull-up Aberto",
+          "rest": "150s",
+          "sets": "4x5",
+          "isCore": false,
+          "status": "done",
+          "weight": "Peso corporal",
+          "musculo": ""
+        },
+        {
+          "name": "Chin-up",
+          "rest": "120s",
+          "sets": "3x6",
+          "isCore": false,
+          "status": "done",
+          "weight": "Peso corporal",
+          "musculo": ""
+        },
+        {
+          "name": "Remada cavalinho na máquina",
+          "rest": "90s",
+          "sets": "4x7",
+          "isCore": false,
+          "status": "done",
+          "weight": "68kg",
+          "musculo": ""
+        },
+        {
+          "name": "Remada Aberta na Polia",
+          "rest": "90s",
+          "sets": "4x8",
+          "isCore": false,
+          "status": "done",
+          "weight": "45kg",
+          "musculo": ""
+        },
+        {
+          "name": "Puxada no Pulley com Pegada Neutra",
+          "rest": "90s",
+          "sets": "3x9",
+          "isCore": false,
+          "status": "done",
+          "weight": "62kg",
+          "musculo": ""
+        },
+        {
+          "name": "Remada Unilateral com Haltere",
+          "rest": "90s",
+          "sets": "4x7",
+          "isCore": false,
+          "status": "skipped",
+          "weight": "32kg cada lado",
+          "musculo": ""
+        },
+        {
+          "name": "Rosca com Corda na Polia",
+          "rest": "60s",
+          "sets": "3x12",
+          "isCore": false,
+          "status": "skipped",
+          "weight": "32kg",
+          "musculo": ""
+        },
+        {
+          "name": "Hiperextensão no Banco",
+          "rest": "90s",
+          "sets": "4x10",
+          "isCore": true,
+          "status": "skipped",
+          "weight": "Anilha 10kg",
+          "musculo": ""
+        },
+        {
+          "name": "Elevação de Joelhos no Roman Chair",
+          "rest": "60s",
+          "sets": "3x15",
+          "isCore": true,
+          "status": "skipped",
+          "weight": "Peso corporal",
+          "musculo": ""
+        }
+      ],
+      "serieName": "COSTAS / BÍCEPS",
+      "serieLabel": "B"
+    },
+    {
+      "id": "x2vbqibu",
+      "date": "2026-09-08T23:47:00.000Z",
+      "done": 5,
+      "total": 7,
+      "serieId": "s1",
+      "variant": "Contínuo",
+      "exercises": [
+        {
+          "name": "Overhead Press Sentado com Halteres",
+          "rest": "120s",
+          "sets": "4x6",
+          "isCore": false,
+          "status": "done",
+          "weight": "22-24kg cada lado",
+          "musculo": ""
+        },
+        {
+          "name": "Elevação Lateral com Halteres",
+          "rest": "75s",
+          "sets": "4x8",
+          "isCore": false,
+          "status": "done",
+          "weight": "14kg cada lado",
+          "musculo": ""
+        },
+        {
+          "name": "Crucifixo Inverso Unilateral na Polia",
+          "rest": "60s",
+          "sets": "4x6",
+          "isCore": false,
+          "status": "done",
+          "weight": "4 pesos",
+          "musculo": ""
+        },
+        {
+          "name": "Elevação Lateral na Polia",
+          "rest": "75s",
+          "sets": "4x6",
+          "isCore": false,
+          "status": "done",
+          "weight": "2.5 pesos",
+          "musculo": ""
+        },
+        {
+          "name": "Rotação Externa com Cabo",
+          "rest": "60s",
+          "sets": "4x10",
+          "isCore": false,
+          "status": "done",
+          "weight": "2 pesos",
+          "musculo": ""
+        },
+        {
+          "name": "Hiperextensão no Banco",
+          "rest": "90s",
+          "sets": "4x10",
+          "isCore": true,
+          "status": "skipped",
+          "weight": "Anilha 10kg",
+          "musculo": ""
+        },
+        {
+          "name": "Prancha",
+          "rest": "60s",
+          "sets": "3x45s",
+          "isCore": true,
+          "status": "skipped",
+          "weight": "Peso corporal",
+          "musculo": ""
+        }
+      ],
+      "serieName": "OMBROS",
+      "serieLabel": "A"
+    },
+    {
+      "id": "x0mfxztq",
+      "date": "2026-09-04T00:13:00.000Z",
+      "done": 6,
+      "total": 10,
+      "serieId": "s3",
+      "variant": "Contínuo",
+      "exercises": [
+        {
+          "name": "Supino Reto c/ Halteres",
+          "rest": "2-3min",
+          "sets": "4x6",
+          "isCore": false,
+          "status": "done",
+          "weight": "26-28-30kg",
+          "musculo": ""
+        },
+        {
+          "name": "Skull Crusher",
+          "rest": "2min",
+          "sets": "4x6",
+          "isCore": false,
+          "status": "done",
+          "weight": "10-12.5kg cada lado",
+          "musculo": ""
+        },
+        {
+          "name": "Fly com Halteres",
+          "rest": "2min",
+          "sets": "4x6",
+          "isCore": false,
+          "status": "done",
+          "weight": "18-20kg",
+          "musculo": ""
+        },
+        {
+          "name": "French Press com Haltere",
+          "rest": "90s",
+          "sets": "4x8",
+          "isCore": false,
+          "status": "done",
+          "weight": "24kg",
+          "musculo": ""
+        },
+        {
+          "name": "Supino Inclinado",
+          "rest": "2-3min",
+          "sets": "3x7",
+          "isCore": false,
+          "status": "done",
+          "weight": "50kg",
+          "musculo": ""
+        },
+        {
+          "name": "Tríceps na Barra (Calistenia)",
+          "rest": "90s-2min",
+          "sets": "3x6",
+          "isCore": false,
+          "status": "done",
+          "weight": "---",
+          "musculo": ""
+        },
+        {
+          "name": "Tríceps Alternado na Polia",
+          "rest": "60-90s",
+          "sets": "4x10",
+          "isCore": false,
+          "status": "skipped",
+          "weight": "7 pesos",
+          "musculo": ""
+        },
+        {
+          "name": "Fly na Máquina",
+          "rest": "90s",
+          "sets": "4x8",
+          "isCore": false,
+          "status": "skipped",
+          "weight": "52-59-66kg",
+          "musculo": ""
+        },
+        {
+          "name": "Elevação de Joelhos no Roman Chair",
+          "rest": "60s",
+          "sets": "3x15",
+          "isCore": true,
+          "status": "skipped",
+          "weight": "Peso corporal",
+          "musculo": ""
+        },
+        {
+          "name": "Prancha",
+          "rest": "60s",
+          "sets": "3x45s",
+          "isCore": true,
+          "status": "skipped",
+          "weight": "Peso corporal",
+          "musculo": ""
+        }
+      ],
+      "serieName": "PEITO / TRÍCEPS",
+      "serieLabel": "C"
+    },
+    {
+      "id": "xphrj8d1",
+      "date": "2026-09-02T23:52:00.000Z",
+      "done": 5,
+      "total": 9,
+      "serieId": "s2",
+      "variant": "Contínuo",
+      "exercises": [
+        {
+          "name": "Pull-up Aberto",
+          "rest": "150s",
+          "sets": "4x5",
+          "isCore": false,
+          "status": "done",
+          "weight": "Peso corporal",
+          "musculo": ""
+        },
+        {
+          "name": "Chin-up",
+          "rest": "120s",
+          "sets": "3x6",
+          "isCore": false,
+          "status": "done",
+          "weight": "Peso corporal",
+          "musculo": ""
+        },
+        {
+          "name": "Puxada no Pulley com Pegada Neutra",
+          "rest": "90s",
+          "sets": "3x9",
+          "isCore": false,
+          "status": "done",
+          "weight": "60kg",
+          "musculo": ""
+        },
+        {
+          "name": "Hammer Curl",
+          "rest": "90s",
+          "sets": "3x7",
+          "isCore": false,
+          "status": "done",
+          "weight": "20kg cada lado",
+          "musculo": ""
+        },
+        {
+          "name": "Remada cavalinho na máquina",
+          "rest": "90s",
+          "sets": "4x7",
+          "isCore": false,
+          "status": "done",
+          "weight": "68kg",
+          "musculo": ""
+        },
+        {
+          "name": "Remada Unilateral com Haltere",
+          "rest": "90s",
+          "sets": "4x7",
+          "isCore": false,
+          "status": "skipped",
+          "weight": "32kg cada lado",
+          "musculo": ""
+        },
+        {
+          "name": "Remada Aberta na Polia",
+          "rest": "90s",
+          "sets": "4x8",
+          "isCore": false,
+          "status": "skipped",
+          "weight": "47kg",
+          "musculo": ""
+        },
+        {
+          "name": "Elevação de Joelhos no Roman Chair",
+          "rest": "60s",
+          "sets": "3x15",
+          "isCore": true,
+          "status": "skipped",
+          "weight": "Peso corporal",
+          "musculo": ""
+        },
+        {
+          "name": "Prancha",
+          "rest": "60s",
+          "sets": "3x45s",
+          "isCore": true,
+          "status": "skipped",
+          "weight": "Peso corporal",
+          "musculo": ""
+        }
+      ],
+      "serieName": "COSTAS / BÍCEPS",
+      "serieLabel": "B"
+    },
     {
       "id": "xpg0qh6u",
       "date": "2026-09-01T23:55:00.000Z",
@@ -18221,6 +19154,12 @@
           "obs": "",
           "data": "2026-08-23T03:00:00.000Z",
           "pesoTotal": 373
+        },
+        {
+          "id": "x9e81z5t",
+          "obs": "",
+          "data": "2026-09-13T03:00:00.000Z",
+          "pesoTotal": 369
         }
       ],
       "topUpsPote": [],
@@ -18245,7 +19184,7 @@
         }
       ]
     },
-    "total": 1140.23,
+    "total": 1323.53,
     "usada": true,
     "freios": {
       "traseiro": {
@@ -18322,7 +19261,7 @@
         }
       }
     },
-    "parcial": 629.43,
+    "parcial": 122,
     "selante": {
       "pesagens": [],
       "garrafaAtual": {
@@ -18334,22 +19273,83 @@
     },
     "leituras": [
       {
-        "id": "xew2fpmo",
+        "id": "xl3yjvz3",
         "tipo": "ride",
+        "data": "2026-09-28T13:58:00.000Z",
+        "parcial": 122,
+        "delta": 30.09,
+        "totalApos": 1323.53,
+        "rideId": "x6zjnpxn"
+      },
+      {
+        "id": "xi06ynft",
+        "tipo": "ride",
+        "data": "2026-09-25T21:43:00.000Z",
+        "parcial": 91.91,
+        "delta": 30.94,
+        "totalApos": 1293.44,
+        "rideId": "xttuyzfg"
+      },
+      {
+        "id": "x9vj1o4c",
+        "tipo": "ride",
+        "data": "2026-09-24T22:40:00.000Z",
+        "parcial": 60.97,
+        "delta": 30.77,
+        "totalApos": 1262.5,
+        "rideId": "x2wamisd"
+      },
+      {
+        "id": "xtcf77jb",
+        "data": "2026-09-09T21:20:00.000Z",
+        "tipo": "ride",
+        "delta": 30.2,
+        "rideId": "x3950sin",
+        "parcial": 30.2,
+        "totalApos": 1231.73
+      },
+      {
+        "id": "xv0xcvmf",
+        "obs": "Swap corrente",
+        "data": "2026-09-09T18:53:33.412Z",
+        "tipo": "reset",
+        "parcialAnterior": 690.73
+      },
+      {
+        "id": "xsjfi4iz",
+        "data": "2026-09-08T21:14:00.000Z",
+        "tipo": "ride",
+        "delta": 30.71,
+        "rideId": "xds1bhi2",
+        "parcial": 690.73,
+        "totalApos": 1201.53
+      },
+      {
+        "id": "xzboejaj",
+        "data": "2026-09-03T21:29:00.000Z",
+        "tipo": "ride",
+        "delta": 30.59,
+        "rideId": "xun49j7o",
+        "parcial": 660.02,
+        "totalApos": 1170.82
+      },
+      {
+        "id": "xew2fpmo",
         "data": "2026-08-29T14:00:00.000Z",
-        "parcial": 629.43,
+        "tipo": "ride",
         "delta": 33.02,
-        "totalApos": 1140.23,
-        "rideId": "xvwr8vsx"
+        "rideId": "xvwr8vsx",
+        "parcial": 629.43,
+        "totalApos": 1140.23
       },
       {
         "id": "xnlq9c2l",
-        "tipo": "ride",
         "data": "2026-09-02T21:23:00.000Z",
-        "parcial": 596.41,
+        "tipo": "ride",
         "delta": 30.48,
-        "totalApos": 1107.21,
-        "rideId": "xkg5klzy"
+        "rideId": "xkg5klzy",
+        "parcial": 596.41,
+        "totalApos": 1107.21
       },
       {
         "id": "xpgl5rkw",
@@ -18728,7 +19728,7 @@
       {
         "id": "x9152731",
         "nome": "SRAM Rival D1 Flattop",
-        "status": "espera",
+        "status": "ativa",
         "imersoes": [
           {
             "id": "x8vud5qy",
@@ -18784,19 +19784,34 @@
             "degrau": 0,
             "ferramentaId": "cc42",
             "kmIndividual": 818.5
+          },
+          {
+            "id": "xnm9ola9",
+            "obs": "",
+            "data": "2026-09-09T03:00:00.000Z",
+            "degrau": 0,
+            "ferramentaId": "cc42",
+            "kmIndividual": 818.5
           }
         ],
         "kmAcumulado": 818.5,
         "kmInstalacao": 3000,
         "dataInstalacao": "2026-07-13T03:00:00.000Z",
-        "powerlockContador": 5,
-        "kmInicioSessaoAtual": null
+        "powerlockContador": 6,
+        "kmInicioSessaoAtual": 1201.53
       },
       {
         "id": "xfspfhwd",
         "nome": "SRAM RED E1 Flattop Rainbow",
-        "status": "ativa",
+        "status": "espera",
         "imersoes": [
+          {
+            "id": "xm1yqy4i",
+            "obs": "",
+            "data": "2026-09-13T03:00:00.000Z",
+            "tipoImersao": "limpo",
+            "kmIndividual": 383
+          },
           {
             "id": "x6sbg3ej",
             "obs": "Primeira imersão da corrente RED Rainbow",
@@ -18815,16 +19830,16 @@
             "kmIndividual": 0
           }
         ],
-        "kmAcumulado": 0,
+        "kmAcumulado": 383,
         "kmInstalacao": 818.5,
         "expectativaKm": 10000,
         "dataInstalacao": "2026-08-21T21:04:15.833Z",
         "powerlockContador": 1,
-        "kmInicioSessaoAtual": 818.5
+        "kmInicioSessaoAtual": null
       }
     ],
     "dataCompra": "2026-07-13T03:00:00.000Z",
-    "dataUltima": "2026-08-29T14:00:00.000Z",
+    "dataUltima": "2026-09-28T13:58:00.000Z",
     "rolamentos": {
       "bb": {
         "nome": "BB SRAM DUB BSA",
@@ -18871,7 +19886,7 @@
         "intervaloManutencaoKm": 3000
       }
     },
-    "_subTabBike": "drivetrain",
+    "_subTabBike": "rolamentos",
     "usoAnterior": {
       "modo": "fixo",
       "fixoKm": 3000,
@@ -19099,25 +20114,115 @@
     "_migracaoCuboManutencaoEstimativaV1": true
   },
   "pedalHoje": false,
-  "_updatedAt": "2026-09-02T22:38:10.133Z",
+  "_updatedAt": "2026-09-28T18:23:19.095Z",
   "_migrations": {
     "bikeFocoCleared": true
   },
   "bikeHistory": [
     {
-      "id": "xkg5klzy",
+      "id": "x6zjnpxn",
       "type": "bike",
+      "date": "2026-09-28T13:58:00.000Z",
+      "foco": "Pedal",
+      "distancia": "30.09",
+      "tempoMov": "1:09:30",
+      "tempoTotal": "1:14:28",
+      "velocidade": "26.0",
+      "elevacao": "239",
+      "kcal": "974",
+      "bpmMedio": "144",
+      "tempMedia": "28",
+      "percurso": "Igapó"
+    },
+    {
+      "id": "xttuyzfg",
+      "type": "bike",
+      "date": "2026-09-25T21:43:00.000Z",
+      "foco": "Pedal",
+      "distancia": "30.94",
+      "tempoMov": "1:16:14",
+      "tempoTotal": "1:25:17",
+      "velocidade": "24.4",
+      "elevacao": "227",
+      "kcal": "1028",
+      "bpmMedio": "139",
+      "tempMedia": "28",
+      "percurso": "Igapó"
+    },
+    {
+      "id": "x2wamisd",
+      "type": "bike",
+      "date": "2026-09-24T22:40:00.000Z",
+      "foco": "Pedal",
+      "distancia": "30.77",
+      "tempoMov": "1:24:49",
+      "tempoTotal": "2:05:28",
+      "velocidade": "21.8",
+      "elevacao": "249",
+      "kcal": "932",
+      "bpmMedio": "124",
+      "tempMedia": "25",
+      "percurso": "Igapó - Bosque"
+    },
+    {
+      "id": "x3950sin",
+      "date": "2026-09-09T21:20:00.000Z",
+      "foco": "Pedal",
+      "kcal": "887",
+      "type": "bike",
+      "bpmMedio": "139",
+      "elevacao": "226",
+      "percurso": "Igapó",
+      "tempoMov": "1:09:47",
+      "distancia": "30.20",
+      "tempMedia": "23",
+      "tempoTotal": "1:15:27",
+      "velocidade": "26"
+    },
+    {
+      "id": "xds1bhi2",
+      "date": "2026-09-08T21:14:00.000Z",
+      "foco": "Pedal",
+      "kcal": "945",
+      "type": "bike",
+      "bpmMedio": "138",
+      "elevacao": "232",
+      "percurso": "Igapó",
+      "tempoMov": "1:11:04",
+      "distancia": "30.71",
+      "tempMedia": "21",
+      "tempoTotal": "1:17:49",
+      "velocidade": "25.9"
+    },
+    {
+      "id": "xun49j7o",
+      "date": "2026-09-03T21:29:00.000Z",
+      "foco": "Pedal",
+      "kcal": "882",
+      "type": "bike",
+      "bpmMedio": "131",
+      "elevacao": "227",
+      "percurso": "Igapó - Nova Bermuda",
+      "tempoMov": "1:12:53",
+      "distancia": "30.59",
+      "tempMedia": "26",
+      "tempoTotal": "1:22:37",
+      "velocidade": "25.2"
+    },
+    {
+      "id": "xkg5klzy",
       "date": "2026-09-02T21:23:00.000Z",
       "foco": "Pedal",
-      "distancia": "30.48",
-      "tempoMov": "1:14:08",
-      "tempoTotal": "1:23:24",
-      "velocidade": "24.7",
-      "elevacao": "228",
       "kcal": "856",
+      "type": "bike",
       "bpmMedio": "127",
+      "elevacao": "228",
+      "percurso": "Igapó",
+      "tempoMov": "1:14:08",
+      "distancia": "30.48",
       "tempMedia": "24",
-      "percurso": "Igapó"
+      "tempoTotal": "1:23:24",
+      "velocidade": "24.7"
     },
     {
       "id": "x2z1audy",
@@ -19166,18 +20271,18 @@
     },
     {
       "id": "xvwr8vsx",
-      "type": "bike",
       "date": "2026-08-29T14:00:00.000Z",
       "foco": "Pedal",
-      "distancia": "33.02",
-      "tempoMov": "1:25:22",
-      "tempoTotal": "1:40:00",
-      "velocidade": "23.2",
-      "elevacao": "229",
       "kcal": "1134",
+      "type": "bike",
       "bpmMedio": "139",
+      "elevacao": "229",
+      "percurso": "Igapó",
+      "tempoMov": "1:25:22",
+      "distancia": "33.02",
       "tempMedia": "29",
-      "percurso": "Igapó"
+      "tempoTotal": "1:40:00",
+      "velocidade": "23.2"
     },
     {
       "id": "xljr5nr9",
@@ -19925,6 +21030,7 @@
   ],
   "_migracaoBibSyncV1": true,
   "_migracaoContinuoV1": "2026-08-05T19:59:23.256Z",
+  "_migracaoOdoPrecisaoV1": true,
   "_migracaoCarimboUnicoV1": true,
   "_migracaoPowerlockEsperaV1": true,
   "_migracaoHiperextensaoCoreV1": true,
@@ -20154,74 +21260,66 @@
       "nomeOficial": "Pullover com Haltere"
     }
   ],
-  "_migracaoOdoPrecisaoV1": true,
   "proximoDecidido": {
     "label": "B",
-    "motivo": "Pedal hoje já registrado (30.48km, 127bpm) — descarta D. B está há 6 dias sem treino, é a vez da fila e não tem conflito com ciclismo; A foi ontem (1 dia), C há 5 dias — B é a escolha sem ambiguidade.",
-    "origem": "ia",
-    "em": "2026-09-02T22:37:35.010Z",
+    "motivo": "",
+    "origem": "usuario",
+    "em": "2026-09-28T18:22:55.241Z",
     "treino": {
-      "foco": "Costas e bíceps — volume mantido, com retomada de exercícios ausentes na última sessão",
-      "observacoes": "Última sessão de B (27/08) foi incompleta: Remada cavalinho e Elevação de Joelhos ficaram pulados, e o volume total ficou abaixo do habitual. Esta sessão MANTÉM o volume em relação às sessões completas (7–8 exercícios principais), retomando o que ficou de fora. Remada Aberta na Polia apareceu estagnada em 45kg nas últimas três execuções — sobe para 47kg como teste de progressão. Remada cavalinho retoma após duas sessões pulada, mantendo 68kg. Ficaram de fora: Chin-up (Pull-up e Puxada neutra já cobrem amplitude de puxada vertical com volume suficiente) e Rosca com Corda na Polia (bíceps já coberto pelo Hammer). Core incluso: último realizado há 7 dias, frequência abaixo do esperado — justifica encaixar dois exercícios complementares.",
+      "foco": "Costas e bíceps — volume aumentado, rotação completa de exercícios",
+      "observacoes": "Volume AUMENTADO em relação à última sessão de B (17/09, 4 exercícios principais). Justificativa: 11 dias de descanso da série, fadiga de membros superiores baixa (último treino foi A há 3 dias, mas costas e bíceps não foram tocados), e o pedal de hoje (144bpm, esforço elevado) já foi absorvido — pernas é que ficam comprometidas, não o trem superior. A última sessão de B ficou curta (Pull-up, Chin-up, Cavalinho, Hammer) — Remada Unilateral, Puxada no Pulley e os exercícios de polia ficaram de fora e precisam entrar. Puxada no Pulley está em 62kg há três sessões seguidas sem subida real — testar 64kg. Remada cavalinho estacionou em 68kg desde agosto — mantida com foco em execução. Hammer Curl sobe para 20kg (já executado com sucesso em 17/09). Core: último realizado há 14 dias — alta prioridade; Hiperextensão e Elevação de Joelhos entram. Ficou de fora: Remada Aberta na Polia (já apareceu nas duas últimas B completas), Rosca com Corda na Polia e Chin-up (volume de bíceps já coberto por Hammer Curl e pegada supinada do Chin-up substituída pela polia neutra).",
       "exercicios": [
         {
           "nome": "Pull-up Aberto",
-          "sets": "4x5",
+          "sets": "4x6",
           "weight": "Peso corporal",
           "rest": "150s",
-          "obs": "Abertura do treino como de costume; peso corporal estabilizado — considere colete com carga extra se mantiver todas as reps."
+          "obs": "Composto de abertura — amplitude total, sem balanço. Se as repetições finais quebrarem a forma, pare antes."
         },
         {
           "nome": "Puxada no Pulley com Pegada Neutra",
           "sets": "3x9",
-          "weight": "60kg",
+          "weight": "64kg",
           "rest": "90s",
-          "obs": "Mantém 60kg; últimas três execuções oscilaram entre 60 e 62kg sem progressão clara — priorize qualidade de execução e complete todas as reps antes de subir."
+          "obs": "Subida de 2kg — teste de progressão. Se não fechar as 3x9 com forma, recue para 62kg e registre."
         },
         {
           "nome": "Remada cavalinho na máquina",
           "sets": "4x7",
           "weight": "68kg",
           "rest": "90s",
-          "obs": "Retoma após duas sessões pulada; última execução realizada em 18/08 a 68kg — mantém carga."
+          "obs": "Mantida em 68kg — foco em contração escapular no pico, sem usar impulso do tronco."
         },
         {
           "nome": "Remada Unilateral com Haltere",
           "sets": "4x7",
           "weight": "32kg cada lado",
           "rest": "90s",
-          "obs": "Tentativa de 34kg em 21/08 ficou pulada; mantém 32kg e prioriza execução completa antes de nova tentativa de progressão."
-        },
-        {
-          "nome": "Remada Aberta na Polia",
-          "sets": "4x8",
-          "weight": "47kg",
-          "rest": "90s",
-          "obs": "Estagnada em 45kg nas últimas três sessões realizadas — sobe para 47kg como estímulo de progressão."
+          "obs": "Voltou ao catálogo após ausência. Mantida em 32kg — executar com apoio sólido, cotovelo alto."
         },
         {
           "nome": "Hammer Curl",
           "sets": "3x7",
           "weight": "20kg cada lado",
           "rest": "90s",
-          "obs": "Pegada neutra obrigatória pelo tendão distal; 20kg já confirmado em 27/08 — mantém."
+          "obs": "Pegada neutra — dentro da restrição do tendão distal. 20kg confirmado em 17/09; manter e fechar as reps com controle na descida."
+        },
+        {
+          "nome": "Hiperextensão no Banco",
+          "sets": "4x10",
+          "weight": "Anilha 10kg",
+          "rest": "90s",
+          "obs": "Core lombar — 14 dias sem core realizado, prioridade alta. Movimento controlado, sem hiperextender no topo."
         },
         {
           "nome": "Elevação de Joelhos no Roman Chair",
           "sets": "3x15",
           "weight": "Peso corporal",
           "rest": "60s",
-          "obs": "Core — pulado na última sessão de B e ausente há 7 dias globalmente; retoma aqui."
-        },
-        {
-          "nome": "Prancha",
-          "sets": "3x45s",
-          "weight": "Peso corporal",
-          "rest": "60s",
-          "obs": "Core — última realização em 26/08; complementa o lombar já ativado pela remada."
+          "obs": "Core flexor de quadril e abdominal inferior. Sequenciado após a hiperextensão para cobrir o eixo anterior."
         }
       ],
-      "em": "2026-09-02T22:38:10.129Z"
+      "em": "2026-09-28T18:23:19.091Z"
     }
   }
 }

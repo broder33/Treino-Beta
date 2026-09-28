@@ -1436,7 +1436,7 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
   <div class="header-brand">
     <div class="logo">TREINO</div>
     <div class="header-meta">
-      <span class="header-version">v0.9.2.33</span>
+      <span class="header-version">v0.9.2.34</span>
       <span id="dbStamp" title="Última atualização dos dados">⟳ —</span>
     </div>
   </div>
@@ -4698,13 +4698,17 @@ function _textoRotacao() {
     l.push('  - Pedalar é prioridade máxima. Ele só deixa de pedalar por impedimento fora do controle dele (frio, chuva).');
     l.push('  - Em dia de pedal ele NÃO treina pernas. A série de pernas é ADIADA, nunca perdida.');
     l.push('  - Com PEDAL HOJE = SIM, NÃO prescreva treino de pernas.');
-    l.push('  - PEDAL HOJE = NÃO abre a janela, mas NÃO basta sozinho: o que impede o treino de pernas é a carga de ciclismo ACUMULADA, que não some porque hoje não há ride. Volume recente mantém quadríceps, glúteo e posterior carregados mesmo numa noite livre.');
-    l.push('  - NÃO existe intervalo fixo de recuperação. Determine o intervalo adequado A PARTIR DOS DADOS: volume e intensidade dos rides recentes (km e BPM), quanto tempo desde o último, e sobretudo o histórico de cruzamento entre rides e treinos de pernas — como as sessões de pernas se comportaram depois de rides de cada porte. Se o histórico não bastar para concluir, diga isso em vez de recorrer a um número convencional.');
-    l.push('  - Ao decidir adiar ou não, DIGA qual intervalo você está aplicando e o que nos dados sustenta esse intervalo. Volume recente alto justifica adiar mesmo sem pedal hoje — e essa é uma razão POSITIVA, que deve vir com os números.');
-    l.push('  - Quanto maior a espera acumulada, mais forte esse argumento. "Nenhum dado contraindica adiar" NÃO é razão para adiar: é preciso uma razão POSITIVA para deixar pernas passar mais uma vez.');
-    l.push('  - A ordem da fila é um critério entre outros, não o desempate final. Uma série sem conflito (A/B/C) ser segura não justifica, sozinha, empurrar pernas por mais um ciclo.');
+    // A restricao e de MESMO DIA (v0.9.2.34). Havia aqui uma segunda regra — "carga de ciclismo
+    // ACUMULADA impede pernas mesmo numa noite livre" — que nunca foi do usuario e afirmava como
+    // fato que qualquer volume recente mantem as pernas carregadas. Como ele pedala toda semana,
+    // a IA sempre tinha a "razao positiva" pronta e nunca recomendava pernas, nem com a vez da
+    // fila sendo delas, 14 dias de espera e zero ride em 3 dias (reproduzido com o dado real).
+    // A frequencia de pernas na fila ja foi definida pelo usuario considerando o ciclismo;
+    // descontar o ciclismo de novo aqui conta a mesma carga duas vezes.
+    l.push('  - A restrição é de MESMO DIA. Pedal em outros dias NÃO impede o treino de pernas: a frequência da série de pernas na fila já foi definida pelo usuário considerando o ciclismo. Não aplique um segundo desconto por carga de ciclismo acumulada.');
+    l.push('  - Com PEDAL HOJE = NÃO e a vez da fila sendo a série de pernas, recomende a série de pernas. Ciclismo recente pode ser citado no motivo como informação para a execução, NUNCA como razão para trocar de série.');
     l.push('  - NÃO proponha meio-termo (pernas leve, volume reduzido, sem excêntrico): histórico de tendão patelar direito desaconselha. Ou pernas cheio, ou pedal.');
-    l.push('  - O ciclismo já carrega quadríceps, glúteo, posterior e panturrilha; A/B/C praticamente não tocam nesses grupos. O conflito é SÓ o treino de pernas — não há treino a inventar, são os que já existem.');
+    l.push('  - Em dia de pedal, A/B/C são a alternativa: praticamente não tocam quadríceps, glúteo, posterior e panturrilha. Não há treino a inventar — são os que já existem.');
     l.push('  - Se os adiamentos estiverem se acumulando (muitos dias sem pernas), APONTE isso e sugira abrir uma noite sem pedal. A decisão é do usuário; não a tome por ele.');
     l.push('');
     l.push('O plano de N dias está em eliminação e NÃO governa mais o que vem a seguir — quem determina o próximo treino é a rotação acima. Só trate do plano se o usuário pedir explicitamente.');
@@ -5297,10 +5301,9 @@ async function avaliarProximoTreino() {
     '{"proximoTreino":{"serie":"X","motivo":"uma ou duas frases"}}\n\n' +
     'Séries possíveis: ' + series.map(function(x) { return x.label + ' (' + (x.name || '') + ')'; }).join(', ') + '.\n' +
     (rot ? 'Pela ordem da fila, a vez é da ' + rot + ' — mas a ordem é apenas um dos critérios.\n' : '') +
-    'Considere: fadiga acumulada de ciclismo (volume, BPM e proximidade dos rides), há quantos dias ' +
-    'cada série não acontece, a cadência de treino e as restrições do perfil. ' +
-    'Se o ciclismo recente tiver carregado as pernas, é legítimo sugerir outra série mesmo sendo a vez delas — ' +
-    'e é legítimo sugerir pernas mesmo com pedal previsto, se a espera já estiver longa demais. ' +
+    'Considere: há quantos dias cada série não acontece, a cadência de treino, o pedal de hoje e as ' +
+    'restrições do perfil. ' +
+    'É legítimo sugerir pernas mesmo com pedal previsto, se a espera já estiver longa demais. ' +
     'O motivo deve citar os números que sustentam a escolha.' +
     (ctx ? '\n\n' + ctx : '');
 
