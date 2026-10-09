@@ -1436,7 +1436,7 @@ if (window.supabase) window._supabaseCreateClient = window.supabase.createClient
   <div class="header-brand">
     <div class="logo">TREINO</div>
     <div class="header-meta">
-      <span class="header-version">v0.9.2.34</span>
+      <span class="header-version">v0.9.2.36</span>
       <span id="dbStamp" title="Última atualização dos dados">⟳ —</span>
     </div>
   </div>
@@ -2945,6 +2945,7 @@ function editSessaoExerciciosAplicar() {
 
   pushUndo('Editar exercícios do registro');
   h.exercises = exercises;
+  h._modificadoEm = new Date().toISOString();
   h.done = exercises.filter(function(e) { return e.status === 'done'; }).length;
   h.total = exercises.length;
   // A Biblioteca replica o registro mais recente. Editar a sessão sem sincronizar deixaria o
@@ -3049,6 +3050,7 @@ function editHistoryDataAplicar(id, tipo) {
   pushUndo(tipo === 'bike' ? 'Editar ride' : 'Editar data e hora do registro');
   it.date = new Date(parseInt(dm[3]), parseInt(dm[2]) - 1, parseInt(dm[1]), hh, mi).toISOString();
   delete it.registeredAt; // carimbo único — campo legado não volta
+  it._modificadoEm = new Date().toISOString();
   if (tipo === 'bike') {
     // Sanitiza a unidade digitada, igual ao updateBikeField: quem digita "120 bpm" ou "18,5 km"
     // nao deve ver a unidade duplicada na exibicao.
@@ -3087,6 +3089,7 @@ function editHistoryDataAplicar(id, tipo) {
 }
 
 function removeHistoryEntry(id) {
+  _registrarRemocao('history', id);
   state.history = state.history.filter(h => h.id !== id);
   saveState();
   renderHistory();
@@ -15757,6 +15760,7 @@ function bikeRaiosIntervaloAplicar() {
 
 function removeBikeHistoryEntry(id) {
   if (!state.bikeHistory) return;
+  _registrarRemocao('bikeHistory', id);
   state.bikeHistory = state.bikeHistory.filter(function(b) { return b.id !== id; });
   saveState();
   renderHistory();
@@ -17052,7 +17056,7 @@ function desfazerConclusao(dayKey, serieLabel) {
       var idx = state.history.findIndex(function(h) {
         return h.serieLabel === serieLabel && h.date && _diaLocal(h.date) === dateStr;
       });
-      if (idx !== -1) state.history.splice(idx, 1);
+      if (idx !== -1) { _registrarRemocao('history', state.history[idx].id); state.history.splice(idx, 1); }
     }
   }
   saveState();
@@ -18469,6 +18473,8 @@ function closeModal() {
   var cb = document.getElementById('modal-confirm');
   if (cb) { cb.style.display = ''; cb.textContent = 'CONFIRMAR'; }
   modalCallback = null;
+  // Conflito detectado enquanto outro modal estava aberto (v0.9.2.35).
+  if (_conflitoAbrirAoFechar && _conflitoNuvem) setTimeout(_abrirConflitoQuandoLivre, 0);
 }
 document.getElementById('modal').addEventListener('click', e => { if (e.target === e.currentTarget) closeModal(); });
 
@@ -18726,7 +18732,7 @@ function _setSyncBase(iso) {
   saveState(true);
 }
 
-async function supabaseSave() {
+async function supabaseSave(_retentativa) {
   if (!_supabaseUser) return;
   // Nao se escreve na nuvem sem ter lido a nuvem nesta sessao. Ver o bloco de _cloudLoaded.
   if (!_cloudLoaded) { console.warn('supabaseSave: bloqueado, nuvem nao lida nesta sessao'); _logSync('bloqueado', 'nuvem n\u00e3o lida'); return; }
@@ -18790,12 +18796,12 @@ async function supabaseSave() {
               .eq('updated_at', atual)
               .select('updated_at'), 8000);
           if (!result.error && (!result.data || result.data.length === 0)) {
-            _registrarConflito(atual);
+            await _conflitoNoEnvio(dbu, atual);
             return;
           }
         } else {
           // CONFLITO REAL: a nuvem esta numa versao que este aparelho nunca viu.
-          _registrarConflito(atual);
+          await _conflitoNoEnvio(dbu, atual);
           return;
         }
       } else {
@@ -18811,19 +18817,10 @@ async function supabaseSave() {
     }
     if (result.error) {
       console.warn('Supabase save error:', result.error.message);
-      // Try reconnecting and saving again
-      var reconnected = await supabaseReconnect();
-      if (reconnected) {
-        var dbu2 = getSbClient();
-        if (dbu2) {
-          var retry = await dbu2.from('user_data').upsert({
-            id: _supabaseUser.id,
-            state: stateObj,
-            updated_at: carimbo
-          });
-          if (!retry.error) { _lastCloudSig = sigEnvio; _setSyncBase(carimbo); }
-        }
-      }
+      // A retentativa era um upsert CEGO: escrevia por cima da nuvem ignorando a ancora, o
+      // unico caminho automatico que furava o travamento otimista (v0.9.2.35). Agora reconecta
+      // e repete o envio inteiro uma vez, com a mesma trava.
+      if (!_retentativa && await supabaseReconnect()) return supabaseSave(true);
     } else {
       _lastCloudSig = sigEnvio;
       // Ancora no carimbo COMO O BANCO O DEVOLVE, nao como o JS o mandou. Se os formatos
@@ -18832,6 +18829,7 @@ async function supabaseSave() {
       // recuperar sempre do mesmo falso negativo.
       var carimboBanco = (result.data && result.data[0] && result.data[0].updated_at) || carimbo;
       _setSyncBase(carimboBanco);
+      _mesclasSeguidas = 0;
       _logSync('enviado');
     }
   } catch(e) {
@@ -18875,6 +18873,25 @@ async function supabaseLoad() {
     if (_conflitoNuvem) return;
     var cloudUpdatedAt = data[0].updated_at ? new Date(data[0].updated_at).getTime() : 0;
     var localUpdatedAt = state._updatedAt ? new Date(state._updatedAt).getTime() : 0;
+    // DIVERGENCIA ANTES DO DOWNLOAD (v0.9.2.35). O caso "os dois mudaram desde a base" estava
+    // descrito na ancora (v0.9.1.37) mas so era verificado no ENVIO, e por uma variavel em
+    // memoria (_conflitoNuvem) que zera a cada abertura do app. O download comparava apenas
+    // "nuvem mais nova que o local" — e assim apagou, sem pedir nada, quatro treinos que o
+    // celular tinha bloqueados havia dias por conflito: o desktop gravou pedais, a nuvem ficou
+    // mais nova, e o celular baixou por cima do que nunca tinha conseguido enviar.
+    // Agora a pergunta e respondida pelo que esta GRAVADO: _updatedAt > _syncBase significa
+    // edicao local nunca enviada; nuvem != _syncBase significa que outro aparelho escreveu.
+    // As duas juntas sao conflito, venha a nuvem antes ou depois no relogio. Instantes, nao
+    // texto: o banco pode devolver o carimbo em outro formato.
+    var baseT = state._syncBase ? new Date(state._syncBase).getTime() : NaN;
+    if (!isNaN(baseT) && data[0].updated_at && localUpdatedAt > baseT && cloudUpdatedAt !== baseT) {
+      // Sem isto o boot ficaria com _supabaseLoadComplete=false e, ao escolher MANTER ESTE
+      // APARELHO, scheduleSyncToSupabase desistiria em silencio e nada subiria.
+      _supabaseLoadComplete = true;
+      // v0.9.2.36: antes de perguntar, junta o que da para juntar sem inventar (registros por id).
+      _tentarMesclar(data[0].state, data[0].updated_at);
+      return;
+    }
     // Cloud is newer OR updated_at is null (can't compare — prefer cloud): load from cloud
     if (cloudUpdatedAt > localUpdatedAt || (!data[0].updated_at && data[0].state)) {
       var parsed = typeof data[0].state === 'string' ? JSON.parse(data[0].state) : data[0].state;
@@ -19084,8 +19101,13 @@ function _syncPainelConflito() {
   document.getElementById('modal-body').innerHTML =
     '<div style="display:flex;flex-direction:column;gap:10px">' +
       '<div style="font-size:12px;color:var(--accent2);line-height:1.5;padding:2px">' +
-        'Os dois lados foram alterados desde a \u00faltima vez que este aparelho falou com a nuvem. ' +
-        'Nenhum dos dois \u00e9 simplesmente "mais novo" \u2014 cada um tem coisa que o outro n\u00e3o tem.' +
+        'Os dois lados foram alterados desde a \u00faltima vez que este aparelho falou com a nuvem.' +
+      '</div>' +
+      '<div style="font-size:12px;color:var(--text);line-height:1.5;padding:2px">' +
+        'Treinos e pedais dos DOIS lados s\u00e3o mantidos em qualquer escolha. ' +
+        (_pendenciasConflito(nuvemState)
+          ? 'A escolha decide s\u00f3: <b>' + escHtml(_pendenciasConflito(nuvemState)) + '</b>.'
+          : 'A escolha decide s\u00f3 os demais campos alterados nos dois lados.') +
       '</div>' +
       _syncLinha('\ud83d\udcf1 Este aparelho', formatTS(state._updatedAt), 'var(--accent)') +
       _syncLinha('\u2601 Nuvem', formatTS(c.cloudUpdatedAt), 'var(--accent3)') +
@@ -19131,11 +19153,20 @@ async function _resolverConflito(lado) {
 
   closeModal();
 
+  // v0.9.2.36: a escolha nao descarta mais registros. Treinos e pedais dos dois lados sao unidos
+  // por id; o lado escolhido decide apenas os campos que divergiram de verdade.
+  var nuvemISO = (_syncNuvem && _syncNuvem.updated_at) || c.cloudUpdatedAt;
   if (lado === 'local') {
+    if (nuvemState) {
+      var rL = _mesclarEstados(state, nuvemState);
+      var uiL = capturarUIFields();
+      state = Object.assign(loadState(), rL.estado);
+      restaurarUIFields(uiL);
+    }
     // Reancora no carimbo ATUAL da nuvem: e isso que faz o update condicional voltar a casar e
     // a escrita passar. E a sobreposicao deliberada — a unica coisa que os botoes manuais fazem
     // e que a reconciliacao automatica nunca faz.
-    state._syncBase = c.cloudUpdatedAt;
+    state._syncBase = nuvemISO;
     state._updatedAt = new Date().toISOString();
     _limparConflito();
     _logSync('conflito resolvido', 'mantido este aparelho');
@@ -19146,14 +19177,26 @@ async function _resolverConflito(lado) {
     toast('Mantido este aparelho \u2014 enviando\u2026');
   } else {
     var uiLocal = capturarUIFields();
-    state = Object.assign(loadState(), stripUIFields(JSON.parse(JSON.stringify(nuvemState))));
+    var rN = _mesclarEstados(nuvemState, state);   // nuvem decide o restante; registros unidos
+    state = Object.assign(loadState(), rN.estado);
     restaurarUIFields(uiLocal);
-    state._syncBase = c.cloudUpdatedAt;
-    if (!state._updatedAt) state._updatedAt = c.cloudUpdatedAt;
+    state._syncBase = nuvemISO;
     _limparConflito();
-    _logSync('conflito resolvido', 'mantida a nuvem');
-    saveState(true);
-    _lastCloudSig = _lastDataSig = _assinatura(buildCloudPayload());
+    _logSync('conflito resolvido', 'mantida a nuvem' + (rN.novos.history || rN.novos.bikeHistory
+      ? ' + ' + rN.novos.history + ' treino(s) e ' + rN.novos.bikeHistory + ' pedal(is) deste aparelho' : ''));
+    if (rN.novos.history || rN.novos.bikeHistory || rN.novos.removidos) {
+      // Este aparelho tinha registros que a nuvem nao tem: a versao unida precisa subir.
+      state._updatedAt = new Date().toISOString();
+      saveState(true);
+      _lastDataSig = _assinatura(buildCloudPayload());
+      _lastCloudSig = null;
+      scheduleSyncToSupabase();
+      flushSyncPendente();
+    } else {
+      if (!state._updatedAt) state._updatedAt = nuvemISO;
+      saveState(true);
+      _lastCloudSig = _lastDataSig = _assinatura(buildCloudPayload());
+    }
     planoChatHistory = state.planoChatHistory || [];
     _reRenderAposNuvem();
     toast('Mantida a vers\u00e3o da nuvem \u2713');
@@ -19688,23 +19731,285 @@ function _logSync(tipo, detalhe) {
   } catch(e) {}
 }
 
-function _registrarConflito(cloudUpdatedAt) {
+function _registrarConflito(cloudUpdatedAt, pendencias) {
   if (_conflitoNuvem && _conflitoNuvem.cloudUpdatedAt === cloudUpdatedAt) return;
   _conflitoNuvem = {
     cloudUpdatedAt: cloudUpdatedAt,
     base: state._syncBase || null,
-    detectadoEm: new Date().toISOString()
+    detectadoEm: new Date().toISOString(),
+    pendencias: pendencias || null
   };
   console.warn('CONFLITO: nuvem em ' + cloudUpdatedAt + ', este aparelho ancorado em ' + _conflitoNuvem.base);
   _logSync('conflito', 'nuvem em ' + fmtStamp(cloudUpdatedAt));
   updateDbStamp();
-  toast('Conflito de sincroniza\u00e7\u00e3o \u2014 abra SINCRONIZA\u00c7\u00c3O');
+  // O aviso era um toast de 3s e um sufixo no carimbo. Os treinos ficaram dias presos no
+  // celular sem que ninguem visse. Decisao que so voce pode tomar abre a tela de decisao.
+  _abrirConflitoQuandoLivre();
+}
+
+// Se outro modal estiver aberto (registro de treino, pedal...), trocar o conteudo dele no meio
+// perderia o que esta sendo digitado: espera ele fechar. closeModal consulta a flag.
+var _conflitoAbrirAoFechar = false;
+function _abrirConflitoQuandoLivre() {
+  var m = document.getElementById('modal');
+  if (m && m.classList.contains('open')) { _conflitoAbrirAoFechar = true; return; }
+  _conflitoAbrirAoFechar = false;
+  abrirSincronizacao();
 }
 
 function _limparConflito() {
   if (!_conflitoNuvem) return;
   _conflitoNuvem = null;
   updateDbStamp();
+}
+
+// ═══ MESCLA AUTOMÁTICA DE REGISTROS (v0.9.2.36) ═══
+// O conflito tratava o state inteiro como um bloco: quando os dois aparelhos mudavam, alguem
+// tinha de escolher um lado e o outro perdia. Foi assim que quatro treinos registrados no
+// celular ficaram presos por dias e acabaram apagados enquanto o desktop lancava pedais.
+//
+// Treinos e pedais nao precisam disso. Sao registros que so se acrescentam, cada um com id:
+// juntar os dois lados por id nao inventa nada. Exclusao vira lapide (`_removidos`), que tambem
+// sincroniza — sem ela, a uniao ressuscitaria o que voce apagou.
+//
+// O resto e tratado campo a campo:
+//   Biblioteca   - e REPLICA do ultimo registro; refeita a partir do historico unido para os
+//                  exercicios dos registros novos. So vira pergunta se ainda divergir depois
+//                  disso (edicao manual nos dois lados).
+//   Odometro     - pedal soma delta ao total e ao parcial; os pedais que so um lado aplicou
+//                  sao somados ao outro. Reset/leitura manual de um lado so vira pergunta.
+//   Transitorios - decisao do proximo treino, interruptor de pedal, conversas: lado mais novo.
+//   Migracoes    - flag ligada em qualquer lado vale.
+//   Demais       - iguais passam; diferentes viram pergunta, e so ELES ficam em jogo na escolha.
+// Sem pergunta pendente, a mescla e aplicada e enviada sozinha.
+var _MESCLA_TRANSITORIOS = ['proximoDecidido', 'pedalHoje', 'planoChatHistory', 'planoChatMessages'];
+var _MESCLA_UNIAO_OBJ = ['exExplanations', '_migrations'];
+var _mesclasSeguidas = 0;
+
+function _registrarRemocao(tipo, id) {
+  if (!id) return;
+  if (!state._removidos) state._removidos = {};
+  if (!Array.isArray(state._removidos[tipo])) state._removidos[tipo] = [];
+  if (state._removidos[tipo].indexOf(id) < 0) state._removidos[tipo].push(id);
+}
+
+function _carimboT(o) {
+  var t = o && o._updatedAt ? new Date(o._updatedAt).getTime() : 0;
+  return isNaN(t) ? 0 : t;
+}
+
+function _idsDe(lista) {
+  var m = {};
+  (lista || []).forEach(function(r) { if (r && r.id) m[r.id] = true; });
+  return m;
+}
+
+// Uniao por id. Mesmo id com conteudo diferente = o registro foi editado: vence o `_modificadoEm`
+// mais recente; sem carimbo nos dois, vence o lado mais novo.
+function _unirRegistros(a, b, removidos, preferirB) {
+  var rem = {};
+  (removidos || []).forEach(function(id) { rem[id] = true; });
+  var porChave = {}, ordem = [];
+  var chave = function(r) {
+    return r.id || ('sem-id|' + (r.date || '') + '|' + (r.serieLabel || '') + '|' + (r.distancia || ''));
+  };
+  var poe = function(r, ehB) {
+    if (!r || (r.id && rem[r.id])) return;
+    var k = chave(r), atual = porChave[k];
+    if (!atual) { porChave[k] = r; ordem.push(k); return; }
+    if (_assinatura(atual) === _assinatura(r)) return;
+    var ta = atual._modificadoEm ? new Date(atual._modificadoEm).getTime() : 0;
+    var tr = r._modificadoEm ? new Date(r._modificadoEm).getTime() : 0;
+    if (tr > ta || (tr === ta && ehB && preferirB)) porChave[k] = r;
+  };
+  (a || []).forEach(function(r) { poe(r, false); });
+  (b || []).forEach(function(r) { poe(r, true); });
+  return _ordenarPorData(ordem.map(function(k) { return porChave[k]; }));
+}
+
+// Refaz a replica da Biblioteca para os exercicios citados: vale a execucao FEITA mais recente
+// do historico unido. Mesma regra de _sincronizarBiblioteca/_cargaExecutada.
+function _ressincronizarSeries(series, historico, nomes) {
+  var porNome = {};
+  (series || []).forEach(function(sr) {
+    (sr.exercises || []).forEach(function(e) {
+      var k = String(e.name || '').trim().toLowerCase();
+      if (k && !porNome[k]) porNome[k] = e;
+    });
+  });
+  Object.keys(nomes).forEach(function(k) {
+    var alvo = porNome[k];
+    if (!alvo) return;
+    for (var i = 0; i < historico.length; i++) {          // mais recente primeiro
+      var exs = historico[i].exercises || [];
+      for (var j = 0; j < exs.length; j++) {
+        var e = exs[j];
+        if (e.status !== 'done' || String(e.name || '').trim().toLowerCase() !== k) continue;
+        if (e.weight) alvo.weight = e.weight;
+        if (e.sets) alvo.sets = e.sets;
+        if (e.rest) alvo.rest = e.rest;
+        return;
+      }
+    }
+  });
+}
+
+function _mesclarOdometro(base, outro) {
+  if (!base || !outro) return { odo: base || outro || null, pendente: false };
+  var idsBase = _idsDe(base.leituras), idsOutro = _idsDe(outro.leituras);
+  var soOutro = (outro.leituras || []).filter(function(l) { return l && l.id && !idsBase[l.id]; });
+  var soBase = (base.leituras || []).filter(function(l) { return l && l.id && !idsOutro[l.id]; });
+  var naoRide = soOutro.concat(soBase).some(function(l) { return l.tipo !== 'ride'; });
+  var resto = function(o) {
+    var c = {};
+    Object.keys(o).forEach(function(k) {
+      if (k === 'leituras' || k === 'total' || k === 'parcial' || k === 'dataUltima' || k.charAt(0) === '_') return;
+      c[k] = o[k];
+    });
+    return _assinatura(c);
+  };
+  var odo = JSON.parse(JSON.stringify(base));
+  Object.keys(outro).forEach(function(k) {
+    if (k.indexOf('_migracao') === 0 && outro[k] && !odo[k]) odo[k] = outro[k];
+  });
+  if (!Array.isArray(odo.leituras)) odo.leituras = [];
+  // `leituras` e log de APLICACAO: os pedais do outro lado entram como aplicados agora.
+  soOutro.filter(function(l) { return l.tipo === 'ride'; }).reverse().forEach(function(l) {
+    var d = Number(l.delta) || 0;
+    odo.total = Math.round(((Number(odo.total) || 0) + d) * 100) / 100;
+    odo.parcial = Math.round(((Number(odo.parcial) || 0) + d) * 100) / 100;
+    odo.leituras.unshift(JSON.parse(JSON.stringify(l)));
+    if (l.data && (!odo.dataUltima || new Date(l.data) > new Date(odo.dataUltima))) odo.dataUltima = l.data;
+  });
+  return { odo: odo, pendente: naoRide || resto(base) !== resto(outro) };
+}
+
+var _ROTULO_CAMPO = { perfil: 'Perfil', plano: 'Plano antigo', planoRascunho: 'Plano antigo',
+                      planoInicio: 'Plano antigo', ciclos: 'Ciclos' };
+
+// `preferido` decide os campos que divergiram de verdade; `outro` contribui registros e o que
+// for unanime. Devolve o estado unido, a lista do que precisaria de escolha e o que veio do outro.
+function _mesclarEstados(preferido, outro) {
+  var A = stripUIFields(JSON.parse(JSON.stringify(preferido || {})));
+  var B = stripUIFields(JSON.parse(JSON.stringify(outro || {})));
+  var bMaisNovo = _carimboT(B) > _carimboT(A);
+  var m = A, pend = [];
+
+  var rem = {};
+  ['history', 'bikeHistory'].forEach(function(t) {
+    var l = [].concat((A._removidos || {})[t] || [], (B._removidos || {})[t] || []);
+    rem[t] = l.filter(function(v, i) { return l.indexOf(v) === i; });
+  });
+  var idsA = { history: _idsDe(A.history), bikeHistory: _idsDe(A.bikeHistory) };
+  var idsB = { history: _idsDe(B.history), bikeHistory: _idsDe(B.bikeHistory) };
+  var novos = { history: 0, bikeHistory: 0, removidos: 0 };
+  ['history', 'bikeHistory'].forEach(function(t) {
+    novos[t] = (B[t] || []).filter(function(r) {
+      return r && r.id && !idsA[t][r.id] && rem[t].indexOf(r.id) < 0;
+    }).length;
+  });
+  novos.removidos = rem.history.length + rem.bikeHistory.length -
+    (((A._removidos || {}).history || []).length + ((A._removidos || {}).bikeHistory || []).length);
+
+  m.history = _unirRegistros(A.history, B.history, rem.history, bMaisNovo);
+  m.bikeHistory = _unirRegistros(A.bikeHistory, B.bikeHistory, rem.bikeHistory, bMaisNovo);
+  if (rem.history.length || rem.bikeHistory.length) m._removidos = rem;
+
+  // Biblioteca: exercicios dos treinos que so um dos lados tinha.
+  var nomes = {};
+  var marca = function(lista, ids) {
+    (lista || []).forEach(function(r) {
+      if (!r || !r.id || ids[r.id]) return;
+      (r.exercises || []).forEach(function(e) {
+        if (e.status === 'done' && e.name) nomes[String(e.name).trim().toLowerCase()] = true;
+      });
+    });
+  };
+  marca(A.history, idsB.history);
+  marca(B.history, idsA.history);
+  var serA = JSON.parse(JSON.stringify(A.series || [])), serB = JSON.parse(JSON.stringify(B.series || []));
+  _ressincronizarSeries(serA, m.history, nomes);
+  _ressincronizarSeries(serB, m.history, nomes);
+  m.series = serA;
+  if (_assinatura(serA) !== _assinatura(serB)) pend.push('Biblioteca');
+
+  if (A.bikeOdo || B.bikeOdo) {
+    var od = _mesclarOdometro(A.bikeOdo, B.bikeOdo);
+    m.bikeOdo = od.odo;
+    if (od.pendente) pend.push('Bike (odômetro e componentes)');
+  }
+
+  var vistos = {};
+  Object.keys(A).concat(Object.keys(B)).forEach(function(k) {
+    if (vistos[k]) return;
+    vistos[k] = true;
+    if (['history', 'bikeHistory', 'series', 'bikeOdo', '_removidos', '_updatedAt', '_syncBase'].indexOf(k) >= 0) return;
+    var va = A[k], vb = B[k];
+    if (_assinatura(va) === _assinatura(vb)) return;
+    if (k.indexOf('_migracao') === 0) { m[k] = va || vb; return; }
+    if (_MESCLA_UNIAO_OBJ.indexOf(k) >= 0) { m[k] = Object.assign({}, vb || {}, va || {}); return; }
+    if (_MESCLA_TRANSITORIOS.indexOf(k) >= 0) {
+      var v = bMaisNovo ? vb : va;
+      if (v === undefined) delete m[k]; else m[k] = v;
+      return;
+    }
+    var rot = _ROTULO_CAMPO[k] || k;
+    if (pend.indexOf(rot) < 0) pend.push(rot);
+  });
+
+  return { estado: m, pendencias: pend, novos: novos };
+}
+
+function _pendenciasConflito(nuvemState) {
+  if (!nuvemState) return '';
+  try { return _mesclarEstados(state, nuvemState).pendencias.join(', '); } catch (e) { return ''; }
+}
+
+// Divergencia detectada (leitura ou envio). Sem pendencia, junta e sobe sozinho; com pendencia,
+// abre a escolha — e a escolha tambem preserva os registros dos dois lados.
+function _tentarMesclar(nuvemState, nuvemISO) {
+  if (typeof nuvemState === 'string') { try { nuvemState = JSON.parse(nuvemState); } catch (e) { nuvemState = null; } }
+  if (!nuvemState || !nuvemISO) { _registrarConflito(nuvemISO); return false; }
+  var r;
+  try { r = _mesclarEstados(state, nuvemState); } catch (e) {
+    console.warn('mescla falhou:', e);
+    _registrarConflito(nuvemISO);
+    return false;
+  }
+  // Trava contra laco: se a nuvem mudar de novo a cada envio, para e pergunta.
+  if (r.pendencias.length || _mesclasSeguidas >= 3) { _registrarConflito(nuvemISO, r.pendencias); return false; }
+  _mesclasSeguidas++;
+  var uiLocal = capturarUIFields();
+  state = Object.assign(loadState(), r.estado);
+  restaurarUIFields(uiLocal);
+  state._syncBase = nuvemISO;
+  state._updatedAt = new Date().toISOString();
+  saveState(true);
+  _lastDataSig = _assinatura(buildCloudPayload());
+  _lastCloudSig = null;
+  planoChatHistory = state.planoChatHistory || [];
+  var partes = [];
+  if (r.novos.history) partes.push(r.novos.history + ' treino(s)');
+  if (r.novos.bikeHistory) partes.push(r.novos.bikeHistory + ' pedal(is)');
+  if (r.novos.removidos > 0) partes.push(r.novos.removidos + ' exclus\u00e3o(\u00f5es)');
+  var txt = partes.length ? partes.join(', ') + ' de outro aparelho' : 'altera\u00e7\u00f5es de outro aparelho';
+  _logSync('mesclado', txt);
+  try { _reRenderAposNuvem(); } catch (e) { console.warn('re-render apos mescla:', e); }
+  toast('Juntado: ' + txt + ' \u2713');
+  supabaseSave();
+  return true;
+}
+
+async function _conflitoNoEnvio(dbu, atual) {
+  var leitura = null;
+  try {
+    var q = await supabaseWithTimeout(function() {
+      return dbu.from('user_data').select('state, updated_at').eq('id', _supabaseUser.id).limit(1);
+    }, 8000);
+    if (!q.error && q.data && q.data[0]) leitura = q.data[0];
+  } catch (e) { console.warn('leitura para mescla falhou:', e); }
+  if (!leitura) { _registrarConflito(atual); return; }
+  _tentarMesclar(leitura.state, leitura.updated_at);
 }
 
 function updateDbStamp() {
